@@ -1,5 +1,5 @@
 * composing a scene (tree) scene graph
-interactivity (mouse/touch)
+* interactivity (mouse/touch)
 adding textures to objects
 camera acrobatics
 importing a model (model loading)
