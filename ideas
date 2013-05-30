@@ -2,7 +2,7 @@
 * interactivity (mouse/touch)
 * adding textures to objects
 camera acrobatics
-importing a model (model loading)
+* importing a model (model loading)
 animating other objects
 matrices and quaternions
 particles (purdy)
