@@ -111,7 +111,7 @@ function render() {
   canvasTexture.needsUpdate = true;
   context.fillStyle = "white";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  // context.drawImage(video, 0, 0);
+  // context.drawImage(video, 0, 0);  
   context.fillStyle = "#ff0077";
   context.fillRect((30 + time) % 400, (30 + time) % 400, 200, 200);
   icosahedron.rotation.x += 0.01;
