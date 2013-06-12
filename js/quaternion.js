@@ -191,7 +191,7 @@ function clearPath() {
 
 function interpolate(path, state) {
   // we can't interpolate if we don't have at least two points!
-  if (path.length < 2) {return};
+  if (state.state === "none" || path.length < 2) {return};
   var place, target;
 
   function placeTarget() {
