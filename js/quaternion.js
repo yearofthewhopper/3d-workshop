@@ -195,8 +195,16 @@ function interpolate(path, state) {
   var place, target;
 
   function placeTarget() {
+    if (state.progress < 0) {
+      state.progress = path.length - 1;
+    }
+    var targetIndex = state.progress - 1;
+    if (targetIndex < 0) {
+      targetIndex = path.length - 1;
+    }
+
     place = path[state.progress];
-    target = path[state.progress - 1];
+    target = path[targetIndex];
   }
 
   function resetState() {
@@ -211,6 +219,7 @@ function interpolate(path, state) {
     state.progress -= 1;
     state.step = 0;
   }
+  
   placeTarget();
   if (!place || !target) {
     resetState();
