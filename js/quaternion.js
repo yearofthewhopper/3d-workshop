@@ -113,34 +113,17 @@ function loadObj(objFile) {
     obj.scale.set(0.1, 0.1, 0.1);
     obj.rotation.copy(objRotation);
     obj.quaternion.copy(objQuaternion);
-    // obj.rotation.y = THREE.Math.degToRad(45);
     applyMaterial(obj);
 
-    // start the animation loop, the truck is ready!
     animate();
   });
 
   objLoader.load(objFile);
 }
 
-// add a material to the truck
 function applyMaterial(obj) {
-
-  // Create the cube environment map texture.
-  // var baseUrl = "img/env/swedish_castle/";
-  // var urls = [ "img/reef2.jpg", "img/reef2.jpg", "img/reef2.jpg", "img/reef2.jpg", "img/reef2.jpg", "img/reef2.jpg" ];
-  // var urls = [ baseUrl + "px.jpg", baseUrl + "nx.jpg",
-  //              baseUrl + "py.jpg", baseUrl + "ny.jpg",
-  //              baseUrl + "pz.jpg", baseUrl + "nz.jpg" ];
-  // var textureCube = THREE.ImageUtils.loadTextureCube( urls );
-
-  // Create the material.
   var material = new THREE.MeshPhongMaterial( 
-    { 
-      // map :           THREE.ImageUtils.loadTexture("img/ladybird/thorax.jpg"),
-      // specularMap :   THREE.ImageUtils.loadTexture("img/truck/truck_refl.jpg"),
-      // envMap :        textureCube,
-      map :           THREE.ImageUtils.loadTexture("img/reef2.jpg"),
+    { map :           THREE.ImageUtils.loadTexture("img/reef2.jpg"),
       reflectivity :  0.8,
       combine :       THREE.AddOperation,
       shininess:      50
@@ -204,10 +187,6 @@ function plantWaypost() {
 
 function clearPath() {
   path = [{quaternion: new THREE.Quaternion(), rotation: new THREE.Vector3()}];
-}
-
-function interpolateRotation(path, state) {
-
 }
 
 function interpolate(path, state) {
