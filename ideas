@@ -1,12 +1,13 @@
 * composing a scene (tree) scene graph
 * interactivity (mouse/touch)
 * adding textures to objects
-camera acrobatics
+* video on surface
+* camera acrobatics
 * importing a model (model loading)
+* matrices and quaternions
+landscape generation
 animating other objects
-matrices and quaternions
 particles (purdy)
 shaders
 physics
 model design
-video on surface

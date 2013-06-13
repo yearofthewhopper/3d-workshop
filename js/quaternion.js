@@ -240,7 +240,7 @@ function interpolate(path, state) {
 
     var placeCopy = new THREE.Vector3().copy(place.rotation);
     var targetCopy = new THREE.Vector3().copy(target.rotation);
-    state.rotation = placeCopy.multiplyScalar(1 - angle).add(targetCopy.multiplyScalar(angle))
+    state.rotation = placeCopy.multiplyScalar(1 - angle).add(targetCopy.multiplyScalar(angle));
     objRotation.copy(state.rotation);
     objQuaternion.setFromEuler(objRotation);
     obj.useQuaternion = false;
