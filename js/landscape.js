@@ -55,19 +55,19 @@ function init() {
   window.addEventListener('resize', onResize, false);
 
   groundMaterial = new THREE.MeshLambertMaterial({
-    // map: THREE.ImageUtils.loadTexture("img/birth.jpg")
+    // map: THREE.ImageUtils.loadTexture("img/birth.jpg"),
     shading: 1,
     color: 0xaaaaaa
   });
   
-  groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 8, 8 );
+  groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 11, 11 );
   // for (var i = 0; i < groundGeometry.vertices.length; i++) {
   //   groundGeometry.vertices[i].z = (i % 256) * 0.1;
   // }
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   
   // rotate the ground plane so it's horizontal
-  ground.rotation.x = THREE.Math.degToRad(-90);
+  ground.rotation.x = Math.PI * 1.5;
   ground.position.set(15, -50, 200);
   ground.castShadow = false;
   ground.receiveShadow = true;
@@ -89,8 +89,9 @@ function makeBump(plane, vertex, height) {
     plane.vertices[j].z = Math.sin(bump * 0.01) * height;
   }
   
-  // plane.computeVertexNormals();
   plane.computeFaceNormals();
+  plane.computeVertexNormals();
+  plane.normalsNeedUpdate = true;
   plane.verticesNeedUpdate = true;
 }
 
@@ -127,7 +128,7 @@ function animate() {
 function render() {
   time++;
   camera.position.x += ( (mouseX * 50 )- camera.position.x ) * .05;
-  makeBump(groundGeometry, new THREE.Vector3(Math.cos(time*0.01)*100, Math.sin(time*0.01)*100, 0), 100);
+  makeBump(groundGeometry, new THREE.Vector3(Math.cos(time*0.02)*100, Math.sin(time*0.02)*100, 0), 100);
   // camera.position.y += ( -(mouseY * 20 - 30) - camera.position.y ) * .05;
   camera.lookAt(scene.position);
   renderer.render(scene, camera);

@@ -7,6 +7,7 @@ var mouse, time;
 var mouseX = 0;
 var mouseY = 0;
 var ground, groundGeometry, groundMaterial;
+var controls;
 
 function init() {
   element = document.getElementById('workshop');
@@ -32,7 +33,6 @@ function init() {
 
   scene.add(point);
 
-  time = 0;
   mouse = new THREE.Vector2(0, 0);
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
   aspectRatio = window.innerWidth / window.innerHeight;
@@ -46,6 +46,7 @@ function init() {
   renderer.shadowMapEnabled = true;
   renderer.shadowMapType = THREE.PCFShadowMap;
   element.appendChild(renderer.domElement);
+  // controls = new THREE.FirstPersonControls(camera, renderer.domElement);
 
   document.addEventListener('keydown', onKeyDown, false);
   document.addEventListener('keyup', onKeyUp, false);
@@ -67,6 +68,8 @@ function init() {
   ground.castShadow = false;
   ground.receiveShadow = true;
   scene.add(ground);
+
+  time = Date.now();
 }
 
 function onResize() {
@@ -100,9 +103,10 @@ function animate() {
 }
 
 function render() {
-  time++;
-  camera.position.x += ( (mouseX * 50 )- camera.position.x ) * .05;
-  camera.position.y += ( -(mouseY * 20 - 30) - camera.position.y ) * .05;
+  var past = time;
+  time = Date.now();
+  var delta = time - past;
+  // controls.update(delta);
   camera.lookAt(scene.position);
   renderer.render(scene, camera);
 }
