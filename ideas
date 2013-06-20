@@ -5,9 +5,10 @@
 * camera acrobatics
 * importing a model (model loading)
 * matrices and quaternions
-landscape generation
+* landscape generation
+apply shader to landscape
+put character in landscape
+physics
 animating other objects
 particles (purdy)
-shaders
-physics
 model design

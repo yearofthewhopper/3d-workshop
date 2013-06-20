@@ -36,9 +36,10 @@ function init() {
   mouse = new THREE.Vector2(0, 0);
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
   aspectRatio = window.innerWidth / window.innerHeight;
-  cameraDistance = 400;
+  cameraDistance = 800;
   camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 1000);
   camera.position.z = cameraDistance;
+  camera.position.y = 200;
   camera.lookAt(scene.position);
 
   renderer = new THREE.WebGLRenderer();
@@ -53,20 +54,44 @@ function init() {
   document.addEventListener('mousemove', onMouseMove, false);
   window.addEventListener('resize', onResize, false);
 
-  groundMaterial = new THREE.MeshBasicMaterial({
-    map: THREE.ImageUtils.loadTexture("img/birth.jpg")
-    // color: 0xffffff
+  groundMaterial = new THREE.MeshLambertMaterial({
+    // map: THREE.ImageUtils.loadTexture("img/birth.jpg")
+    shading: 1,
+    color: 0xaaaaaa
   });
   
-  groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
+  groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 8, 8 );
+  // for (var i = 0; i < groundGeometry.vertices.length; i++) {
+  //   groundGeometry.vertices[i].z = (i % 256) * 0.1;
+  // }
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   
   // rotate the ground plane so it's horizontal
-  ground.rotation.x = Math.PI * 1.5;
+  ground.rotation.x = THREE.Math.degToRad(-90);
   ground.position.set(15, -50, 200);
   ground.castShadow = false;
   ground.receiveShadow = true;
   scene.add(ground);
+}
+
+function getVertex(plane, x, y) {
+  var limit = plane.heightSegments;
+  var vertexIndex = x + y * (limit + 1);
+  return plane.vertices[vertexIndex];
+}
+
+function makeBump(plane, vertex, height) {
+  for (var j = 0; j < plane.vertices.length; j++) {
+    plane.vertices[j].z = 0;
+    var distance = plane.vertices[j].distanceTo(vertex);
+    var bump = height - distance;
+    // plane.vertices[j].z = bump >= 0 ? bump : 0;
+    plane.vertices[j].z = Math.sin(bump * 0.01) * height;
+  }
+  
+  // plane.computeVertexNormals();
+  plane.computeFaceNormals();
+  plane.verticesNeedUpdate = true;
 }
 
 function onResize() {
@@ -102,7 +127,8 @@ function animate() {
 function render() {
   time++;
   camera.position.x += ( (mouseX * 50 )- camera.position.x ) * .05;
-  camera.position.y += ( -(mouseY * 20 - 30) - camera.position.y ) * .05;
+  makeBump(groundGeometry, new THREE.Vector3(Math.cos(time*0.01)*100, Math.sin(time*0.01)*100, 0), 100);
+  // camera.position.y += ( -(mouseY * 20 - 30) - camera.position.y ) * .05;
   camera.lookAt(scene.position);
   renderer.render(scene, camera);
 }
