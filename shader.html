@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Workshop</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+      body {
+      font-family: Monospace;
+      background-color: #000;
+      color: #000;
+      margin: 0px;
+      overflow: hidden;
+      }
+      #info {
+      color: #000;
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      z-index: 100;
+      display:block;
+      }
+      #info a, .button { color: #f00; font-weight: bold; text-decoration: underline; cursor: pointer }
+    </style>
+  </head>
+
+  <body>
+    
+    <div id="workshop"></div>
+
+    <script src="/js/three.min.r58.js"></script>
+    <script src="/js/OBJLoader.js"></script>
+    <script src="/js/FirstPersonControls.js"></script>
+    <script src="/js/shader.js"></script>
+  </body>
+</html>
+
+<script id="vertex-basic" type="x-shader/x-vertex">
+  varying vec3 vNormal;
+  void main()
+  {
+    vNormal = normal;
+    gl_Position = vec4(position, 1.0);
+  }
+</script>
+
+<script id="vertex-sphere" type="x-shader/x-vertex">
+  varying vec3 vNormal;
+  void main()
+  {
+    vNormal = normal;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // gl_Position = vec4(position, 1.0);
+  }
+</script>
+
+<script id="fragment-gradient" type="x-shader/x-fragment">
+  #ifdef GL_ES
+  precision highp float;
+  #endif
+
+  uniform vec2 resolution;
+  uniform vec2 mouse;
+  uniform float time;
+  varying vec3 vNormal;
+  vec2 position = gl_FragCoord.xy / resolution;
+
+  void main() {
+    gl_FragColor = vec4(position.x, position.y, (1.0 - position.x), 1.0);
+  }
+</script>
+
+<script id="fragment-mouse-gradient" type="x-shader/x-fragment">
+  #ifdef GL_ES
+  precision highp float;
+  #endif
+
+  uniform vec2 resolution;
+  uniform vec2 mouse;
+  uniform float time;
+  varying vec3 vNormal;
+  vec2 position = gl_FragCoord.xy / resolution;
+
+  void main() {
+    vec3 light = vec3(mouse.x, 1.0 - mouse.y, 1.0);
+    light = normalize(light);
+    float reflection = max(0.0, dot(light, vNormal));
+    gl_FragColor = vec4(position.x, position.y, (1.0 - position.x), 1.0) * reflection;
+  }
+</script>
+
+<script id="fragment-shifting" type="x-shader/x-fragment">
+  #ifdef GL_ES
+  precision highp float;
+  #endif
+
+  vec2 fitPlane(vec2 positive) {
+    return positive * 2.0 - 1.0;
+  }
+
+  float fitPositive(float plane) {
+    return plane * 0.5 + 0.5;
+  }
+
+  uniform vec2 resolution;
+  uniform vec2 mouse;
+  uniform float time;
+  varying vec3 vNormal;
+
+  vec2 position = fitPlane(gl_FragCoord.xy / resolution);
+  vec2 clock = vec2(sin(time*3.0), cos(time*3.0));
+  float progress = dot(clock, position) * 0.5 + 0.5;
+
+  void main() {
+    vec3 light = vec3(mouse.x, 1.0 - mouse.y, 1.0);
+    light = normalize(light);
+    float reflection = max(0.0, dot(light, vNormal));
+    gl_FragColor = vec4(progress, 1.0 - progress, 0.0, 1.0) * reflection;
+  }
+</script>
+
+<script id="fragment-orb" type="x-shader/x-fragment">
+  #ifdef GL_ES
+  precision highp float;
+  #endif
+
+  uniform vec2 resolution;
+  uniform vec2 mouse;
+  uniform float time;
+
+  float huetorgb(float v1, float v2, float vH)
+  {
+	  float ret;
+    if ( vH < 0.0 )
+      vH += 1.0;
+    if ( vH > 1.0 )
+      vH -= 1.0;
+    if ( ( 6.0 * vH ) < 1.0 )
+      ret = ( v1 + ( v2 - v1 ) * 6.0 * vH );
+    else if ( ( 2.0 * vH ) < 1.0 )
+      ret = ( v2 );
+    else if ( ( 3.0 * vH ) < 2.0 )
+      ret = ( v1 + ( v2 - v1 ) * ( ( 2.0 / 3.0 ) - vH ) * 6.0 );
+    else
+      ret = v1;
+    return ret;
+  }
+
+  vec3 rgbtohsl(vec3 rgb)
+  {
+    float Cmax, Cmin;
+    float D;
+    float H, S, L;
+    float R, G, B;
+
+    R = rgb.r;
+    G = rgb.g;
+    B = rgb.b;
+
+    // convert to HSL
+
+    Cmax = max (R, max (G, B));
+    Cmin = min (R, min (G, B));
+
+    L = (Cmax + Cmin) / 2.0;
+
+    if (Cmax == Cmin) {
+		  H = 0.0; // it's actually undefined
+		  S = 0.0;
+    } else {
+      D = Cmax - Cmin; // we know D != 0 so we cas safely divide by it
+
+      // calculate Saturation
+      if (L < 0.5) {
+        S = D / (Cmax + Cmin);
+      } else {
+        S = D / (2.0 - (Cmax + Cmin));
+      }
+
+      // calculate Hue
+      if (R == Cmax) {
+        H = (G - B) / D;
+		  } else {
+        if (G == Cmax) {
+    	      H = 2.0 + (B - R) /D;
+        } else {
+          H = 4.0 + (R - G) / D;
+        }
+      }
+
+      H = H / 6.0;
+	  }
+
+    if (H < 0.0) {
+	    H = H + 1.0;
+    }
+
+    H = clamp(H, 0.0, 1.0);
+    S = clamp(S, 0.0, 1.0);
+    L = clamp(L, 0.0, 1.0);
+    
+    return vec3(H, S, L);
+  }
+
+  vec3 hsltorgb(vec3 hsl) {
+    float H = hsl.x;
+    float S = hsl.y;
+    float L = hsl.z;
+    float R, G, B;
+    float order, var_1;
+
+    if (S == 0.0) {
+      R = L;
+      G = L;
+      B = L;
+    } else {
+      if ( L < 0.5 ) {
+        order = L * ( 1.0 + S );
+      } else {
+        order = ( L + S ) - ( S * L );
+      }
+
+      var_1 = 2.0 * L - order;
+
+      R = huetorgb( var_1, order, H + ( 1.0 / 3.0 ) );
+      G = huetorgb( var_1, order, H );
+      B = huetorgb( var_1, order, H - ( 1.0 / 3.0 ) );
+    }
+
+    return vec3(R, G, B);
+  }
+
+  void main(void)
+  {
+    vec2 path;
+    path.x = cos(time) * 0.4;
+    path.y = sin(time*1.25) * 0.4;
+    vec2 orbit = (path + 1.0) * resolution.xy / 2.0;
+    vec2 frag = gl_FragCoord.xy;
+    vec2 flect = (mouse + 1.0) * resolution * 0.5;
+    flect.y = resolution.xy.y-flect.y;
+
+    vec2 obelisk = resolution.xy * 0.3;
+    
+    vec3 colorOrbit = vec3(0.5, 1.0, 1.0);
+    vec3 colorMouse = vec3(1.0, 1.0, 1.0);
+    vec3 colorObelisk = vec3(0.0, 1.0, 1.0);
+
+    float radiusOrbit = sqrt(dot(frag - orbit, frag - orbit));
+    float radiusMouse = sqrt(dot(frag - flect, frag - flect));
+    float radiusObelisk = sqrt(dot(frag - obelisk, frag - obelisk));
+
+    float scale = 40.0;
+    float totalPortion = radiusOrbit + radiusMouse + radiusObelisk;
+    float portionOrbit = radiusOrbit / totalPortion;
+    float portionMouse = radiusMouse / totalPortion;
+    float portionObelisk = radiusObelisk / totalPortion;
+    float intensity = (1.0/radiusOrbit+1.0/radiusMouse+1.0/radiusObelisk)*scale;
+    intensity = clamp(intensity, 0.0, 0.7);
+    vec3 blend = colorOrbit*portionOrbit+colorMouse*portionMouse+colorObelisk*portionObelisk;
+    blend = blend*intensity;
+
+    vec3 rgb = hsltorgb(blend);
+    gl_FragColor = vec4(rgb, 1.0);
+  }
+</script>
