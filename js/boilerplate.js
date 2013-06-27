@@ -1,17 +1,45 @@
 var renderer, camera;
-var cameraDistance;
 var scene, element;
 var ambient, point;
 var aspectRatio, windowHalf;
 var mouse, time;
-var mouseX = 0;
-var mouseY = 0;
-var ground, groundGeometry, groundMaterial;
-var controls;
 
-function init() {
-  element = document.getElementById('workshop');
-  scene = new THREE.Scene();
+var controls;
+var clock;
+
+var ground, groundGeometry, groundMaterial;
+
+
+function initScene() {
+  clock = new THREE.Clock();
+  mouse = new THREE.Vector2(0, 0);
+
+  windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
+  aspectRatio = window.innerWidth / window.innerHeight;
+  
+  scene = new THREE.Scene();  
+
+  camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 10000);
+  camera.position.z = 400;
+  camera.lookAt(scene.position);
+
+  // Initialize the renderer
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMapEnabled = true;
+  renderer.shadowMapType = THREE.PCFShadowMap;
+
+  element = document.getElementById('viewport');
+  element.appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera);
+  
+  time = Date.now();
+}
+
+
+function initLights(){
+
   ambient = new THREE.AmbientLight(0x001111);
   scene.add(ambient);
 
@@ -32,31 +60,12 @@ function init() {
   point.shadowMapHeight = 1024;
 
   scene.add(point);
+}
 
-  mouse = new THREE.Vector2(0, 0);
-  windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
-  aspectRatio = window.innerWidth / window.innerHeight;
-  cameraDistance = 400;
-  camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 1000);
-  camera.position.z = cameraDistance;
-  camera.lookAt(scene.position);
 
-  renderer = new THREE.WebGLRenderer();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMapEnabled = true;
-  renderer.shadowMapType = THREE.PCFShadowMap;
-  element.appendChild(renderer.domElement);
-  // controls = new THREE.FirstPersonControls(camera, renderer.domElement);
-
-  document.addEventListener('keydown', onKeyDown, false);
-  document.addEventListener('keyup', onKeyUp, false);
-  document.addEventListener('mousedown', onMouseDown, false);
-  document.addEventListener('mousemove', onMouseMove, false);
-  window.addEventListener('resize', onResize, false);
-
+function initGeometry(){
   groundMaterial = new THREE.MeshBasicMaterial({
     map: THREE.ImageUtils.loadTexture("img/birth.jpg")
-    // color: 0xffffff
   });
   
   groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
@@ -67,10 +76,24 @@ function init() {
   ground.position.set(15, -50, 200);
   ground.castShadow = false;
   ground.receiveShadow = true;
-  scene.add(ground);
 
-  time = Date.now();
+  scene.add(ground);
 }
+
+
+function init(){
+  document.addEventListener('keydown', onKeyDown, false);
+  document.addEventListener('keyup', onKeyUp, false);
+  document.addEventListener('mousedown', onMouseDown, false);
+  document.addEventListener('mousemove', onMouseMove, false);
+
+  window.addEventListener('resize', onResize, false);
+
+  initScene();
+  initLights();
+  initGeometry();
+}
+
 
 function onResize() {
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
@@ -80,36 +103,37 @@ function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+
 function onMouseMove(event) {
-  mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
-  mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
+  mouse.set( (event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2);
 }
+
 
 function onMouseDown(event) {
-
 }
+
 
 function onKeyDown(event) {
-
 }
+
 
 function onKeyUp(event) {
-
 }
+
 
 function animate() {
   requestAnimationFrame(animate);
   render();
 }
 
+
 function render() {
-  var past = time;
-  time = Date.now();
-  var delta = time - past;
-  // controls.update(delta);
-  camera.lookAt(scene.position);
+  var delta = clock.getDelta();
+  time += delta;
+  controls.update();
   renderer.render(scene, camera);
 }
+
 
 window.onload = function() {
   init();
