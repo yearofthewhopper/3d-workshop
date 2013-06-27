@@ -6,6 +6,8 @@ var aspectRatio, windowHalf;
 var mouse, time;
 var controls;
 
+var groundMaterial;
+
 var context2d;
 var sourceImage;
 
@@ -15,14 +17,11 @@ var chumbo = 0;
 var uniforms;
 var animateLight = false;
 
-function calculateNormals() {
-
-}
 
 function init() {
 
-  layerTextures.push( THREE.ImageUtils.loadTexture("img/terrain/tile_dirt.png") );
   layerTextures.push( THREE.ImageUtils.loadTexture("img/terrain/tile_grass.png") );
+  layerTextures.push( THREE.ImageUtils.loadTexture("img/terrain/tile_dirt.png") );
   layerTextures.push( THREE.ImageUtils.loadTexture("img/terrain/tile_rock.png") );
 
   // set layer textures so they wrap in both dimensions since they'll be repeating.
@@ -121,7 +120,6 @@ function init() {
     "uniform vec3 light_pos;",
     
     "void main() {",
-
     "  float height = texture2D( heightmap, vUv ).r;",
     "  vec2 texPos = vUv * repeat;",
     "  vec3 norm = (texture2D(normalmap, vUv).rgb - vec3(0.5,0.5,0.5)) * 2.0;",
@@ -130,7 +128,7 @@ function init() {
     "  if(light == 0){ angle = 1.0; }",
 
     "  if(height < 0.5) {",
-    "    gl_FragColor = mix( texture2D( tex0, texPos ), texture2D( tex1, texPos), (height * 2.0) ) * angle;",
+    "    gl_FragColor = mix( texture2D( tex0, texPos ), texture2D( tex1, texPos), pow((height * 2.0), 8.0) ) * angle;",
     "  } else {",
     "    gl_FragColor = mix( texture2D( tex1, texPos ), texture2D( tex2, texPos), (height - 0.5) * 2.0 ) * angle;",
     "  }",
@@ -138,7 +136,7 @@ function init() {
   ].join("\n");
 
   var groundGeometry = new THREE.PlaneGeometry(1024, 1024, 256, 256);
-  var groundMaterial = new THREE.ShaderMaterial({
+  groundMaterial = new THREE.ShaderMaterial({
     uniforms: uniforms,
     vertexShader: vertex_shader,
     fragmentShader: fragment_shader}
@@ -223,31 +221,29 @@ function wireControl(param, options){
 
   switch(uniforms[param].type){
     case "f":
-      var slider = document.createElement("input");
-      slider.type = "range";
-      slider.min = options.min ? options.min : 0;
-      slider.max = options.max ? options.max : 1;
-      slider.value = uniforms[param].value;
-      slider.name = param;
-      var _p = param;
-      slider.addEventListener("change", function(event){
-        uniforms[param].value = slider.value;
+      var ctrl = document.createElement("input");
+      ctrl.type = "range";
+      ctrl.min = options.min ? options.min : 0;
+      ctrl.max = options.max ? options.max : 1;
+      ctrl.value = uniforms[param].value;
+      ctrl.name = param;
+      ctrl.addEventListener("change", function(event){
+        uniforms[param].value = ctrl.value;
       })
-      container.appendChild(slider);
+      container.appendChild(ctrl);
     break;
 
     case "i":
-      var slider = document.createElement("input");
-      slider.type = "number";
-      slider.min = options.min ? options.min : 0;
-      slider.max = options.max ? options.max : 1;
-      slider.value = uniforms[param].value;
-      slider.name = param;
-      var _p = param;
-      slider.addEventListener("change", function(event){
-        uniforms[param].value = slider.value;
+      var ctrl = document.createElement("input");
+      ctrl.type = "number";
+      ctrl.min = options.min ? options.min : 0;
+      ctrl.max = options.max ? options.max : 1;
+      ctrl.value = uniforms[param].value;
+      ctrl.name = param;
+      ctrl.addEventListener("change", function(event){
+        uniforms[param].value = ctrl.value;
       })
-      container.appendChild(slider);
+      container.appendChild(ctrl);
     break;
   }
 

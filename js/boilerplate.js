@@ -11,14 +11,14 @@ var ground, groundGeometry, groundMaterial;
 
 
 function initScene() {
-  
   clock = new THREE.Clock();
-  scene = new THREE.Scene();  
   mouse = new THREE.Vector2(0, 0);
 
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
   aspectRatio = window.innerWidth / window.innerHeight;
   
+  scene = new THREE.Scene();  
+
   camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 10000);
   camera.position.z = 400;
   camera.lookAt(scene.position);
@@ -86,6 +86,7 @@ function init(){
   document.addEventListener('keyup', onKeyUp, false);
   document.addEventListener('mousedown', onMouseDown, false);
   document.addEventListener('mousemove', onMouseMove, false);
+
   window.addEventListener('resize', onResize, false);
 
   initScene();
@@ -107,16 +108,16 @@ function onMouseMove(event) {
   mouse.set( (event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2);
 }
 
-function onMouseDown(event) {
 
+function onMouseDown(event) {
 }
+
 
 function onKeyDown(event) {
-
 }
 
-function onKeyUp(event) {
 
+function onKeyUp(event) {
 }
 
 
@@ -125,12 +126,14 @@ function animate() {
   render();
 }
 
+
 function render() {
   var delta = clock.getDelta();
   time += delta;
   controls.update();
   renderer.render(scene, camera);
 }
+
 
 window.onload = function() {
   init();
