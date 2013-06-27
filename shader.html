@@ -32,7 +32,7 @@
     <script src="/js/three.min.r58.js"></script>
     <script src="/js/OBJLoader.js"></script>
     <script src="/js/FirstPersonControls.js"></script>
-    <script src="/js/shader.js"></script>
+    <script src="/js/sphere-shader.js"></script>
   </body>
 </html>
 
@@ -51,7 +51,6 @@
   {
     vNormal = normal;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    // gl_Position = vec4(position, 1.0);
   }
 </script>
 
@@ -67,7 +66,7 @@
   vec2 position = gl_FragCoord.xy / resolution;
 
   void main() {
-    gl_FragColor = vec4(position.x, position.y, (1.0 - position.x), 1.0);
+    gl_FragColor = vec4(cos(position.x * 30.0) * 0.5 + 0.5, position.y, sin(time), mouse.y); //position.y, (1.0 - position.x), 1.0);
   }
 </script>
 

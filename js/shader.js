@@ -18,8 +18,9 @@ function init() {
 
   material = new THREE.ShaderMaterial({
     uniforms: uniforms,
+    transparent: true,
     vertexShader: document.getElementById('vertex-basic').textContent,
-    fragmentShader: document.getElementById('fragment-gradient').textContent
+    fragmentShader: document.getElementById('fragment-shifting').textContent
   });
 
   mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
