@@ -34,7 +34,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 	this.minDistance = 0;
 	this.maxDistance = Infinity;
 
-	this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
+	this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, IN: 73, OUT: 79 };
+  this.previousKey = 0;
+  this.navigationScale = this.userPanSpeed;
+  this.navigationAcceleration = 1.03;
 
 	// internals
 
@@ -140,11 +143,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 	this.pan = function ( distance ) {
 
 		distance.transformDirection( this.object.matrix );
-		distance.multiplyScalar( scope.userPanSpeed );
+		distance.multiplyScalar( scope.navigationScale );
 
 		this.object.position.add( distance );
 		this.center.add( distance );
-
 	};
 
 	this.update = function () {
@@ -335,19 +337,32 @@ THREE.OrbitControls = function ( object, domElement ) {
 		if ( scope.enabled === false ) return;
 		if ( scope.userPan === false ) return;
 
+    if ( event.keyCode === scope.previousKey ) {
+      scope.navigationScale *= scope.navigationAcceleration;
+    } else {
+      scope.navigationScale = scope.userPanSpeed;
+    }
+    scope.previousKey = event.keyCode;
+
 		switch ( event.keyCode ) {
 
 			case scope.keys.UP:
 				scope.pan( new THREE.Vector3( 0, 1, 0 ) );
 				break;
 			case scope.keys.BOTTOM:
-				scope.pan( new THREE.Vector3( 0, - 1, 0 ) );
+				scope.pan( new THREE.Vector3( 0, -1, 0 ) );
 				break;
 			case scope.keys.LEFT:
-				scope.pan( new THREE.Vector3( - 1, 0, 0 ) );
+				scope.pan( new THREE.Vector3( -1, 0, 0 ) );
 				break;
 			case scope.keys.RIGHT:
 				scope.pan( new THREE.Vector3( 1, 0, 0 ) );
+				break;
+			case scope.keys.IN:
+				scope.pan( new THREE.Vector3( 0, 0, -1 ) );
+				break;
+			case scope.keys.OUT:
+				scope.pan( new THREE.Vector3( 0, 0, 1 ) );
 				break;
 		}
 
