@@ -10,13 +10,16 @@ var clock;
 var ground, groundGeometry, groundMaterial;
 var particles, particleSystem, particleGeometry, particlePositions, particleColors;
 var particleMax, particleDistances, particleCenter, idealColor;
+var cameraDistance;
 
 function initScene() {
   clock = new THREE.Clock();
   mouse = new THREE.Vector2(0, 0);
-  // idealColor = [1.0, 1.0, 0.3];
-  idealColor = [0.3, 1.0, 1.0];
-  inverseColor = [0.4, 0.0, 0.0];
+  outerColor = [0.3, 1.0, 1.0];
+  middleColor = [1.0, 1.0, 0.0];
+  middleColor = [0.4, 0.0, 0.0];
+  innerColor = [0.4, 0.0, 0.0];
+  cameraDistance = 600;
 
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
   aspectRatio = window.innerWidth / window.innerHeight;
@@ -24,7 +27,7 @@ function initScene() {
   scene = new THREE.Scene();  
 
   camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 10000);
-  camera.position.z = 400;
+  camera.position.z = cameraDistance;
   camera.lookAt(scene.position);
 
   // Initialize the renderer
@@ -65,7 +68,6 @@ function initLights(){
   scene.add(point);
 }
 
-
 function initGeometry(){
   groundMaterial = new THREE.MeshBasicMaterial({
     map: THREE.ImageUtils.loadTexture("img/birth.jpg")
@@ -88,9 +90,19 @@ function updateParticleColors() {
     var distance = particleDistances[p/4] / particleMax;
     if (distance > 1 || distance < 0 || isNaN(distance)) console.log(distance);
     inverse = 1 - distance;
-	  particleColors[p]   = idealColor[0] * distance + inverseColor[0] * inverse;
-	  particleColors[p+1] = idealColor[1] * distance + inverseColor[1] * inverse;
-	  particleColors[p+2] = idealColor[2] * distance + inverseColor[2] * inverse;
+
+    inner = inverse * inverse;
+    middle = 2 * distance * inverse;
+    outer = distance * distance
+
+	  particleColors[p]   = outerColor[0] * outer + middleColor[0] * middle + innerColor[0] * inner;
+	  particleColors[p+1] = outerColor[1] * outer + middleColor[1] * middle + innerColor[1] * inner;
+	  particleColors[p+2] = outerColor[2] * outer + middleColor[2] * middle + innerColor[2] * inner;
+
+	  // particleColors[p]   = idealColor[0] * distance + inverseColor[0] * inverse;
+	  // particleColors[p+1] = idealColor[1] * distance + inverseColor[1] * inverse;
+	  // particleColors[p+2] = idealColor[2] * distance + inverseColor[2] * inverse;
+
     particleColors[p+3] = 0.1;
   }
 }
@@ -272,10 +284,12 @@ function render() {
 	particleGeometry.attributes.color.needsUpdate = true;
   particleGeometry.computeBoundingSphere();
 
+  // camera.position.set(Math.sin(time * 0.5) * cameraDistance, 0, Math.cos(time * 0.5) * cameraDistance);
+  // camera.lookAt(scene);
+
   controls.update();
   renderer.render(scene, camera);
 }
-
 
 window.onload = function() {
   init();

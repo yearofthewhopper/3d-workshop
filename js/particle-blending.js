@@ -9,14 +9,21 @@ var clock;
 
 var ground, groundGeometry, groundMaterial;
 var particles, particleSystem, particleGeometry, particlePositions, particleColors;
-var particleMax, particleDistances, particleCenter, idealColor;
+var particleMax, particleDistances, particleCenter, idealColor, inverseColor;
+var outerColor, innerColor, middleColor;
 
 function initScene() {
   clock = new THREE.Clock();
   mouse = new THREE.Vector2(0, 0);
   // idealColor = [1.0, 1.0, 0.3];
-  idealColor = [0.3, 1.0, 1.0];
-  inverseColor = [0.4, 0.0, 0.0];
+  var outer = new THREE.Color(0x1afaff);
+  var inner = new THREE.Color(0x9a1a11);
+  var middle = new THREE.Color(0x1afaff);
+  outerColor = [outer.r, outer.g, outer.b];
+  innerColor = [inner.r, inner.g, inner.b];
+  middleColor = [middle.r, middle.g, middle.b];
+  // idealColor = [0.3, 1.0, 1.0];
+  // inverseColor = [0.4, 0.0, 0.0];
 
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
   aspectRatio = window.innerWidth / window.innerHeight;
@@ -65,7 +72,6 @@ function initLights(){
   scene.add(point);
 }
 
-
 function initGeometry(){
   groundMaterial = new THREE.MeshBasicMaterial({
     map: THREE.ImageUtils.loadTexture("img/birth.jpg")
@@ -84,20 +90,25 @@ function initGeometry(){
 }
 
 function updateParticleColors() {
-  for (var p = 0; p < particles * 4; p+=4) {
-    var distance = particleDistances[p/4] / particleMax;
+  for (var p = 0; p < particles * 3; p+=3) {
+    var distance = particleDistances[p/3] / particleMax;
     if (distance > 1 || distance < 0 || isNaN(distance)) console.log(distance);
     inverse = 1 - distance;
-	  particleColors[p]   = idealColor[0] * distance + inverseColor[0] * inverse;
-	  particleColors[p+1] = idealColor[1] * distance + inverseColor[1] * inverse;
-	  particleColors[p+2] = idealColor[2] * distance + inverseColor[2] * inverse;
+
+    outer = distance * distance;
+    middle = 2 * distance * inverse;
+    inner = inverse * inverse;
+
+	  particleColors[p] = outerColor[0] * outer + innerColor[0] * middle + innerColor[0] * inner;
+	  particleColors[p+1] = outerColor[1] * outer + innerColor[1] * middle + innerColor[1] * inner;
+	  particleColors[p+2] = outerColor[2] * outer + innerColor[2] * middle + innerColor[2] * inner;
     particleColors[p+3] = 0.1;
   }
 }
 
 function initParticles() {
   // add particles
-  particles = 500000;
+  particles = 50000;
   particleCenter = [0, 0, 0];
 
 	particleGeometry = new THREE.BufferGeometry();
@@ -109,18 +120,30 @@ function initParticles() {
 			numItems: particles * 3
 		},
 		color: {
-			itemSize: 4,
-			array: new Float32Array( particles * 4 ),
-			numItems: particles * 4
-		}
+			itemSize: 3,
+			array: new Float32Array( particles * 3 ),
+			numItems: particles * 3
+		},
+    alpha: {
+	    itemSize: 1,
+			array: new Float32Array( particles ),
+			numItems: particles * 1,
+    },
+    size: {
+	    itemSize: 1,
+			array: new Float32Array( particles ),
+			numItems: particles * 1,
+    }
 	}
 
 	particlePositions = particleGeometry.attributes.position.array;
 	particleColors = particleGeometry.attributes.color.array;
+	particleAlphas = particleGeometry.attributes.alpha.array;
+	particleSizes = particleGeometry.attributes.size.array;
+
   particleDistances = new Float32Array(particles);
   particleMax = 0;
   var currentCenter = [0, 0, 0];
-	// var color = new THREE.Color();
 
 	var n = 1000, n2 = n / 2; // particles spread in the cube
 
@@ -140,21 +163,6 @@ function initParticles() {
     currentCenter[0] += particlePositions[i];
     currentCenter[1] += particlePositions[i+1];
     currentCenter[2] += particlePositions[i+2];
-
-		// colors
-		// var vx = ( x / n ) + 0.5;
-		// var vy = ( y / n ) + 0.5;
-		// var vz = ( z / n ) + 0.5;
-
-		// color.setRGB( vx, vy, vz );
-
-		// particleColors[ i ]     = color.r;
-		// particleColors[ i + 1 ] = color.g;
-		// particleColors[ i + 2 ] = color.b;
-
-		// particleColors[ i ]     = 0.7;
-		// particleColors[ i + 1 ] = 0.7;
-		// particleColors[ i + 2 ] = 0;
 	}
   particleCenter[0] = currentCenter[0] / particles;
   particleCenter[1] = currentCenter[1] / particles;
@@ -171,9 +179,28 @@ function initParticles() {
   // }
 	particleGeometry.computeBoundingSphere();
 
-	var material = new THREE.ParticleBasicMaterial({size: 5, vertexColors: true, transparent: true});
-	particleSystem = new THREE.ParticleSystem(particleGeometry, material);
+	// var material = new THREE.ParticleBasicMaterial({size: 5, vertexColors: true, transparent: true});
 
+  var uniforms = {
+    texture: { type: "t", value: THREE.ImageUtils.loadTexture( "img/sprites/circle.png" ) }
+  }
+  var attributes = {
+    // position: { type: 'v3', value: null },
+		color: { type: 'c', value: null },
+    size: {	type: 'f', value: null },
+    alpha: { type: 'f', value: null }
+  };
+  var material = new THREE.ShaderMaterial({
+    uniforms: uniforms,
+    attributes: attributes,
+    vertexShader: document.getElementById( 'vertexshader' ).textContent,
+    fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+    blending: 		THREE.AdditiveBlending,
+		depthTest: 		false,
+		transparent:	true  
+  });
+
+	particleSystem = new THREE.ParticleSystem(particleGeometry, material);
 	scene.add(particleSystem);
 }
 
@@ -231,15 +258,16 @@ function mod(n, d) {
 function updateParticlePositions() {
   particleMax = 0;
   var currentCenter = [0, 0, 0];
+  var spinRate = 0.05;
 
   for (var p = 0; p < particlePositions.length; p += 3) {
     var a = particlePositions[p];
     var b = particlePositions[p+1];
     var c = particlePositions[p+2];
 
-    a += (particlePositions[mod(p + 3, particles)] - a) * 0.2;
-    b += (particlePositions[mod(p + 4, particles)] - b) * 0.2;
-    c += (particlePositions[mod(p + 5, particles)] - c) * 0.2;
+    a += (particlePositions[mod(p + 3, particles)] - a) * spinRate;
+    b += (particlePositions[mod(p + 4, particles)] - b) * spinRate;
+    c += (particlePositions[mod(p + 5, particles)] - c) * spinRate;
 
     var aa = a - particleCenter[0];
     var bb = b - particleCenter[1];
