@@ -284,8 +284,8 @@ function render() {
 	particleGeometry.attributes.color.needsUpdate = true;
   particleGeometry.computeBoundingSphere();
 
-  // camera.position.set(Math.sin(time * 0.5) * cameraDistance, 0, Math.cos(time * 0.5) * cameraDistance);
-  // camera.lookAt(scene);
+  camera.position.set(Math.sin(time * 0.5) * cameraDistance, 0, Math.cos(time * 0.5) * cameraDistance);
+  camera.lookAt(scene);
 
   controls.update();
   renderer.render(scene, camera);
