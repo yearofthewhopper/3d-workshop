@@ -182,7 +182,7 @@ function initParticles() {
 	// var material = new THREE.ParticleBasicMaterial({size: 5, vertexColors: true, transparent: true});
 
   var uniforms = {
-    texture: { type: "t", value: THREE.ImageUtils.loadTexture( "img/sprites/circle.png" ) }
+    texture: { type: "t", value: THREE.ImageUtils.loadTexture( "img/sprites/disc.png" ) }
   }
   var attributes = {
     // position: { type: 'v3', value: null },

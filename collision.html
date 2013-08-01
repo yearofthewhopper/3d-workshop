@@ -29,36 +29,6 @@
     <div id="viewport"></div>
     <script src="/js/three.min.r58.js"></script>
     <script src="/js/OrbitControls.js"></script>
-    <script src="/js/particle-blending.js"></script>
+    <script src="/js/collision.js"></script>
   </body>
 </html>
-
-<script type="x-shader/x-vertex" id="vertexshader">
-  attribute vec3 color;
-  attribute float size;
-  attribute float alpha;
-
-  varying vec3 vColor;
-
-  void main() {
-
-    vColor = color;
-    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-
-    gl_PointSize = 50.0;
-    gl_Position = projectionMatrix * mvPosition;
-  }
-</script>
-
-<script type="x-shader/x-fragment" id="fragmentshader">
-  uniform vec3 color;
-  uniform sampler2D texture;
-
-  varying vec3 vColor;
-
-  void main() {
-    gl_FragColor = vec4( vColor, 0.5 );
-    gl_FragColor = gl_FragColor * texture2D( texture, gl_PointCoord ); 
-  }
-
-</script>
