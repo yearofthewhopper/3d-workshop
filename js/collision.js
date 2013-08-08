@@ -8,8 +8,8 @@ var controls;
 var clock;
 
 var ground, groundGeometry, groundMaterial;
-var ball, ballGeometry, ballMaterial, ballRadius;
-var ray, collision;
+var ball, ballMesh, ballGeometry, ballMaterial, ballRadius;
+var ray, collision, gravity;
 
 function initScene() {
   clock = new THREE.Clock();
@@ -45,14 +45,14 @@ function initLights(){
   scene.add(ambient);
 
   point = new THREE.SpotLight( 0xffffff, 1, 0, Math.PI, 1 );
-  point.position.set( -250, 250, 150 );
+  point.position.set( -450, 450, 150 );
   point.target.position.set( 0, 0, 0 );
 
   // Set shadow parameters for the spotlight.
   point.castShadow = true;
   point.shadowCameraNear = 50;
   point.shadowCameraFar = 1000;
-  point.shadowCameraFov = 50;
+  point.shadowCameraFov = 110;
   point.shadowBias = 0.0001;
   point.shadowDarkness = 0.5;
 
@@ -86,9 +86,15 @@ function initGeometry(){
   ballMaterial = new THREE.MeshLambertMaterial({
     color: 0xcc0000
   });
-  ball = new THREE.Mesh(ballGeometry, ballMaterial);
-  ball.position.z += 100;
+  ballMesh = new THREE.Mesh(ballGeometry, ballMaterial);
+  ballMesh.castShadow = true;
+  ball = new THREE.Object3D();
+  ball.add(ballMesh);
+  ball.position.set(0, 100, 100);
+  ball.velocity = new THREE.Vector3(0, 0, 0);
   scene.add(ball);
+
+  gravity = new THREE.Vector3(0, -0.1, 0);
 }
 
 
@@ -133,7 +139,10 @@ function detectGround() {
   ray = new THREE.Raycaster(ball.position.clone(), downwards);
   collision = ray.intersectObjects([ground]);
   if (collision.length > 0 && collision[0].distance < ballRadius) {
-    console.log(collision);
+    var distance = ballRadius - collision[0].distance;
+    var normal = collision[0].face.normal;
+    ball.position.add(downwards.multiplyScalar(-distance));
+    ball.velocity.reflect(normal);
   }
 }
 
@@ -175,6 +184,9 @@ function render() {
   controls.update();
   makeBump(groundGeometry, new THREE.Vector3(Math.cos(time*2)*100, Math.sin(time*2)*100, 0), 100);
   detectGround();
+  ball.velocity.add(gravity);
+  // ball.velocity.multiplyScalar(0.99);
+  ball.position.add(ball.velocity);
   renderer.render(scene, camera);
 }
 
