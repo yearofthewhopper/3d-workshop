@@ -5,8 +5,7 @@ We are collectively teaching ourselves 3d programming using
 [three.js](http://threejs.org/).  Each experiment represents one hour
 a week.
 
-Check out http://weareinstrument.com/3d-workshop/index.html for
-current progress!
+[Current progress](http://weareinstrument.com/3d-workshop/index.html)!
 
 ## Run
 
