@@ -1,10 +1,13 @@
 # Instrument Three Dimensional Workshop
 All Welcome.
 
-We collectively decide what to build to teach ourselves three dimensional programming. 
+We are collectively teaching ourselves 3d programming using [three.js](http://threejs.org/).  
+
+Check out http://weareinstrument.com/3d-workshop/index.html for current progress!
 
 ## Run
 
     python -m SimpleHTTPServer
 
-Navigate to [http://localhost:8000](http://localhost:8000).  Checkout past commits for previous workshop states!
+Navigate to [http://localhost:8000](http://localhost:8000)
+
