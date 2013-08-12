@@ -1,5 +1,4 @@
-# Instrument 
-# Three Dimensional Workshop
+# Instrument Three Dimensional Workshop
 All Welcome.
 
 We are collectively teaching ourselves 3d programming using
