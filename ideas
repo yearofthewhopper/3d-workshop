@@ -6,9 +6,9 @@
 * importing a model (model loading)
 * matrices and quaternions
 * landscape generation
+* particles
 apply shader to landscape
 put character in landscape
 physics
 animating other objects
-particles (purdy)
 model design

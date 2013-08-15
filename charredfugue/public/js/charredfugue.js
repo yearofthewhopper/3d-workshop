@@ -8,8 +8,14 @@ var controls;
 var clock;
 
 var ground, groundGeometry, groundMaterial;
-var ball, ballMesh, ballGeometry, ballMaterial, ballRadius;
-var ray, collision, gravity;
+var socket
+
+function initSocket() {
+  socket = io.connect();
+  socket.on('new', function(data) {
+    console.log(data);
+  });
+}
 
 function initScene() {
   clock = new THREE.Clock();
@@ -38,21 +44,20 @@ function initScene() {
   time = Date.now();
 }
 
-
 function initLights(){
 
   ambient = new THREE.AmbientLight(0x001111);
   scene.add(ambient);
 
   point = new THREE.SpotLight( 0xffffff, 1, 0, Math.PI, 1 );
-  point.position.set( -450, 450, 150 );
+  point.position.set( -250, 250, 150 );
   point.target.position.set( 0, 0, 0 );
 
   // Set shadow parameters for the spotlight.
   point.castShadow = true;
   point.shadowCameraNear = 50;
   point.shadowCameraFar = 1000;
-  point.shadowCameraFov = 110;
+  point.shadowCameraFov = 50;
   point.shadowBias = 0.0001;
   point.shadowDarkness = 0.5;
 
@@ -65,12 +70,12 @@ function initLights(){
 
 
 function initGeometry(){
-  groundMaterial = new THREE.MeshLambertMaterial({
-    shading: 1,
-    color: 0xaaaaaa
+  groundMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffee00
+    // map: THREE.ImageUtils.loadTexture("../img/birth.jpg")
   });
   
-  groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 11, 11 );
+  groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   
   // rotate the ground plane so it's horizontal
@@ -80,21 +85,6 @@ function initGeometry(){
   ground.receiveShadow = true;
 
   scene.add(ground);
-
-  ballRadius = 50;
-  ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
-  ballMaterial = new THREE.MeshLambertMaterial({
-    color: 0xcc0000
-  });
-  ballMesh = new THREE.Mesh(ballGeometry, ballMaterial);
-  ballMesh.castShadow = true;
-  ball = new THREE.Object3D();
-  ball.add(ballMesh);
-  ball.position.set(0, 100, 100);
-  ball.velocity = new THREE.Vector3(0, 0, 0);
-  scene.add(ball);
-
-  gravity = new THREE.Vector3(0, -0.1, 0);
 }
 
 
@@ -109,42 +99,9 @@ function init(){
   initScene();
   initLights();
   initGeometry();
+  initSocket();
 }
 
-function getVertex(plane, x, y) {
-  var limit = plane.heightSegments;
-  var vertexIndex = x + y * (limit + 1);
-  return plane.vertices[vertexIndex];
-}
-
-function makeBump(plane, vertex, height) {
-  for (var j = 0; j < plane.vertices.length; j++) {
-    plane.vertices[j].z = 0;
-    var distance = plane.vertices[j].distanceTo(vertex);
-    var bump = height - distance;
-    // plane.vertices[j].z = bump >= 0 ? bump : 0;
-    plane.vertices[j].z = Math.sin(bump * 0.01) * height;
-  }
-  
-  plane.computeFaceNormals();
-  plane.computeVertexNormals();
-  plane.normalsNeedUpdate = true;
-  plane.verticesNeedUpdate = true;
-}
-
-function detectGround() {
-  var downwards = new THREE.Vector3(0, -1, 0);
-  // var downwards = ball.velocity.clone().normalize();
-  ray = new THREE.Raycaster(ball.position.clone(), downwards);
-  collision = ray.intersectObjects([ground]);
-  if (collision.length > 0 && collision[0].distance < ballRadius) {
-  // if (collision.length > 0 && collision[0].distance < (ballRadius + ball.velocity.clone().length())) {
-    var distance = ballRadius - collision[0].distance;
-    var normal = collision[0].face.normal;
-    ball.position.add(downwards.multiplyScalar(-distance));
-    ball.velocity.reflect(normal);
-  }
-}
 
 function onResize() {
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
@@ -182,11 +139,6 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   controls.update();
-  makeBump(groundGeometry, new THREE.Vector3(Math.cos(time*2)*100, Math.sin(time*2)*100, 0), 100);
-  detectGround();
-  ball.velocity.add(gravity);
-  // ball.velocity.multiplyScalar(0.99);
-  ball.position.add(ball.velocity);
   renderer.render(scene, camera);
 }
 
