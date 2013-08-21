@@ -88,6 +88,7 @@ function initGeometry(){
   scene.add(ground);
 
 
+  /*
   var objLoader = new THREE.OBJLoader();
 
   objLoader.addEventListener( 'load', function ( event ) {
@@ -98,6 +99,7 @@ function initGeometry(){
   });
 
   objLoader.load( "models/T72.obj" );
+  */
 }
 
 
