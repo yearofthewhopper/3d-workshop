@@ -8,13 +8,18 @@ var controls;
 var clock;
 
 var ground, groundGeometry, groundMaterial;
-var socket
+var socket, gameState;
 
 var tank;
 
 function initSocket() {
   socket = io.connect();
-  socket.on('new', function(data) {
+
+  socket.on('gameState', function(data) {
+    gameState = data;
+  });
+
+  socket.on('playerJoin', function(data) {
     console.log(data);
   });
 }

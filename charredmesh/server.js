@@ -13,21 +13,52 @@ app.configure(function() {
 
 httpServer.listen(7777);
 
-var clients = [];
-
 socketio.enable('browser client minification');
 socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
 
-function makeClient(socket) {
+function makeGameState() {
+  return {
+    worldBounds: new THREE.Vector3(1028, 1028, 1028),
+    players: []
+  };
+}
+
+var gameState = makeGameState();
+
+function makePlayerPosition() {
+  return new THREE.Vector3(
+    Math.random() * gameState.worldBounds[0], 
+    Math.random() * gameState.worldBounds[0],
+    0);
+}
+
+function makePlayer(socket) {
   return {
     id: socket.id,
-    socket: socket
+    socket: socket,
+    position: makePlayerPosition()
+  }
+}
+
+function serializePlayer(player) {
+  return {
+    id: player.id,
+    position: player.position.toArray()
+  }
+}
+
+function serializeGameState(gameState) {
+  return {
+    worldBounds: gameState.worldBounds.toArray(),
+    players: gameState.players.map(serializePlayer)
   }
 }
 
 socketio.sockets.on('connection', function (socket) {
-  var client = makeClient(socket);
-  clients.push(client);
-  socket.broadcast.emit('new', {id: socket.id});
+  var player = makePlayer(socket);
+  gameState.players.push(player);
+  socket.emit('gameState', serializeGameState(gameState));
+  socket.broadcast.emit('playerJoin', serializePlayer(player));
 });
+
