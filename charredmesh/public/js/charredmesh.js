@@ -12,10 +12,34 @@ var socket
 
 var tank;
 
+var players = [];
+
+
+function createPlayer(playerData) {
+  var newPlayer = {
+    id : playerData.id;
+    position : new THREE.Vector3(playerData.position)
+  };
+
+  var material = new THREE.MeshBasicMaterial({
+    color: 0xFF0000
+  });
+  
+  var geom = new THREE.CubeGeometry( 20, 20, 20 );
+  newPlayer.obj = new THREE.Mesh(geom, material);
+  
+  // rotate the ground plane so it's horizontal
+  newPlayer.obj.position.copy(newPlayer.position);
+  
+  scene.add(newPlayer.obj);
+
+  players.push(newPlayer);
+}
+
 function initSocket() {
   socket = io.connect();
-  socket.on('new', function(data) {
-    console.log(data);
+  socket.on('playerJoin', function(data) {
+    createPlayer(data);
   });
 }
 
