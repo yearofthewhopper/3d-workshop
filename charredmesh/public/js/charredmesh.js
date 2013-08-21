@@ -10,6 +10,8 @@ var clock;
 var ground, groundGeometry, groundMaterial;
 var socket
 
+var tank;
+
 function initSocket() {
   socket = io.connect();
   socket.on('new', function(data) {
@@ -71,8 +73,7 @@ function initLights(){
 
 function initGeometry(){
   groundMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffee00
-    // map: THREE.ImageUtils.loadTexture("../img/birth.jpg")
+    color: 0x808080
   });
   
   groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
@@ -85,6 +86,18 @@ function initGeometry(){
   ground.receiveShadow = true;
 
   scene.add(ground);
+
+
+  var objLoader = new THREE.OBJLoader();
+
+  objLoader.addEventListener( 'load', function ( event ) {
+    tank = event.content;
+    tank.scale.set(0.25, 0.25, 0.25);
+    tank.position.set(0, -50, 0);
+    scene.add(tank);
+  });
+
+  objLoader.load( "models/T72.obj" );
 }
 
 

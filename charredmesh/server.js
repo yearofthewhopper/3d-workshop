@@ -1,8 +1,11 @@
-var express = require('express');
-var http = require('http');
-var app = express();
-var httpServer = http.createServer(app);
-var socketio = require('socket.io').listen(httpServer);
+var express 	= require('express');
+var http 		= require('http');
+var THREE 		= require("three");
+
+var app 		= express();
+var httpServer 	= http.createServer(app);
+var socketio 	= require('socket.io').listen(httpServer);
+
 
 app.configure(function() {
   app.use(express.static(__dirname + '/public'));
