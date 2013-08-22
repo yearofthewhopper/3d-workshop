@@ -20,7 +20,7 @@ socketio.enable('browser client gzip');
 function makeGameState() {
   return {
     worldBounds: new THREE.Vector3(1028, 1028, 1028),
-    players: []
+    players: {}
   };
 }
 
@@ -28,9 +28,9 @@ var gameState = makeGameState();
 
 function makePlayerPosition() {
   return new THREE.Vector3(
-    Math.random() * gameState.worldBounds[0], 
-    Math.random() * gameState.worldBounds[0],
-    0);
+    Math.random() * gameState.worldBounds.x - gameState.worldBounds.x * 0.5, 
+    0,
+    Math.random() * gameState.worldBounds.z - gameState.worldBounds.z * 0.5);
 }
 
 function makePlayer(socket) {
@@ -39,6 +39,15 @@ function makePlayer(socket) {
     socket: socket,
     position: makePlayerPosition()
   }
+}
+
+function mapObject(f, m) {
+  var out = {};
+  for (var key in m) {
+    out[key] = f(m[key]);
+  }
+
+  return out;
 }
 
 function serializePlayer(player) {
@@ -51,14 +60,30 @@ function serializePlayer(player) {
 function serializeGameState(gameState) {
   return {
     worldBounds: gameState.worldBounds.toArray(),
-    players: gameState.players.map(serializePlayer)
+    players: mapObject(serializePlayer, gameState.players)
   }
+}
+
+function broadcast(key, message) {
+  mapObject(function(player) {
+    player.socket.emit(key, message);
+  }, gameState.players);
 }
 
 socketio.sockets.on('connection', function (socket) {
   var player = makePlayer(socket);
-  gameState.players.push(player);
-  socket.emit('gameState', serializeGameState(gameState));
+  gameState.players[player.id] = player;
+  socket.emit('welcome', serializeGameState(gameState));
   socket.broadcast.emit('playerJoin', serializePlayer(player));
+
+  socket.on('playerForward', function(socket) {
+    player.position.x++;
+    broadcast('playerForward', serializePlayer(player));
+  });
+
+  socket.on('disconnect', function(socket) {
+    delete gameState.players[player.id];
+    broadcast('playerDisconnect', player.id);
+  });
 });
 

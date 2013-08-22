@@ -10,17 +10,66 @@ var clock;
 var ground, groundGeometry, groundMaterial;
 var socket, gameState;
 
-var tank;
+var me, tank;
+
+var players = {};
+
+function mapObject(f, m) {
+  var out = {};
+  for (var key in m) {
+    if (m.hasOwnProperty(key)) {
+      out[key] = f(m[key]);
+    }
+  }
+
+  return out;
+}
+
+function createPlayer(playerData) {
+  var newPlayer = {
+    id : playerData.id,
+    position : new THREE.Vector3().fromArray(playerData.position)
+  };
+
+  var material = new THREE.MeshBasicMaterial({
+    color: 0xFF0000
+  });
+  
+  var geom = new THREE.CubeGeometry( 20, 20, 20 );
+  var cube = new THREE.Mesh(geom, material);
+  cube.position.y += 10;
+  newPlayer.obj = new THREE.Object3D();
+  newPlayer.obj.position.copy(newPlayer.position);
+  newPlayer.obj.add(cube);
+  
+  scene.add(newPlayer.obj);
+  players[newPlayer.id] = newPlayer;
+}
 
 function initSocket() {
   socket = io.connect();
 
-  socket.on('gameState', function(data) {
+  socket.on('welcome', function(data) {
+    console.log('game state ', data);
     gameState = data;
+    mapObject(createPlayer, gameState.players);
   });
 
   socket.on('playerJoin', function(data) {
-    console.log(data);
+    console.log('player join ', data);
+    createPlayer(data);
+  });
+  
+  socket.on('playerForward', function(player) {
+    players[player.id].position.fromArray(player.position);
+    players[player.id].obj.position.fromArray(player.position);
+  })
+
+  socket.on('playerDisconnect', function(id) {
+    var oldPlayer = players[id];
+    scene.remove(oldPlayer.obj);
+    delete gameState.players[id];
+    delete players[id];
   });
 }
 
@@ -86,7 +135,7 @@ function initGeometry(){
   
   // rotate the ground plane so it's horizontal
   ground.rotation.x = Math.PI * 1.5;
-  ground.position.set(15, -50, 200);
+  // ground.position.set(15, -50, 200);
   ground.castShadow = false;
   ground.receiveShadow = true;
 
@@ -142,18 +191,17 @@ function onMouseDown(event) {
 
 
 function onKeyDown(event) {
+  socket.emit('playerForward', event.keyCode);
 }
-
 
 function onKeyUp(event) {
-}
 
+}
 
 function animate() {
   requestAnimationFrame(animate);
   render();
 }
-
 
 function render() {
   var delta = clock.getDelta();
@@ -161,7 +209,6 @@ function render() {
   controls.update();
   renderer.render(scene, camera);
 }
-
 
 window.onload = function() {
   init();
