@@ -33,11 +33,20 @@ function makePlayerPosition() {
     Math.random() * gameState.worldBounds.z - gameState.worldBounds.z * 0.5);
 }
 
+function randomNormal() {
+  return new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
+}
+
 function makePlayer(socket) {
+  var orientation = randomNormal();
+  orientation.y = 0;
+  orientation.normalize();
+
   return {
     id: socket.id,
     socket: socket,
-    position: makePlayerPosition()
+    position: makePlayerPosition(),
+    orientation: orientation
   }
 }
 
@@ -53,7 +62,8 @@ function mapObject(f, m) {
 function serializePlayer(player) {
   return {
     id: player.id,
-    position: player.position.toArray()
+    position: player.position.toArray(),
+    orientation: player.orientation.toArray()
   }
 }
 
@@ -77,7 +87,7 @@ socketio.sockets.on('connection', function (socket) {
   socket.broadcast.emit('playerJoin', serializePlayer(player));
 
   socket.on('playerForward', function(socket) {
-    player.position.x++;
+    player.position.add(player.orientation);
     broadcast('playerForward', serializePlayer(player));
   });
 
