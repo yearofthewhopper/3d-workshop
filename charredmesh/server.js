@@ -1,10 +1,10 @@
-var express 	= require('express');
-var http 		= require('http');
-var THREE 		= require("three");
+var express = require('express');
+var http = require('http');
+var THREE = require("three");
 
-var app 		= express();
-var httpServer 	= http.createServer(app);
-var socketio 	= require('socket.io').listen(httpServer);
+var app = express();
+var httpServer = http.createServer(app);
+var socketio = require('socket.io').listen(httpServer);
 
 
 app.configure(function() {
