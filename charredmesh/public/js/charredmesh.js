@@ -28,7 +28,8 @@ function mapObject(f, m) {
 function createPlayer(playerData) {
   var newPlayer = {
     id : playerData.id,
-    position : new THREE.Vector3().fromArray(playerData.position)
+    position : new THREE.Vector3().fromArray(playerData.position),
+    rotation : playerData.rotation,
   };
 
   var material = new THREE.MeshBasicMaterial({
@@ -40,6 +41,7 @@ function createPlayer(playerData) {
   cube.position.y += 10;
   newPlayer.obj = new THREE.Object3D();
   newPlayer.obj.position.copy(newPlayer.position);
+  newPlayer.obj.rotation.y = newPlayer.rotation;
   newPlayer.obj.add(cube);
   
   scene.add(newPlayer.obj);
@@ -63,6 +65,19 @@ function initSocket() {
   socket.on('playerForward', function(player) {
     players[player.id].position.fromArray(player.position);
     players[player.id].obj.position.fromArray(player.position);
+    players[player.id].obj.rotation.y = player.rotation;
+  })
+
+  socket.on('playerTurnLeft', function(player) {
+    players[player.id].position.fromArray(player.position);
+    players[player.id].obj.position.fromArray(player.position);
+    players[player.id].obj.rotation.y = player.rotation;
+  })
+
+  socket.on('playerTurnRight', function(player) {
+    players[player.id].position.fromArray(player.position);
+    players[player.id].obj.position.fromArray(player.position);
+    players[player.id].obj.rotation.y = player.rotation;
   })
 
   socket.on('playerDisconnect', function(id) {
@@ -191,7 +206,31 @@ function onMouseDown(event) {
 
 
 function onKeyDown(event) {
-  socket.emit('playerForward', event.keyCode);
+  console.log(event.keyCode);
+  switch(event.keyCode)
+  {
+  case 32:
+    socket.emit('playerFire');
+    break;
+  case 87: // W
+    socket.emit('playerForward');
+    break;
+  case 83: // S
+    socket.emit('playerBackward');
+    break;
+  case 65: // A
+    socket.emit('playerTurnLeft');
+    break;
+  case 68: // D
+    socket.emit('playerTurnRight');
+    break;
+  case 82: // R
+    socket.emit('playerTurretUp');
+    break;
+  case 70: // F
+    socket.emit('playerTurretDown');
+    break;
+  }
 }
 
 function onKeyUp(event) {

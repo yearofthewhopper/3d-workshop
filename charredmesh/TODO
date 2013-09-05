@@ -1,0 +1,12 @@
+change direction
+random color for each player
+turrets that can be aimed
+camera follows the player (camera modes: world and player)
+world boundaries
+projectile force
+only do one thing at once (no moving and firing)
+obstacles (trees, rocks): eventually randomized
+explosions deform the landscape
+motion follows the landscape
+cooler player geometry
+simulate wind that alters projectile trajectory

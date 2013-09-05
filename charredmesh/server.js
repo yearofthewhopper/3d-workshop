@@ -17,6 +17,8 @@ socketio.enable('browser client minification');
 socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
 
+var rotationDelta = 0.05;
+
 function makeGameState() {
   return {
     worldBounds: new THREE.Vector3(1028, 1028, 1028),
@@ -38,16 +40,18 @@ function randomNormal() {
 }
 
 function makePlayer(socket) {
-  var orientation = randomNormal();
-  orientation.y = 0;
-  orientation.normalize();
-
   return {
     id: socket.id,
     socket: socket,
     position: makePlayerPosition(),
-    orientation: orientation
+    rotation: Math.random() * 2 * Math.PI
   }
+}
+
+var orientation = new THREE.Vector3();
+function getOrientation(rotation) {
+  orientation.set(Math.sin(rotation), 0, Math.cos(rotation));
+  return orientation;
 }
 
 function mapObject(f, m) {
@@ -63,7 +67,7 @@ function serializePlayer(player) {
   return {
     id: player.id,
     position: player.position.toArray(),
-    orientation: player.orientation.toArray()
+    rotation: player.rotation
   }
 }
 
@@ -87,8 +91,18 @@ socketio.sockets.on('connection', function (socket) {
   socket.broadcast.emit('playerJoin', serializePlayer(player));
 
   socket.on('playerForward', function(socket) {
-    player.position.add(player.orientation);
+    player.position.add(getOrientation(player.rotation));
     broadcast('playerForward', serializePlayer(player));
+  });
+
+  socket.on('playerTurnLeft', function(socket) {
+    player.rotation += rotationDelta;
+    broadcast('playerTurnLeft', serializePlayer(player));
+  });
+
+  socket.on('playerTurnRight', function(socket) {
+    player.rotation -= rotationDelta;
+    broadcast('playerTurnRight', serializePlayer(player));
   });
 
   socket.on('disconnect', function(socket) {
