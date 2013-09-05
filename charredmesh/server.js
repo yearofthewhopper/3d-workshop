@@ -6,7 +6,6 @@ var app = express();
 var httpServer = http.createServer(app);
 var socketio = require('socket.io').listen(httpServer);
 
-
 app.configure(function() {
   app.use(express.static(__dirname + '/public'));
 });
@@ -39,19 +38,22 @@ function randomNormal() {
   return new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
 }
 
+function setOrientationFromRotation(orientation, rotation) {
+  orientation.set(Math.sin(rotation), 0, Math.cos(rotation));
+  return orientation;
+}
+
 function makePlayer(socket) {
+  var rotation = Math.random() * 2 * Math.PI;
+  var orientation = setOrientationFromRotation(new THREE.Vector3(), rotation);
+
   return {
     id: socket.id,
     socket: socket,
     position: makePlayerPosition(),
-    rotation: Math.random() * 2 * Math.PI
+    rotation: rotation,
+    orientation: orientation
   }
-}
-
-var orientation = new THREE.Vector3();
-function getOrientation(rotation) {
-  orientation.set(Math.sin(rotation), 0, Math.cos(rotation));
-  return orientation;
 }
 
 function mapObject(f, m) {
@@ -91,17 +93,19 @@ socketio.sockets.on('connection', function (socket) {
   socket.broadcast.emit('playerJoin', serializePlayer(player));
 
   socket.on('playerForward', function(socket) {
-    player.position.add(getOrientation(player.rotation));
+    player.position.add(player.orientation);
     broadcast('playerForward', serializePlayer(player));
   });
 
   socket.on('playerTurnLeft', function(socket) {
     player.rotation += rotationDelta;
+    setOrientationFromRotation(player.orientation, player.rotation);
     broadcast('playerTurnLeft', serializePlayer(player));
   });
 
   socket.on('playerTurnRight', function(socket) {
     player.rotation -= rotationDelta;
+    setOrientationFromRotation(player.orientation, player.rotation);
     broadcast('playerTurnRight', serializePlayer(player));
   });
 

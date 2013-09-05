@@ -26,10 +26,11 @@ function mapObject(f, m) {
 }
 
 function createPlayer(playerData) {
+  var position = new THREE.Vector3().fromArray(playerData.position);
+  var rotation = playerData.rotation;
+
   var newPlayer = {
-    id : playerData.id,
-    position : new THREE.Vector3().fromArray(playerData.position),
-    rotation : playerData.rotation,
+    id : playerData.id
   };
 
   var material = new THREE.MeshBasicMaterial({
@@ -40,8 +41,8 @@ function createPlayer(playerData) {
   var cube = new THREE.Mesh(geom, material);
   cube.position.y += 10;
   newPlayer.obj = new THREE.Object3D();
-  newPlayer.obj.position.copy(newPlayer.position);
-  newPlayer.obj.rotation.y = newPlayer.rotation;
+  newPlayer.obj.position.copy(position);
+  newPlayer.obj.rotation.y = rotation;
   newPlayer.obj.add(cube);
   
   scene.add(newPlayer.obj);
@@ -63,19 +64,16 @@ function initSocket() {
   });
   
   socket.on('playerForward', function(player) {
-    players[player.id].position.fromArray(player.position);
     players[player.id].obj.position.fromArray(player.position);
     players[player.id].obj.rotation.y = player.rotation;
   })
 
   socket.on('playerTurnLeft', function(player) {
-    players[player.id].position.fromArray(player.position);
     players[player.id].obj.position.fromArray(player.position);
     players[player.id].obj.rotation.y = player.rotation;
   })
 
   socket.on('playerTurnRight', function(player) {
-    players[player.id].position.fromArray(player.position);
     players[player.id].obj.position.fromArray(player.position);
     players[player.id].obj.rotation.y = player.rotation;
   })
@@ -206,7 +204,6 @@ function onMouseDown(event) {
 
 
 function onKeyDown(event) {
-  console.log(event.keyCode);
   switch(event.keyCode)
   {
   case 32:
