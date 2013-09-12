@@ -21,6 +21,18 @@ var turretDelta = 0.05;
 var turretMax = Math.PI * 0.5;
 var turretMin = 0;
 
+function playerInput() {
+  return {
+    fire: false,
+    forward: false,
+    back: false,
+    left: false,
+    right: false,
+    up: false,
+    down: false
+  };
+}
+
 function makeGameState() {
   return {
     worldBounds: new THREE.Vector3(1028, 1028, 1028),
@@ -57,14 +69,17 @@ function makePlayer(socket) {
     position: makePlayerPosition(),
     rotation: rotation,
     orientation: orientation,
-    turretAngle: turretAngle
+    turretAngle: turretAngle,
+    input: playerInput()
   }
 }
 
 function mapObject(f, m) {
   var out = {};
   for (var key in m) {
-    out[key] = f(m[key]);
+    if (m.hasOwnProperty(key)) {
+      out[key] = f(m[key]);
+    }
   }
 
   return out;
@@ -98,41 +113,63 @@ socketio.sockets.on('connection', function (socket) {
   socket.emit('welcome', serializeGameState(gameState));
   socket.broadcast.emit('playerJoin', serializePlayer(player));
 
-  socket.on('playerForward', function(socket) {
-    player.position.add(player.orientation);
-    broadcast('playerUpdate', serializePlayer(player));
+  socket.on('playerInput', function(input) {
+    console.log("INPUT", input, socket);
+    player.input = input;
   });
 
-  socket.on('playerTurnLeft', function(socket) {
-    player.rotation += rotationDelta;
-    setOrientationFromRotation(player.orientation, player.rotation);
-    broadcast('playerUpdate', serializePlayer(player));
-  });
-
-  socket.on('playerTurnRight', function(socket) {
-    player.rotation -= rotationDelta;
-    setOrientationFromRotation(player.orientation, player.rotation);
-    broadcast('playerUpdate', serializePlayer(player));
-  });
-
-  socket.on('playerTurretUp', function(socket) {
-    player.turretAngle = Math.min(turretMax, player.turretAngle + turretDelta);
-    broadcast('playerUpdate', serializePlayer(player));
-  });
-
-  socket.on('playerTurretDown', function(socket) {
-    player.turretAngle = Math.max(turretMin, player.turretAngle - turretDelta);
-    broadcast('playerUpdate', serializePlayer(player));
-  });
-
-  socket.on('disconnect', function(socket) {
+  socket.on('disconnect', function() {
     delete gameState.players[player.id];
     broadcast('playerDisconnect', player.id);
   });
 });
 
+function updatePlayer(player, delta) {
+  if (player.input.forward) {
+    player.position.add(player.orientation);
+  }
+
+  if (player.input.back) {
+    player.position.sub(player.orientation);
+  }
+
+  if (player.input.left) {
+    player.rotation += rotationDelta;
+    setOrientationFromRotation(player.orientation, player.rotation);
+  }
+
+  if (player.input.right) {
+    player.rotation -= rotationDelta;
+    setOrientationFromRotation(player.orientation, player.rotation);
+  }
+
+  if (player.input.up) {
+    player.turretAngle = Math.min(turretMax, player.turretAngle + turretDelta);
+  }
+
+  if (player.input.down) {
+    player.turretAngle = Math.max(turretMin, player.turretAngle - turretDelta);
+  }
+}
+
+function updateAllPlayers(delta) {
+  mapObject(function(player) {
+    updatePlayer(player, delta)
+  }, gameState.players);
+}
+
 function startGameLoop() {
+  var previousTime = new Date().getTime();
+  var time = previousTime;
+  var delta = 0;
+
   setInterval(function() {
-    socketio.sockets.broadcast.emit();
+    previousTime = time;
+    time = new Date().getTime();
+    delta = time - previousTime;
+    updateAllPlayers(delta);
+    socketio.sockets.emit('loopTick', serializeGameState(gameState));
   }, 32);
 }
+
+startGameLoop();

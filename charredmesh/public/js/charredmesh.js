@@ -10,7 +10,7 @@ var clock;
 var ground, groundGeometry, groundMaterial;
 var socket, gameState;
 
-var me, tank;
+var me, tank, keyboard;
 
 var players = {};
 
@@ -25,12 +25,26 @@ function mapObject(f, m) {
   return out;
 }
 
+function playerInput() {
+  return {
+    fire: false,
+    forward: false,
+    back: false,
+    left: false,
+    right: false,
+    up: false,
+    down: false
+  };
+}
+
+var input = playerInput();
+
 function createPlayer(playerData) {
   var position = new THREE.Vector3().fromArray(playerData.position);
   var rotation = playerData.rotation;
 
   var newPlayer = {
-    id : playerData.id
+    id: playerData.id
   };
 
   var material = new THREE.MeshBasicMaterial({
@@ -71,6 +85,11 @@ function updatePlayer(player) {
   players[player.id].turret.rotation.x = -player.turretAngle;
 }
 
+function updateGameState(state) {
+  gameState = state;
+  mapObject(updatePlayer, gameState.players);
+}
+
 function initSocket() {
   socket = io.connect();
 
@@ -86,6 +105,7 @@ function initSocket() {
   });
   
   socket.on('playerUpdate', updatePlayer);
+  socket.on('loopTick', updateGameState);
 
   socket.on('playerDisconnect', function(id) {
     var oldPlayer = players[id];
@@ -180,8 +200,7 @@ function initGeometry(){
 
 
 function init(){
-  document.addEventListener('keydown', onKeyDown, false);
-  document.addEventListener('keyup', onKeyUp, false);
+  keyboard = new KeyboardHandler(onKeyChange);
   document.addEventListener('mousedown', onMouseDown, false);
   document.addEventListener('mousemove', onMouseMove, false);
 
@@ -211,32 +230,33 @@ function onMouseMove(event) {
 function onMouseDown(event) {
 }
 
-
-function onKeyDown(event) {
-  switch(event.keyCode)
+function onKeyChange(code, state) {
+  switch(code)
   {
   case 32:
-    socket.emit('playerFire');
+    input.fire = state;
     break;
   case 87: // W
-    socket.emit('playerForward');
+    input.forward = state;
     break;
   case 83: // S
-    socket.emit('playerBackward');
+    input.back = state;
     break;
   case 65: // A
-    socket.emit('playerTurnLeft');
+    input.left = state;
     break;
   case 68: // D
-    socket.emit('playerTurnRight');
+    input.right = state;
     break;
   case 82: // R
-    socket.emit('playerTurretUp');
+    input.up = state;
     break;
   case 70: // F
-    socket.emit('playerTurretDown');
+    input.down = state;
     break;
   }
+
+  socket.emit('playerInput', input);
 }
 
 function onKeyUp(event) {
