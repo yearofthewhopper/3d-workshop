@@ -17,6 +17,9 @@ socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
 
 var rotationDelta = 0.05;
+var turretDelta = 0.05;
+var turretMax = Math.PI * 0.5;
+var turretMin = 0;
 
 function makeGameState() {
   return {
@@ -46,13 +49,15 @@ function setOrientationFromRotation(orientation, rotation) {
 function makePlayer(socket) {
   var rotation = Math.random() * 2 * Math.PI;
   var orientation = setOrientationFromRotation(new THREE.Vector3(), rotation);
+  var turretAngle = 0;
 
   return {
     id: socket.id,
     socket: socket,
     position: makePlayerPosition(),
     rotation: rotation,
-    orientation: orientation
+    orientation: orientation,
+    turretAngle: turretAngle
   }
 }
 
@@ -69,7 +74,8 @@ function serializePlayer(player) {
   return {
     id: player.id,
     position: player.position.toArray(),
-    rotation: player.rotation
+    rotation: player.rotation,
+    turretAngle: player.turretAngle
   }
 }
 
@@ -94,19 +100,29 @@ socketio.sockets.on('connection', function (socket) {
 
   socket.on('playerForward', function(socket) {
     player.position.add(player.orientation);
-    broadcast('playerForward', serializePlayer(player));
+    broadcast('playerUpdate', serializePlayer(player));
   });
 
   socket.on('playerTurnLeft', function(socket) {
     player.rotation += rotationDelta;
     setOrientationFromRotation(player.orientation, player.rotation);
-    broadcast('playerTurnLeft', serializePlayer(player));
+    broadcast('playerUpdate', serializePlayer(player));
   });
 
   socket.on('playerTurnRight', function(socket) {
     player.rotation -= rotationDelta;
     setOrientationFromRotation(player.orientation, player.rotation);
-    broadcast('playerTurnRight', serializePlayer(player));
+    broadcast('playerUpdate', serializePlayer(player));
+  });
+
+  socket.on('playerTurretUp', function(socket) {
+    player.turretAngle = Math.min(turretMax, player.turretAngle + turretDelta);
+    broadcast('playerUpdate', serializePlayer(player));
+  });
+
+  socket.on('playerTurretDown', function(socket) {
+    player.turretAngle = Math.max(turretMin, player.turretAngle - turretDelta);
+    broadcast('playerUpdate', serializePlayer(player));
   });
 
   socket.on('disconnect', function(socket) {
@@ -115,3 +131,8 @@ socketio.sockets.on('connection', function (socket) {
   });
 });
 
+function startGameLoop() {
+  setInterval(function() {
+    socketio.sockets.broadcast.emit();
+  }, 32);
+}

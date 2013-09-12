@@ -37,16 +37,38 @@ function createPlayer(playerData) {
     color: 0xFF0000
   });
   
-  var geom = new THREE.CubeGeometry( 20, 20, 20 );
-  var cube = new THREE.Mesh(geom, material);
-  cube.position.y += 10;
+  var turretmaterial = new THREE.MeshBasicMaterial({
+    color: 0x0000FF
+  });
+  
+  var turretLength = 50;
+  var caliber = 5;
+  var turretgeom = new THREE.CubeGeometry(turretLength, caliber, caliber);
+  var turretmesh = new THREE.Mesh(turretgeom, turretmaterial);
+  turretmesh.position.set(turretLength * 0.5, 0, 0);
+  var turret = new THREE.Object3D();
+  turret.rotation.y = -Math.PI * 0.5;
+  turret.position.set(0, 20 + caliber*0.5, 0);
+  turret.add(turretmesh);
+  
+  var geom = new THREE.CubeGeometry(20, 20, 20);
+  var tank = new THREE.Mesh(geom, material);
+  tank.position.y += 10;
   newPlayer.obj = new THREE.Object3D();
   newPlayer.obj.position.copy(position);
   newPlayer.obj.rotation.y = rotation;
-  newPlayer.obj.add(cube);
+  newPlayer.obj.add(tank);
+  newPlayer.obj.add(turret);
+  newPlayer.turret = turret;
   
   scene.add(newPlayer.obj);
   players[newPlayer.id] = newPlayer;
+}
+
+function updatePlayer(player) {
+  players[player.id].obj.position.fromArray(player.position);
+  players[player.id].obj.rotation.y = player.rotation;
+  players[player.id].turret.rotation.x = -player.turretAngle;
 }
 
 function initSocket() {
@@ -63,20 +85,7 @@ function initSocket() {
     createPlayer(data);
   });
   
-  socket.on('playerForward', function(player) {
-    players[player.id].obj.position.fromArray(player.position);
-    players[player.id].obj.rotation.y = player.rotation;
-  })
-
-  socket.on('playerTurnLeft', function(player) {
-    players[player.id].obj.position.fromArray(player.position);
-    players[player.id].obj.rotation.y = player.rotation;
-  })
-
-  socket.on('playerTurnRight', function(player) {
-    players[player.id].obj.position.fromArray(player.position);
-    players[player.id].obj.rotation.y = player.rotation;
-  })
+  socket.on('playerUpdate', updatePlayer);
 
   socket.on('playerDisconnect', function(id) {
     var oldPlayer = players[id];
