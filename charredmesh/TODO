@@ -1,6 +1,6 @@
 * change direction
-random color for each player
 turrets that can be aimed
+random color for each player
 projectile force
 only do one thing at once (no moving and firing)
 camera follows the player (camera modes: world and player)
