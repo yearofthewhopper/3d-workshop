@@ -1,7 +1,8 @@
 * change direction
-turrets that can be aimed
-random color for each player
+* turrets that can be aimed
+cool down period for firing
 projectile force
+random color for each player
 only do one thing at once (no moving and firing)
 camera follows the player (camera modes: world and player)
 world boundaries
@@ -11,3 +12,4 @@ motion follows the landscape
 cooler player geometry
 simulate wind that alters projectile trajectory
 time bomb (alters running time for other players)
+shared physics engine

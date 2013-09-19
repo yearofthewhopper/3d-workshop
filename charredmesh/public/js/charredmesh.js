@@ -13,6 +13,7 @@ var socket, gameState;
 var me, tank, keyboard;
 
 var players = {};
+var projectiles = {};
 
 function mapObject(f, m) {
   var out = {};
@@ -79,15 +80,42 @@ function createPlayer(playerData) {
   players[newPlayer.id] = newPlayer;
 }
 
+function createProjectile(projectile) {
+  var projectilematerial = new THREE.MeshBasicMaterial({
+    color: 0x00FF00
+  });
+  var projectilegeom = new THREE.CubeGeometry(30, 30, 30);
+  var projectilemesh = new THREE.Mesh(projectilegeom, projectilematerial);
+  projectilemesh.position.fromArray(projectile.position);
+  projectilemesh.lookAt(
+    projectilemesh.position.clone().add(
+      new THREE.Vector3().fromArray(projectile.velocity)));
+
+  scene.add(projectilemesh);
+  projectile.obj = projectilemesh;
+  projectiles[projectile.id] = projectile;
+
+  return projectile;
+}
+
 function updatePlayer(player) {
   players[player.id].obj.position.fromArray(player.position);
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
 }
 
+function updateProjectile(projectile) {
+  projectiles[projectile.id].obj.position.fromArray(projectile.position);
+}
+
 function updateGameState(state) {
   gameState = state;
   mapObject(updatePlayer, gameState.players);
+  mapObject(updateProjectile, gameState.projectiles);
+}
+
+function projectileAppear(projectile) {
+  createProjectile(projectile);
 }
 
 function initSocket() {
@@ -97,6 +125,7 @@ function initSocket() {
     console.log('game state ', data);
     gameState = data;
     mapObject(createPlayer, gameState.players);
+    mapObject(createProjectile, gameState.projectiles);
   });
 
   socket.on('playerJoin', function(data) {
@@ -107,11 +136,17 @@ function initSocket() {
   socket.on('playerUpdate', updatePlayer);
   socket.on('loopTick', updateGameState);
 
+  socket.on('projectileAppear', projectileAppear);
+
   socket.on('playerDisconnect', function(id) {
     var oldPlayer = players[id];
+    var oldProjectile = projectiles[id];
     scene.remove(oldPlayer.obj);
+    scene.remove(oldProjectile.obj);
     delete gameState.players[id];
+    delete gameState.projectiles[id];
     delete players[id];
+    delete projectiles[id];
   });
 }
 
@@ -166,7 +201,6 @@ function initLights(){
   scene.add(point);
 }
 
-
 function initGeometry(){
   groundMaterial = new THREE.MeshBasicMaterial({
     color: 0x808080
@@ -198,7 +232,6 @@ function initGeometry(){
   */
 }
 
-
 function init(){
   keyboard = new KeyboardHandler(onKeyChange);
   document.addEventListener('mousedown', onMouseDown, false);
@@ -212,7 +245,6 @@ function init(){
   initSocket();
 }
 
-
 function onResize() {
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
   aspectRatio = window.innerWidth / window.innerHeight;
@@ -221,11 +253,9 @@ function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-
 function onMouseMove(event) {
   mouse.set( (event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2);
 }
-
 
 function onMouseDown(event) {
 }
@@ -234,7 +264,11 @@ function onKeyChange(code, state) {
   switch(code)
   {
   case 32:
+    if (state && !input.fire) {
+      socket.emit('playerFire');
+    }
     input.fire = state;
+    return;
     break;
   case 87: // W
     input.forward = state;

@@ -16,10 +16,14 @@ socketio.enable('browser client minification');
 socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
 
-var rotationDelta = 0.05;
-var turretDelta = 0.05;
+var forwardDelta = 60;
+var rotationDelta = 1;
+var turretDelta = 1;
 var turretMax = Math.PI * 0.5;
 var turretMin = 0;
+var basePower = 1500;
+var gravity = new THREE.Vector3(0, -40, 0);
+var wind = new THREE.Vector3(0, 0, 0);
 
 function playerInput() {
   return {
@@ -36,7 +40,8 @@ function playerInput() {
 function makeGameState() {
   return {
     worldBounds: new THREE.Vector3(1028, 1028, 1028),
-    players: {}
+    players: {},
+    projectiles: {}
   };
 }
 
@@ -74,6 +79,16 @@ function makePlayer(socket) {
   }
 }
 
+function makeProjectile(owner, position, direction, power) {
+  return {
+    id: owner,
+    owner: owner,
+    position: position,
+    velocity: direction.clone().multiplyScalar(power),
+    state: "flying"
+  }
+}
+
 function mapObject(f, m) {
   var out = {};
   for (var key in m) {
@@ -94,10 +109,21 @@ function serializePlayer(player) {
   }
 }
 
+function serializeProjectile(projectile) {
+  return {
+    id: projectile.id,
+    owner: projectile.owner,
+    position: projectile.position.toArray(),
+    velocity: projectile.velocity.toArray(),
+    state: projectile.state
+  }
+}
+
 function serializeGameState(gameState) {
   return {
     worldBounds: gameState.worldBounds.toArray(),
-    players: mapObject(serializePlayer, gameState.players)
+    players: mapObject(serializePlayer, gameState.players),
+    projectiles: mapObject(serializeProjectile, gameState.projectiles)
   }
 }
 
@@ -107,6 +133,10 @@ function broadcast(key, message) {
   }, gameState.players);
 }
 
+var xAxis = new THREE.Vector3(1, 0, 0);
+var yAxis = new THREE.Vector3(0, 1, 0);
+var zAxis = new THREE.Vector3(0, 0, 1);
+
 socketio.sockets.on('connection', function (socket) {
   var player = makePlayer(socket);
   gameState.players[player.id] = player;
@@ -114,42 +144,71 @@ socketio.sockets.on('connection', function (socket) {
   socket.broadcast.emit('playerJoin', serializePlayer(player));
 
   socket.on('playerInput', function(input) {
-    console.log("INPUT", input, socket);
+    console.log("INPUT", input);
     player.input = input;
+  });
+
+  socket.on('playerFire', function() {
+    if (!gameState.projectiles[player.id]) {
+      var direction = zAxis.clone();
+      direction.applyAxisAngle(xAxis, -player.turretAngle);
+      direction.applyAxisAngle(yAxis, player.rotation);
+      var projectile = makeProjectile(
+        player.id, 
+        player.position.clone(),
+        direction,
+        basePower
+      );
+
+      gameState.projectiles[player.id] = projectile;
+      broadcast('projectileAppear', serializeProjectile(projectile));
+    }
   });
 
   socket.on('disconnect', function() {
     delete gameState.players[player.id];
+    delete gameState.projectiles[player.id];
     broadcast('playerDisconnect', player.id);
   });
 });
 
 function updatePlayer(player, delta) {
   if (player.input.forward) {
-    player.position.add(player.orientation);
+    player.position.add(player.orientation.clone().multiplyScalar(delta * forwardDelta));
   }
 
   if (player.input.back) {
-    player.position.sub(player.orientation);
+    player.position.sub(player.orientation.clone().multiplyScalar(delta * forwardDelta));
   }
 
   if (player.input.left) {
-    player.rotation += rotationDelta;
+    player.rotation += delta * rotationDelta;
     setOrientationFromRotation(player.orientation, player.rotation);
   }
 
   if (player.input.right) {
-    player.rotation -= rotationDelta;
+    player.rotation -= delta * rotationDelta;
     setOrientationFromRotation(player.orientation, player.rotation);
   }
 
   if (player.input.up) {
-    player.turretAngle = Math.min(turretMax, player.turretAngle + turretDelta);
+    player.turretAngle = Math.min(turretMax, player.turretAngle + delta * turretDelta);
   }
 
   if (player.input.down) {
-    player.turretAngle = Math.max(turretMin, player.turretAngle - turretDelta);
+    player.turretAngle = Math.max(turretMin, player.turretAngle - delta * turretDelta);
   }
+}
+
+function updateProjectile(projectile, delta) {
+  projectile.velocity.add(gravity.clone().add(wind));
+  projectile.position.add(projectile.velocity.clone().multiplyScalar(delta));
+}
+
+function updateAllProjectiles(delta) {
+  mapObject(function(projectile) {
+    updateProjectile(projectile, delta)
+  }, gameState.projectiles);
 }
 
 function updateAllPlayers(delta) {
@@ -166,8 +225,9 @@ function startGameLoop() {
   setInterval(function() {
     previousTime = time;
     time = new Date().getTime();
-    delta = time - previousTime;
+    delta = (time - previousTime) * 0.001;
     updateAllPlayers(delta);
+    updateAllProjectiles(delta);
     socketio.sockets.emit('loopTick', serializeGameState(gameState));
   }, 32);
 }
