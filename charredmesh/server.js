@@ -15,6 +15,7 @@ httpServer.listen(7777);
 socketio.enable('browser client minification');
 socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
+socketio.set('log level', 2);
 
 var forwardDelta = 60;
 var rotationDelta = 1;
@@ -140,7 +141,10 @@ var zAxis = new THREE.Vector3(0, 0, 1);
 socketio.sockets.on('connection', function (socket) {
   var player = makePlayer(socket);
   gameState.players[player.id] = player;
-  socket.emit('welcome', serializeGameState(gameState));
+  socket.emit('welcome', {
+    state : serializeGameState(gameState),
+    id : socket.id
+  });
   socket.broadcast.emit('playerJoin', serializePlayer(player));
 
   socket.on('playerInput', function(input) {

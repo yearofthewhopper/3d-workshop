@@ -10,10 +10,13 @@ var clock;
 var ground, groundGeometry, groundMaterial;
 var socket, gameState;
 
-var me, tank, keyboard;
+var tank, keyboard;
 
 var players = {};
 var projectiles = {};
+var playerId;
+var cameraTarget = new THREE.Vector3();
+
 
 function mapObject(f, m) {
   var out = {};
@@ -48,11 +51,11 @@ function createPlayer(playerData) {
     id: playerData.id
   };
 
-  var material = new THREE.MeshBasicMaterial({
+  var material = new THREE.MeshLambertMaterial({
     color: 0xFF0000
   });
   
-  var turretmaterial = new THREE.MeshBasicMaterial({
+  var turretmaterial = new THREE.MeshLambertMaterial({
     color: 0x0000FF
   });
   
@@ -99,6 +102,7 @@ function createProjectile(projectile) {
 }
 
 function updatePlayer(player) {
+
   players[player.id].obj.position.fromArray(player.position);
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
@@ -122,10 +126,11 @@ function initSocket() {
   socket = io.connect();
 
   socket.on('welcome', function(data) {
-    console.log('game state ', data);
-    gameState = data;
+    //console.log('game state ', data);
+    gameState = data.state;
     mapObject(createPlayer, gameState.players);
     mapObject(createProjectile, gameState.projectiles);
+    playerId = data.id;
   });
 
   socket.on('playerJoin', function(data) {
@@ -160,7 +165,8 @@ function initScene() {
   scene = new THREE.Scene();  
 
   camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 10000);
-  camera.position.z = 400;
+  camera.position.z = 0;
+  camera.position.y = 1000;
   camera.lookAt(scene.position);
 
   // Initialize the renderer
@@ -179,41 +185,33 @@ function initScene() {
 
 function initLights(){
 
-  ambient = new THREE.AmbientLight(0x001111);
-  scene.add(ambient);
+  // LIGHTS
+  var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+  hemiLight.color.setHSL( 0.6, 1, 0.6 );
+  hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+  hemiLight.position.set( 0, 500, 0 );
+  scene.add( hemiLight );
 
-  point = new THREE.SpotLight( 0xffffff, 1, 0, Math.PI, 1 );
-  point.position.set( -250, 250, 150 );
-  point.target.position.set( 0, 0, 0 );
-
-  // Set shadow parameters for the spotlight.
-  point.castShadow = true;
-  point.shadowCameraNear = 50;
-  point.shadowCameraFar = 1000;
-  point.shadowCameraFov = 50;
-  point.shadowBias = 0.0001;
-  point.shadowDarkness = 0.5;
-
-  // Larger shadow map size means better looking shadows but impacts performance and texture memory usage.
-  point.shadowMapWidth = 1024;
-  point.shadowMapHeight = 1024;
+  var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+  dirLight.color.setHSL( 0.1, 1, 0.95 );
+  dirLight.position.set( -1, 1.75, 1 );
+  dirLight.position.multiplyScalar( 50 );
+  scene.add( dirLight );
 
   scene.add(point);
 }
 
 function initGeometry(){
-  groundMaterial = new THREE.MeshBasicMaterial({
-    color: 0x808080
+  groundMaterial = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    map: THREE.ImageUtils.loadTexture("textures/dirt.jpg")
   });
   
   groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   
   // rotate the ground plane so it's horizontal
-  ground.rotation.x = Math.PI * 1.5;
-  // ground.position.set(15, -50, 200);
-  ground.castShadow = false;
-  ground.receiveShadow = true;
+  ground.rotation.x = -Math.PI * 0.5;
 
   scene.add(ground);
 
@@ -302,10 +300,37 @@ function animate() {
   render();
 }
 
+function updateChaseCam(){
+
+  if(playerId){
+    var p = players[playerId].obj.position.clone();
+
+    // find a spot 200 units above and behind the player
+    p.z -= Math.cos(players[playerId].obj.rotation.y) * 300;
+    p.x -= Math.sin(players[playerId].obj.rotation.y) * 300;
+    p.y += 200;
+
+    // set the camera at that position.
+    camera.position.lerp(p, 0.05);
+
+    // Find a spot 200 units in front of the player
+    p.copy(players[playerId].obj.position);
+    p.z += Math.cos(players[playerId].obj.rotation.y) * 300;
+    p.x += Math.sin(players[playerId].obj.rotation.y) * 300;
+    cameraTarget.lerp(p, 0.05);
+    // look at that spot (looking at the player makes it hard to see what's ahead)  
+    camera.lookAt(cameraTarget);
+  }
+}
+
+
 function render() {
   var delta = clock.getDelta();
   time += delta;
-  controls.update();
+  //controls.update();
+
+  //camera.position.set()
+  updateChaseCam();
   renderer.render(scene, camera);
 }
 
