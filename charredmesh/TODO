@@ -1,15 +1,17 @@
 * change direction
 * turrets that can be aimed
-cool down period for firing
-projectile force
+* projectile emitting
+* simulate wind that alters projectile trajectory
+add basic lighting
 random color for each player
-only do one thing at once (no moving and firing)
-camera follows the player (camera modes: world and player)
-world boundaries
-obstacles (trees, rocks): eventually randomized
+projectile disappears
+world boundaries (define the landscape)
 explosions deform the landscape
-motion follows the landscape
+player motion follows the landscape
+projectile force
+cool down period for firing
+camera follows the player (camera modes: world and player)
+obstacles (trees, rocks): eventually randomized
 cooler player geometry
-simulate wind that alters projectile trajectory
-time bomb (alters running time for other players)
 shared physics engine
+time bomb (alters running time for other players)
