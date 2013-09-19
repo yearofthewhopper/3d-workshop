@@ -302,22 +302,25 @@ function animate() {
 
 function updateChaseCam(){
 
-  if(playerId){
+  if(playerId) {
     var p = players[playerId].obj.position.clone();
 
-    // find a spot 200 units above and behind the player
+    // find a spot above and behind the player
     p.z -= Math.cos(players[playerId].obj.rotation.y) * 300;
     p.x -= Math.sin(players[playerId].obj.rotation.y) * 300;
     p.y += 200;
 
-    // set the camera at that position.
+    // constantly lerp the camera to that position to keep the motion smooth.
     camera.position.lerp(p, 0.05);
 
-    // Find a spot 200 units in front of the player
+    // Find a spot in front of the player
     p.copy(players[playerId].obj.position);
     p.z += Math.cos(players[playerId].obj.rotation.y) * 300;
     p.x += Math.sin(players[playerId].obj.rotation.y) * 300;
+
+    // constantly lerp the target position too, again to keep things smooth.
     cameraTarget.lerp(p, 0.05);
+
     // look at that spot (looking at the player makes it hard to see what's ahead)  
     camera.lookAt(cameraTarget);
   }
@@ -327,9 +330,7 @@ function updateChaseCam(){
 function render() {
   var delta = clock.getDelta();
   time += delta;
-  //controls.update();
-
-  //camera.position.set()
+  
   updateChaseCam();
   renderer.render(scene, camera);
 }
