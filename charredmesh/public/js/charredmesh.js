@@ -17,6 +17,7 @@ var projectiles = {};
 var playerId;
 var cameraTarget = new THREE.Vector3();
 
+var effectQueue = [];
 
 function mapObject(f, m) {
   var out = {};
@@ -42,6 +43,8 @@ function playerInput() {
 }
 
 var input = playerInput();
+var turretLength = 50;
+var caliber = 3;
 
 function createPlayer(playerData) {
   var position = new THREE.Vector3().fromArray(playerData.position);
@@ -59,10 +62,9 @@ function createPlayer(playerData) {
     color: 0x0000FF
   });
   
-  var turretLength = 50;
-  var caliber = 5;
-  var turretgeom = new THREE.CubeGeometry(turretLength, caliber, caliber);
+  var turretgeom = new THREE.CylinderGeometry(caliber, caliber, turretLength, 16);
   var turretmesh = new THREE.Mesh(turretgeom, turretmaterial);
+  turretmesh.rotation.z = Math.PI / 2;
   turretmesh.position.set(turretLength * 0.5, 0, 0);
   var turret = new THREE.Object3D();
   turret.rotation.y = -Math.PI * 0.5;
@@ -84,25 +86,28 @@ function createPlayer(playerData) {
 }
 
 function createProjectile(projectile) {
-  var projectilematerial = new THREE.MeshBasicMaterial({
-    color: 0x00FF00
+  var projectilematerial = new THREE.MeshLambertMaterial({
+    color: 0xdddd00,
+    emissive: 0x444400
   });
-  var projectilegeom = new THREE.CubeGeometry(30, 30, 30);
+  var projectilegeom = new THREE.CylinderGeometry(0, caliber, 20, 16);
   var projectilemesh = new THREE.Mesh(projectilegeom, projectilematerial);
-  projectilemesh.position.fromArray(projectile.position);
-  projectilemesh.lookAt(
-    projectilemesh.position.clone().add(
+  var projectileobj = new THREE.Object3D();
+  projectilemesh.rotation.x = Math.PI / 2;
+  projectileobj.add(projectilemesh);
+  projectileobj.position.fromArray(projectile.position);
+  projectileobj.lookAt(
+    projectileobj.position.clone().add(
       new THREE.Vector3().fromArray(projectile.velocity)));
 
-  scene.add(projectilemesh);
-  projectile.obj = projectilemesh;
+  scene.add(projectileobj);
+  projectile.obj = projectileobj;
   projectiles[projectile.id] = projectile;
 
   return projectile;
 }
 
 function updatePlayer(player) {
-
   players[player.id].obj.position.fromArray(player.position);
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
@@ -110,6 +115,9 @@ function updatePlayer(player) {
 
 function updateProjectile(projectile) {
   projectiles[projectile.id].obj.position.fromArray(projectile.position);
+  projectiles[projectile.id].obj.lookAt(
+    projectiles[projectile.id].obj.position.clone().add(
+      new THREE.Vector3().fromArray(projectile.velocity)));
 }
 
 function updateGameState(state) {
@@ -120,6 +128,49 @@ function updateGameState(state) {
 
 function projectileAppear(projectile) {
   createProjectile(projectile);
+}
+
+function Explosion(position) {
+  var explosionmaterial = new THREE.MeshBasicMaterial({
+    color: 0xFFFF00,
+    transparent: true,
+    blending: THREE.AdditiveBlending
+  });
+  var explosiongeom = new THREE.SphereGeometry(1, 16, 16);
+  var explosionmesh = new THREE.Mesh(explosiongeom, explosionmaterial);
+  explosionmesh.position = position;
+
+  this.obj = explosionmesh;
+  this.time = 0;
+  this.radius = 1;
+  this.opacity = 1;
+  this.update = function(delta) {
+    this.time += delta;
+    this.radius = Math.log(this.time * 1000) * 20;
+
+    if (this.time > 0.5) {
+      this.opacity -= delta * 2;
+    }
+    this.obj.scale.set(this.radius, this.radius, this.radius);
+    this.obj.material.opacity = this.opacity;
+  };
+  this.remove = function() {
+    scene.remove(this.obj);
+  };
+  this.isDone = function() {
+    return this.time > 1;
+  };
+}
+
+function projectileExplode(id) {
+  var oldProjectile = projectiles[id];
+  scene.remove(oldProjectile.obj);
+  delete gameState.projectiles[id];
+  delete projectiles[id];
+
+  explosion = new Explosion(oldProjectile.obj.position);
+  scene.add(explosion.obj);
+  effectQueue.push(explosion);
 }
 
 function initSocket() {
@@ -142,16 +193,14 @@ function initSocket() {
   socket.on('loopTick', updateGameState);
 
   socket.on('projectileAppear', projectileAppear);
+  socket.on('projectileExplode', projectileExplode);
 
   socket.on('playerDisconnect', function(id) {
+    projectileExplode(id);
     var oldPlayer = players[id];
-    var oldProjectile = projectiles[id];
     scene.remove(oldPlayer.obj);
-    scene.remove(oldProjectile.obj);
     delete gameState.players[id];
-    delete gameState.projectiles[id];
     delete players[id];
-    delete projectiles[id];
   });
 }
 
@@ -326,12 +375,23 @@ function updateChaseCam(){
   }
 }
 
+function updateEffectQueue(delta) {
+  for (var e = 0; e < effectQueue.length; e++) {
+    effectQueue[e].update(delta);
+    if(effectQueue[e].isDone()) {
+      effectQueue[e].remove();
+      effectQueue.splice(e, 1);
+      e--;
+    }
+  }
+}
 
 function render() {
   var delta = clock.getDelta();
   time += delta;
   
   updateChaseCam();
+  updateEffectQueue(delta);
   renderer.render(scene, camera);
 }
 

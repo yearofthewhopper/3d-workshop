@@ -22,9 +22,11 @@ var rotationDelta = 1;
 var turretDelta = 1;
 var turretMax = Math.PI * 0.5;
 var turretMin = 0;
-var basePower = 1500;
+var basePower = 1000;
 var gravity = new THREE.Vector3(0, -40, 0);
 var wind = new THREE.Vector3(0, 0, 0);
+var turretLength = 50;
+var playerHeight = 20;
 
 function playerInput() {
   return {
@@ -157,9 +159,12 @@ socketio.sockets.on('connection', function (socket) {
       var direction = zAxis.clone();
       direction.applyAxisAngle(xAxis, -player.turretAngle);
       direction.applyAxisAngle(yAxis, player.rotation);
+      var position = player.position.clone();
+      position.y += playerHeight;
+      position.add(direction.clone().multiplyScalar(turretLength));
       var projectile = makeProjectile(
         player.id, 
-        player.position.clone(),
+        position,
         direction,
         basePower
       );
@@ -204,9 +209,21 @@ function updatePlayer(player, delta) {
   }
 }
 
+function collidesWithEarth(projectile) {
+  return projectile.position.y <= 0;
+}
+
+function removeProjectile(projectile) {
+  delete gameState.projectiles[projectile.owner];
+  broadcast("projectileExplode", projectile.owner);
+}
+
 function updateProjectile(projectile, delta) {
   projectile.velocity.add(gravity.clone().add(wind));
   projectile.position.add(projectile.velocity.clone().multiplyScalar(delta));
+  if (collidesWithEarth(projectile)) {
+    removeProjectile(projectile);
+  }
 }
 
 function updateAllProjectiles(delta) {
