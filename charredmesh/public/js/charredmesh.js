@@ -19,6 +19,11 @@ var cameraTarget = new THREE.Vector3();
 
 var effectQueue = [];
 
+
+var skyColor = 0xcbe5ff;
+
+var terrainData;
+
 function mapObject(f, m) {
   var out = {};
   for (var key in m) {
@@ -109,6 +114,9 @@ function createProjectile(projectile) {
 
 function updatePlayer(player) {
   players[player.id].obj.position.fromArray(player.position);
+
+//  players[player.id].obj.position.y = findGround(players[player.id].obj.position.z, players[player.id].obj.position.x)+0;
+
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
 }
@@ -171,6 +179,21 @@ function projectileExplode(id) {
   explosion = new Explosion(oldProjectile.obj.position);
   scene.add(explosion.obj);
   effectQueue.push(explosion);
+  test();
+  /*
+  for (var j = 0; j < groundGeometry.vertices.length; j++) {
+    var dst = oldProjectile.obj.position.distanceTo(groundGeometry.vertices[j]);
+    if(dst < 100) {
+      groundGeometry.vertices[j].y -= (50 * ((100 - dst) / 100));
+      console.log("boom");
+    }
+  }
+  
+  groundGeometry.computeFaceNormals();
+  groundGeometry.computeVertexNormals();
+  groundGeometry.normalsNeedUpdate = true;
+  groundGeometry.verticesNeedUpdate = true;
+  */
 }
 
 function initSocket() {
@@ -219,7 +242,7 @@ function initScene() {
   camera.lookAt(scene.position);
 
   // Initialize the renderer
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({clearColor: skyColor});
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMapEnabled = true;
   renderer.shadowMapType = THREE.PCFShadowMap;
@@ -229,13 +252,15 @@ function initScene() {
 
   controls = new THREE.OrbitControls(camera);
   
+  scene.fog = new THREE.Fog(0xcbe5ff, 800, 1700);
+
   time = Date.now();
 }
 
 function initLights(){
 
   // LIGHTS
-  var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+  var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.2 );
   hemiLight.color.setHSL( 0.6, 1, 0.6 );
   hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
   hemiLight.position.set( 0, 500, 0 );
@@ -251,18 +276,29 @@ function initLights(){
 }
 
 function initGeometry(){
+
+  groundGeometry = new THREE.PlaneGeometry(4096, 4096, 512, 512);
   groundMaterial = new THREE.MeshLambertMaterial({
-    color: 0xffffff,
-    map: THREE.ImageUtils.loadTexture("textures/dirt.jpg")
-  });
-  
-  groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
+    color:0xffffff,
+    map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
+    //shading:THREE.FlatShading
+    //wireframe:true
+    }
+  );
+
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
+
+  //ground.rotation.x = THREE.Math.degToRad(-90);
+ // ground.position.set(0, 0, 0);
+  scene.add(ground);
+  
+ // groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
+ // ground = new THREE.Mesh(groundGeometry, groundMaterial);
   
   // rotate the ground plane so it's horizontal
-  ground.rotation.x = -Math.PI * 0.5;
+  //ground.rotation.x = -Math.PI * 0.5;
 
-  scene.add(ground);
+ // scene.add(ground);
 
 
   /*
@@ -290,6 +326,31 @@ function init(){
   initLights();
   initGeometry();
   initSocket();
+
+  getImageData("textures/terrain_height_map.png", function(imgData) {
+    terrainData = [];
+    var count = 512*512;
+    for(var i = 0; i < count; i++){
+      terrainData[i] = imgData.data[i*4];
+    }
+
+    for (var j = 0; j < groundGeometry.vertices.length; j++) {
+
+      var tx = groundGeometry.vertices[j].x;
+      var ty = groundGeometry.vertices[j].y;
+      var tz = groundGeometry.vertices[j].z;
+
+
+      groundGeometry.vertices[j].y = findGround(ty, tx);
+      groundGeometry.vertices[j].z = tx;
+      groundGeometry.vertices[j].x = ty;
+    }
+    
+    groundGeometry.computeFaceNormals();
+    groundGeometry.computeVertexNormals();
+    groundGeometry.normalsNeedUpdate = true;
+    groundGeometry.verticesNeedUpdate = true;
+  });
 }
 
 function onResize() {
@@ -384,6 +445,164 @@ function updateEffectQueue(delta) {
       e--;
     }
   }
+}
+
+var buff;
+function test(){
+  $.ajax("/terrain",{success: function(data){
+    console.log("Done!");
+    buff = base64_decode_dataview(data);
+   // var test = new Int16Array(data);
+    //console.log(test.buffer.get(0));
+
+    for (var j = 0; j < buff.buffer.byteLength; j++) {
+      terrainData[j] = buff.getUint8(j);
+    }
+
+    for (var j = 0; j < groundGeometry.vertices.length; j++) {
+
+      var tx = groundGeometry.vertices[j].x;
+      var ty = groundGeometry.vertices[j].y;
+      var tz = groundGeometry.vertices[j].z;
+
+      groundGeometry.vertices[j].y = findGround(tx, tz);
+    }
+
+    groundGeometry.computeFaceNormals();
+    groundGeometry.computeVertexNormals();
+    groundGeometry.normalsNeedUpdate = true;
+    groundGeometry.verticesNeedUpdate = true;
+  }});
+}
+var base64_decode_dataview = (function() {
+  var   __map = {}
+    , __map_18 = {}
+    , __map_12 = {}
+    , __map_6 = {};
+ 
+  !function() {
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+ 
+     for (var i = 0, j = chars.length, c; i < j; i ++) {
+      c = chars.charAt(i);
+      __map[c] = i;
+      __map_18[c] = i << 18;
+      __map_12[c] = i << 12;
+      __map_6[c] = i << 6;
+     }
+  }();
+ 
+  return function(_a, callback) {
+    if (_a.indexOf('\n') !== -1)
+      _a = _a.replace(/\n/g, '');
+ 
+    var execute = function() {
+      var   a = _a
+        , map_18 = __map_18
+        , map_12 = __map_12
+        , map_6 = __map_6
+        , map = __map
+        , length = a.length
+        , padindex = a.indexOf('=')
+        , padlen = padindex > -1 ? length - padindex : 0
+        , result = new DataView(new ArrayBuffer(length * 3 / 4 - padlen))
+        , offset = 0
+        , last = length - 4 - (length % 4);
+ 
+      for (var i = 0, padding_length, len, n; i < length; i += 4) {
+        if (i === last) {
+          len = 4 - (padlen || (i + 4) - length);
+          padding_length = len % 4;
+ 
+          n = (len > 0 ? map_18[a[i + 0]] : 0) |
+            (len > 1 ? map_12[a[i + 1]] : 0) |
+            (len > 2 ? map_6[a[i + 2]] : 0) |
+            (len > 3 ? map[a[i + 3]] : 0);
+        } else {
+          padding_length = 0;
+          n = map_18[a[i + 0]] | map_12[a[i + 1]] | map_6[a[i + 2]] | map[a[i + 3]];
+        }
+ 
+        switch (padding_length) {
+        case 0:
+        case 1:
+          result.setUint8(offset ++, n >>> 16);
+          result.setUint8(offset ++, (n >>> 8) & 0xff);
+          result.setUint8(offset ++, n & 0xff);
+          break;
+        case 2:
+          result.setUint8(offset ++, n >>> 16);
+          break;
+        case 3:
+          result.setUint8(offset ++, n >>> 16);
+          result.setUint8(offset ++, (n >>> 8) & 0xff);
+          break;
+        }
+      }
+ 
+      return result;
+    };
+ 
+    if (callback) {
+      setTimeout(function() {
+        callback(execute());
+      }, 0);
+    } else {
+      return execute();
+    }
+  };
+})();
+
+function getImageData(imgPath, callback) {
+  var img = document.createElement('img');
+  img.onload = function(){
+    var canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    // Copy the image contents to the canvas
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    callback(ctx.getImageData(0, 0, img.width, img.height));
+  }
+  img.src = imgPath;
+}
+
+function findGround(x, y) {
+
+  var tx = (x+2048) / 8;
+  var ty = (y+2048) / 8;
+
+  var gridX = Math.floor(tx);
+  var gridY = Math.floor(ty);
+
+  var fractionX = tx - gridX;
+  var fractionY = ty - gridY;
+
+  var sample1 = getTerrainHeight(gridX, gridY);
+  var sample2 = getTerrainHeight(gridX+1, gridY);
+  var sample3 = getTerrainHeight(gridX, gridY+1);
+
+  var xSlope = sample1 - sample2;
+  var ySlope = sample1 - sample3;
+
+  var heightx = sample1 - (fractionX * xSlope);
+  var heighty = sample1 - (fractionY * ySlope);
+
+  var height = (heightx + heighty) / 2;
+
+  return height;
+}
+
+function getTerrainHeight(gridx, gridy){
+  var heightScale = 0.75;
+  
+  var terrainMapWidth = 512;
+  var terrainMapHeight = 512;
+
+  var x = Math.min(511, gridx);
+  var y = Math.min(511, gridy);
+  return terrainData[(x + (y * terrainMapWidth))] * heightScale;
 }
 
 function render() {

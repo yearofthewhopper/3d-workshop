@@ -1,6 +1,23 @@
 var express = require('express');
 var http = require('http');
 var THREE = require("three");
+var PNG = require('png-js');
+
+var terrainData;
+
+
+PNG.decode('public/textures/terrain_height_map.png', function(pixels) {
+    // pixels is a 1d array of decoded pixel data
+    console.log("Loaded PNG!");
+    
+    var count = 512*512;
+    terrainData = new Buffer(count);
+
+    for(var i = 0; i < count; i++){
+      terrainData[i] = pixels[i*4];
+    }
+   // console.log(terrainData.toString("base64").length);
+})
 
 var app = express();
 var httpServer = http.createServer(app);
@@ -8,6 +25,10 @@ var socketio = require('socket.io').listen(httpServer);
 
 app.configure(function() {
   app.use(express.static(__dirname + '/public'));
+});
+
+app.get("/terrain", function(req, res){
+  res.end(terrainData.toString("base64"));
 });
 
 httpServer.listen(7777);
@@ -150,7 +171,7 @@ socketio.sockets.on('connection', function (socket) {
   socket.broadcast.emit('playerJoin', serializePlayer(player));
 
   socket.on('playerInput', function(input) {
-    console.log("INPUT", input);
+   // console.log("INPUT", input);
     player.input = input;
   });
 
@@ -184,10 +205,12 @@ socketio.sockets.on('connection', function (socket) {
 function updatePlayer(player, delta) {
   if (player.input.forward) {
     player.position.add(player.orientation.clone().multiplyScalar(delta * forwardDelta));
+    player.position.y = getGroundHeight(player.position.x, player.position.z);
   }
 
   if (player.input.back) {
     player.position.sub(player.orientation.clone().multiplyScalar(delta * forwardDelta));
+    player.position.y = getGroundHeight(player.position.x, player.position.z);
   }
 
   if (player.input.left) {
@@ -210,7 +233,7 @@ function updatePlayer(player, delta) {
 }
 
 function collidesWithEarth(projectile) {
-  return projectile.position.y <= 0;
+  return projectile.position.y <= getGroundHeight(projectile.position.x,projectile.position.z);
 }
 
 function removeProjectile(projectile) {
@@ -222,6 +245,7 @@ function updateProjectile(projectile, delta) {
   projectile.velocity.add(gravity.clone().add(wind));
   projectile.position.add(projectile.velocity.clone().multiplyScalar(delta));
   if (collidesWithEarth(projectile)) {
+    makeCrater(projectile.position, 50);
     removeProjectile(projectile);
   }
 }
@@ -254,3 +278,88 @@ function startGameLoop() {
 }
 
 startGameLoop();
+
+
+function makeCrater(position, radius) {
+  
+  var samplePos = new THREE.Vector3();
+  var changeCount = 0;
+  
+  var gridRadius = Math.round(radius / 8);
+
+  console.log("grid radius:" + gridRadius);
+
+  for(var y = -gridRadius; y < gridRadius+1; y++){
+    for(var x = -gridRadius; x < gridRadius+1; x++){
+
+      var tx = x*8;
+      var ty = y*8;
+
+      var elevation = getGroundHeight(tx+position.x, ty+position.z);
+      
+      samplePos.set(tx+position.x, elevation, ty+position.z);
+      
+      var dst = position.distanceTo(samplePos);
+      if(dst < 50) {
+        console.log(Math.floor(samplePos.x / 8), Math.floor(samplePos.z / 8));
+        setGroundHeight(samplePos.x, samplePos.z, elevation - ((1.0-(dst/50)) * 50));
+        changeCount++;
+        //console.log("Lowering to :" + elevation);
+      }
+    }
+  }
+ console.log(changeCount + " verteces changed");
+}
+
+function setGroundHeight(x, y, newHeight){
+  var heightScale = 0.75;
+  var terrainMapWidth = 512;
+  var terrainMapHeight = 512;
+
+  var tx = (x+2048) / 8;
+  var ty = (y+2048) / 8;
+
+  var gridX = Math.floor(tx);
+  var gridY = Math.floor(ty);
+
+  terrainData[(gridX + (gridY * terrainMapWidth))] = Math.floor(newHeight / heightScale);
+
+}
+
+function getGroundHeight(x, y) {
+
+  var tx = (x+2048) / 8;
+  var ty = (y+2048) / 8;
+
+  var gridX = Math.floor(tx);
+  var gridY = Math.floor(ty);
+
+  var fractionX = tx - gridX;
+  var fractionY = ty - gridY;
+
+  var sample1 = getTerrainHeight(gridX, gridY);
+  var sample2 = getTerrainHeight(gridX+1, gridY);
+  var sample3 = getTerrainHeight(gridX, gridY+1);
+
+  var xSlope = sample1 - sample2;
+  var ySlope = sample1 - sample3;
+
+  var heightx = sample1 - (fractionX * xSlope);
+  var heighty = sample1 - (fractionY * ySlope);
+
+  var height = (heightx + heighty) / 2;
+
+  return height;
+}
+
+function getTerrainHeight(gridx, gridy){
+  var heightScale = 0.75;
+  
+  var terrainMapWidth = 512;
+  var terrainMapHeight = 512;
+
+  var x = Math.min(511, gridx);
+  var y = Math.min(511, gridy);
+
+  return terrainData[(x + (y * terrainMapWidth))] * heightScale;
+}
