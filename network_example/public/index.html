@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Workshop</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+      body {
+        font-family: Monospace;
+        background-color: #000;
+        color: #000;
+        margin: 0px;
+        overflow: hidden;
+      }
+      #info {
+        color: #000;
+        position: absolute;
+        top: 10px;
+        width: 100%;
+        text-align: center;
+        z-index: 100;
+        display:block;
+      }
+      #info a, .button { color: #f00; font-weight: bold; text-decoration: underline; cursor: pointer }
+      #scrim {
+        background-color:rgba(0,0,0,0.1);
+        color:white;
+        text-align:center;
+        width:100%;
+        height:100%;
+        position:absolute;
+        z-index:10000;
+        display:none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="scrim"></div>
+
+    <div id="debug"></div>
+    <div id="viewport"></div>
+    <script src="js/three.min.r58.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/networkentity.js"></script>
+    <script src="js/client.js"></script>
+  </body>
+</html>
