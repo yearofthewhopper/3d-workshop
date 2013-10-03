@@ -301,18 +301,18 @@ function initGeometry(){
  // scene.add(ground);
 
 
-  /*
+  
   var objLoader = new THREE.OBJLoader();
 
   objLoader.addEventListener( 'load', function ( event ) {
     tank = event.content;
     tank.scale.set(0.25, 0.25, 0.25);
-    tank.position.set(0, -50, 0);
+    tank.position.set(0, 250, 0);
     scene.add(tank);
   });
 
   objLoader.load( "models/T72.obj" );
-  */
+  
 }
 
 function init(){
