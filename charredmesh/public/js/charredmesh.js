@@ -77,9 +77,10 @@ function createPlayer(playerData) {
   turret.position.set(0, 20 + caliber*0.5, 0);
   turret.add(turretmesh);
   
-  var geom = new THREE.CubeGeometry(20, 20, 20);
-  var tank = new THREE.Mesh(geom, material);
-  tank.position.y += 10;
+  //var geom = new THREE.CubeGeometry(20, 20, 20);
+  //var tank = new THREE.Mesh(geom, material);
+  //tank.position.y += 10;
+  tank = tankModel.clone();
   newPlayer.obj = new THREE.Object3D();
   newPlayer.obj.position.copy(position);
   newPlayer.obj.rotation.y = rotation;
@@ -318,7 +319,8 @@ function initGeometry(){
     tankModel = event.content;
     tankModel.scale.set(0.12, 0.12, 0.12);
     tankModel.position.set(0, 0, 0);
-    scene.add(tankModel);
+   // scene.add(tankModel);
+    initSocket();
   });
 
   objLoader.load( "models/T72.obj" ); 
@@ -334,7 +336,7 @@ function init(){
   initScene();
   initLights();
   initGeometry();
-  initSocket();
+  //initSocket();
 
   getImageData("textures/terrain_height_map.png", function(imgData) {
     terrainData = [];
