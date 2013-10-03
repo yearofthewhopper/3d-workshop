@@ -309,7 +309,6 @@ function startGameLoop() {
 
 startGameLoop();
 
-
 function makeCrater(position, radius) {
   
   var samplePos = new THREE.Vector3();
