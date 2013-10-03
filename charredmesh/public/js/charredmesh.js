@@ -77,8 +77,8 @@ function createPlayer(playerData) {
   turret.position.set(0, 20 + caliber*0.5, 0);
   turret.add(turretmesh);
   
- // var geom = new THREE.CubeGeometry(20, 20, 20);
-  var tank = tankModel.clone();//= new THREE.Mesh(geom, material);
+  var geom = new THREE.CubeGeometry(20, 20, 20);
+  var tank = new THREE.Mesh(geom, material);
   tank.position.y += 10;
   newPlayer.obj = new THREE.Object3D();
   newPlayer.obj.position.copy(position);
@@ -321,8 +321,7 @@ function initGeometry(){
     scene.add(tankModel);
   });
 
-  objLoader.load( "models/T72.obj" );
-  
+  objLoader.load( "models/T72.obj" ); 
 }
 
 function init(){
