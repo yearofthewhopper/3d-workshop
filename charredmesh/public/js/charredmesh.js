@@ -56,7 +56,8 @@ function createPlayer(playerData) {
   var rotation = playerData.rotation;
 
   var newPlayer = {
-    id: playerData.id
+    id: playerData.id,
+    health: playerData.health
   };
 
   var material = new THREE.MeshLambertMaterial({
@@ -112,6 +113,10 @@ function createProjectile(projectile) {
   return projectile;
 }
 
+function updateHealthBar(health) {
+  document.getElementById("health").style.width = "" + health + "%";
+}
+
 function updatePlayer(player) {
   players[player.id].obj.position.fromArray(player.position);
 
@@ -119,6 +124,11 @@ function updatePlayer(player) {
 
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
+
+  players[player.id].health = player.health;
+  if (player.id === playerId) {
+    updateHealthBar(player.health);
+  }
 }
 
 function updateProjectile(projectile) {

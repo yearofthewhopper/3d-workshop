@@ -12,21 +12,29 @@
         margin: 0px;
         overflow: hidden;
       }
-      #info {
-        color: #000;
+      #health {
         position: absolute;
-        top: 10px;
-        width: 100%;
-        text-align: center;
-        z-index: 100;
-        display:block;
+        top: 0px;
+        bottom: 0px;
+        left: 0px;
+        background-color: #00ff00;
       }
-      #info a, .button { color: #f00; font-weight: bold; text-decoration: underline; cursor: pointer }
+      #emptyhealth {
+        position: absolute;
+        bottom: 0px;
+        left: 0px;
+        height: 20px;
+        width: 100%;
+        background-color: #000000;
+      }
     </style>
   </head>
 
   <body>
     <div id="viewport"></div>
+    <div id="emptyhealth">
+      <div id="health"></div>
+    </div>
 
     <script src="js/three.min.r58.js"></script>
     <script src="js/jquery.js"></script>

@@ -48,6 +48,10 @@ var gravity = new THREE.Vector3(0, -40, 0);
 var wind = new THREE.Vector3(0, 0, 0);
 var turretLength = 50;
 var playerHeight = 20;
+var maxHealth = 100;
+var maxDamage = 20;
+var minEarthLevel = 0;
+var explosionRadius = 138;
 
 function playerInput() {
   return {
@@ -95,6 +99,7 @@ function makePlayer(socket) {
   return {
     id: socket.id,
     socket: socket,
+    health: maxHealth,
     position: makePlayerPosition(),
     rotation: rotation,
     velocity: new THREE.Vector3(),
@@ -128,6 +133,7 @@ function mapObject(f, m) {
 function serializePlayer(player) {
   return {
     id: player.id,
+    health: player.health,
     position: player.position.toArray(),
     rotation: player.rotation,
     turretAngle: player.turretAngle
@@ -254,7 +260,7 @@ function updatePlayer(player, delta) {
 }
 
 function collidesWithEarth(projectile) {
-  return projectile.position.y <= getGroundHeight(projectile.position.x,projectile.position.z);
+  return projectile.position.y <= getGroundHeight(projectile.position.x,projectile.position.z) || projectile.position.y < minEarthLevel;
 }
 
 function removeProjectile(projectile) {
@@ -262,10 +268,34 @@ function removeProjectile(projectile) {
   broadcast("projectileExplode", projectile.owner);
 }
 
+function collidesWithPlayer(projectile) {
+  var collision = projectile.position.clone();
+  collision.y += playerHeight * 0.5;
+  for (var id in gameState.players) {
+    if (gameState.players.hasOwnProperty(id)) {
+      var distance = gameState.players[id].position.distanceTo(collision);
+      if (distance < playerHeight * 0.5) return true;
+    }
+  }
+}
+
+function projectileDamage(projectile) {
+  var collision = projectile.position.clone();
+  collision.y += playerHeight * 0.5;
+  mapObject(function(player) {
+    var distance = player.position.distanceTo(collision);
+    if (distance < explosionRadius) {
+      player.health -= maxDamage * (1 - (distance / explosionRadius));
+      player.health = Math.max(player.health, 0);
+    }
+  }, gameState.players);
+}
+
 function updateProjectile(projectile, delta) {
   projectile.velocity.add(gravity.clone().add(wind));
   projectile.position.add(projectile.velocity.clone().multiplyScalar(delta));
-  if (collidesWithEarth(projectile)) {
+  if (collidesWithEarth(projectile) || collidesWithPlayer(projectile)) {
+    projectileDamage(projectile);
     makeCrater(projectile.position, 50);
     removeProjectile(projectile);
   }
@@ -329,7 +359,7 @@ function makeCrater(position, radius) {
       }
     }
   }
- console.log(changeCount + " verteces changed");
+  console.log(changeCount + " verteces changed");
 }
 
 
