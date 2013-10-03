@@ -38,7 +38,7 @@ socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
 socketio.set('log level', 2);
 
-var forwardDelta = 60;
+var forwardDelta = 50;
 var rotationDelta = 1;
 var turretDelta = 1;
 var turretMax = Math.PI * 0.5;
@@ -102,6 +102,7 @@ function makePlayer(socket) {
     health: maxHealth,
     position: makePlayerPosition(),
     rotation: rotation,
+    velocity: new THREE.Vector3(),
     orientation: orientation,
     turretAngle: turretAngle,
     input: playerInput()
@@ -209,15 +210,35 @@ socketio.sockets.on('connection', function (socket) {
 });
 
 function updatePlayer(player, delta) {
-  if (player.input.forward) {
-    player.position.add(player.orientation.clone().multiplyScalar(delta * forwardDelta));
-    player.position.y = getGroundHeight(player.position.x, player.position.z);
+
+  var maxVelocity   = 500;
+  var gravity       = 230;
+
+  
+
+  player.velocity.y -= (gravity * delta);
+  
+  player.position.add(player.velocity.clone().multiplyScalar(delta));
+  
+  if(player.velocity.length() > maxVelocity){
+    player.velocity.setLength(maxVelocity);
   }
 
-  if (player.input.back) {
-    player.position.sub(player.orientation.clone().multiplyScalar(delta * forwardDelta));
-    player.position.y = getGroundHeight(player.position.x, player.position.z);
+  var ground = getGroundHeight(player.position.x, player.position.z);
+  if(player.position.y < ground){
+    player.position.y = ground;
+    player.velocity.y = 0;
+    player.velocity.x *= 0.7;
+    player.velocity.z *= 0.7;
+    if (player.input.forward) {
+      player.velocity.add(player.orientation.clone().multiplyScalar(forwardDelta))
+    }
+  
+    if (player.input.back) {
+      player.velocity.sub(player.orientation.clone().multiplyScalar(forwardDelta));
+    }
   }
+  
 
   if (player.input.left) {
     player.rotation += delta * rotationDelta;
@@ -340,6 +361,7 @@ function makeCrater(position, radius) {
   console.log(changeCount + " verteces changed");
 }
 
+
 function setGroundHeight(x, y, newHeight){
   var heightScale = 0.75;
   var terrainMapWidth = 512;
@@ -352,7 +374,6 @@ function setGroundHeight(x, y, newHeight){
   var gridY = Math.floor(ty);
 
   terrainData[(gridX + (gridY * terrainMapWidth))] = Math.floor(newHeight / heightScale);
-
 }
 
 function getGroundHeight(x, y) {
@@ -376,7 +397,7 @@ function getGroundHeight(x, y) {
   var heightx = sample1 - (fractionX * xSlope);
   var heighty = sample1 - (fractionY * ySlope);
 
-  var height = (heightx + heighty) / 2;
+  var height = (heightx + heighty) * 0.5;
 
   return height;
 }
