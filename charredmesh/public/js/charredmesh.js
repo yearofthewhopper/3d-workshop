@@ -10,7 +10,7 @@ var clock;
 var ground, groundGeometry, groundMaterial;
 var socket, gameState;
 
-var tank, keyboard;
+var tankModel, keyboard;
 
 var players = {};
 var projectiles = {};
@@ -77,8 +77,8 @@ function createPlayer(playerData) {
   turret.position.set(0, 20 + caliber*0.5, 0);
   turret.add(turretmesh);
   
-  var geom = new THREE.CubeGeometry(20, 20, 20);
-  var tank = new THREE.Mesh(geom, material);
+ // var geom = new THREE.CubeGeometry(20, 20, 20);
+  var tank = tankModel.clone();//= new THREE.Mesh(geom, material);
   tank.position.y += 10;
   newPlayer.obj = new THREE.Object3D();
   newPlayer.obj.position.copy(position);
@@ -315,10 +315,10 @@ function initGeometry(){
   var objLoader = new THREE.OBJLoader();
 
   objLoader.addEventListener( 'load', function ( event ) {
-    tank = event.content;
-    tank.scale.set(0.25, 0.25, 0.25);
-    tank.position.set(0, 250, 0);
-    scene.add(tank);
+    tankModel = event.content;
+    tankModel.scale.set(0.12, 0.12, 0.12);
+    tankModel.position.set(0, 0, 0);
+    scene.add(tankModel);
   });
 
   objLoader.load( "models/T72.obj" );
