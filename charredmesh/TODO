@@ -2,15 +2,15 @@
 * turrets that can be aimed
 * projectile emitting
 * simulate wind that alters projectile trajectory
-add basic lighting
+* add basic lighting
+* projectile disappears
+* camera follows the player (camera modes: world and player)
 random color for each player
-projectile disappears
 world boundaries (define the landscape)
 explosions deform the landscape
 player motion follows the landscape
 projectile force
 cool down period for firing
-camera follows the player (camera modes: world and player)
 obstacles (trees, rocks): eventually randomized
 cooler player geometry
 shared physics engine
