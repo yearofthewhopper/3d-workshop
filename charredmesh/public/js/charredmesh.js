@@ -114,8 +114,18 @@ function createProjectile(projectile) {
   return projectile;
 }
 
+var maxHealthColor = new THREE.Color(0x00ff00);
+var minHealthColor = new THREE.Color(0xff0000);
+
+function interpolateColor(max, min, level) {
+  return min.clone().lerp(max, level);
+}
+
 function updateHealthBar(health) {
-  document.getElementById("health").style.width = "" + health + "%";
+  var healthbar = document.getElementById("health");
+  var healthColor = interpolateColor(maxHealthColor, minHealthColor, health * 0.01);
+  healthbar.style.width = "" + health + "%";
+  healthbar.style.backgroundColor = healthColor.getStyle();
 }
 
 function updatePlayer(player) {
