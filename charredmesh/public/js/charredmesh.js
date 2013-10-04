@@ -20,7 +20,7 @@ var cameraTarget = new THREE.Vector3();
 var effectQueue = [];
 
 
-var skyColor = 0xcbe5ff;
+var skyColor = 0xf3e4d3;
 
 var terrainData;
 
@@ -49,7 +49,7 @@ function playerInput() {
 
 var input = playerInput();
 var turretLength = 50;
-var caliber = 3;
+var caliber = 1.5;
 
 function createPlayer(playerData) {
   var position = new THREE.Vector3().fromArray(playerData.position);
@@ -65,7 +65,7 @@ function createPlayer(playerData) {
   });
   
   var turretmaterial = new THREE.MeshLambertMaterial({
-    color: 0x0000FF
+    color: 0xffffff
   });
   
   var turretgeom = new THREE.CylinderGeometry(caliber, caliber, turretLength, 16);
@@ -121,8 +121,6 @@ function updateHealthBar(health) {
 function updatePlayer(player) {
   players[player.id].obj.position.fromArray(player.position);
 
-//  players[player.id].obj.position.y = findGround(players[player.id].obj.position.z, players[player.id].obj.position.x)+0;
-
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
 
@@ -143,6 +141,7 @@ function updateGameState(state) {
   gameState = state;
   mapObject(updatePlayer, gameState.players);
   mapObject(updateProjectile, gameState.projectiles);
+   updateChaseCam();
 }
 
 function projectileAppear(projectile) {
@@ -247,7 +246,7 @@ function initScene() {
   
   scene = new THREE.Scene();  
 
-  camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 10000);
+  camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 50000);
   camera.position.z = 0;
   camera.position.y = 1000;
   camera.lookAt(scene.position);
@@ -263,7 +262,7 @@ function initScene() {
 
   controls = new THREE.OrbitControls(camera);
   
-  scene.fog = new THREE.Fog(0xcbe5ff, 800, 1700);
+  scene.fog = new THREE.Fog(skyColor, 800, 1700);
 
   time = Date.now();
 }
@@ -288,7 +287,7 @@ function initLights(){
 
 function initGeometry(){
 
-  groundGeometry = new THREE.PlaneGeometry(4096, 4096, 512, 512);
+  groundGeometry = new THREE.PlaneGeometry(4096, 4096, 128, 128);
   groundMaterial = new THREE.MeshLambertMaterial({
     color:0xffffff,
     map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
@@ -298,28 +297,16 @@ function initGeometry(){
   );
 
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
-
-  //ground.rotation.x = THREE.Math.degToRad(-90);
- // ground.position.set(0, 0, 0);
+  ground.frustumCulled = false;
   scene.add(ground);
-  
- // groundGeometry = new THREE.PlaneGeometry( 1028, 1028, 4, 4 );
- // ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  
-  // rotate the ground plane so it's horizontal
-  //ground.rotation.x = -Math.PI * 0.5;
-
- // scene.add(ground);
-
-
   
   var objLoader = new THREE.OBJLoader();
 
   objLoader.addEventListener( 'load', function ( event ) {
     tankModel = event.content;
-    tankModel.scale.set(0.12, 0.12, 0.12);
+    tankModel.scale.set(1.1, 1.1, 1.1);
     tankModel.position.set(0, 0, 0);
-   // scene.add(tankModel);
+ 
     initSocket();
   });
 
@@ -347,10 +334,9 @@ function init(){
 
     for (var j = 0; j < groundGeometry.vertices.length; j++) {
 
-      var tx = groundGeometry.vertices[j].x;
-      var ty = groundGeometry.vertices[j].y;
+      var tx = groundGeometry.vertices[j].x+2048;
+      var ty = groundGeometry.vertices[j].y+2048;
       var tz = groundGeometry.vertices[j].z;
-
 
       groundGeometry.vertices[j].y = findGround(ty, tx);
       groundGeometry.vertices[j].z = tx;
@@ -429,7 +415,7 @@ function updateChaseCam(){
     // find a spot above and behind the player
     p.z -= Math.cos(players[playerId].obj.rotation.y) * 300;
     p.x -= Math.sin(players[playerId].obj.rotation.y) * 300;
-    p.y += 200;
+    p.y += 125;
 
     // constantly lerp the camera to that position to keep the motion smooth.
     camera.position.lerp(p, 0.05);
@@ -579,30 +565,21 @@ function getImageData(imgPath, callback) {
   img.src = imgPath;
 }
 
-function findGround(x, y) {
+function findGround(wx, wy){
 
-  var tx = (x+2048) / 8;
-  var ty = (y+2048) / 8;
+  var gx = Math.floor(wx / 8);
+  var gy = Math.floor(wy / 8);
 
-  var gridX = Math.floor(tx);
-  var gridY = Math.floor(ty);
+  var gx1 = gx + 1;
+  var gy1 = gy + 1;
 
-  var fractionX = tx - gridX;
-  var fractionY = ty - gridY;
+  var fracX = (wx - (gx*8)) / 8;
+  var fracY = (wy - (gy*8)) / 8;
 
-  var sample1 = getTerrainHeight(gridX, gridY);
-  var sample2 = getTerrainHeight(gridX+1, gridY);
-  var sample3 = getTerrainHeight(gridX, gridY+1);
+  var tempHeight1 = getTerrainHeight(gx,gy) * (1-fracX) + getTerrainHeight(gx1, gy) * (fracX);
+  var tempHeight2 = getTerrainHeight(gx,gy1) * (1-fracX) + getTerrainHeight(gx1, gy1) * (fracX);
 
-  var xSlope = sample1 - sample2;
-  var ySlope = sample1 - sample3;
-
-  var heightx = sample1 - (fractionX * xSlope);
-  var heighty = sample1 - (fractionY * ySlope);
-
-  var height = (heightx + heighty) / 2;
-
-  return height;
+  return tempHeight1 * (1-fracY) + tempHeight2 * (fracY);
 }
 
 function getTerrainHeight(gridx, gridy){
@@ -613,14 +590,14 @@ function getTerrainHeight(gridx, gridy){
 
   var x = Math.min(511, gridx);
   var y = Math.min(511, gridy);
+
   return terrainData[(x + (y * terrainMapWidth))] * heightScale;
 }
 
 function render() {
   var delta = clock.getDelta();
   time += delta;
-  
-  updateChaseCam();
+ 
   updateEffectQueue(delta);
   renderer.render(scene, camera);
 }
