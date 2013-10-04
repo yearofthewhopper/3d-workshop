@@ -5,13 +5,31 @@
 * add basic lighting
 * projectile disappears
 * camera follows the player (camera modes: world and player)
+* explosions deform the landscape
+* player motion follows the landscape
+* cooler player geometry
+
 random color for each player
+name for player
+health bar floats above player
+improve crater formation
+reduce terrain update area
+fix height interpolation on tank motion
+ - function for angle at any point
+particles for motion, smoke, fire
+respawn upon empty health
+multiple landscapes (terrain shader)
+crater texture (charred mesh!)
+water!
+score for kills, accuracy
+sound!
+
 world boundaries (define the landscape)
-explosions deform the landscape
-player motion follows the landscape
 projectile force
 cool down period for firing
 obstacles (trees, rocks): eventually randomized
-cooler player geometry
 shared physics engine
 time bomb (alters running time for other players)
+
+
+
