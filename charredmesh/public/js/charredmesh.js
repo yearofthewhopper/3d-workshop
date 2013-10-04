@@ -19,7 +19,6 @@ var cameraTarget = new THREE.Vector3();
 
 var effectQueue = [];
 
-
 var skyColor = 0xf3e4d3;
 
 var terrainData;
@@ -262,7 +261,7 @@ function initScene() {
   camera.lookAt(scene.position);
 
   // Initialize the renderer
-  renderer = new THREE.WebGLRenderer({clearColor: skyColor});
+  renderer = new THREE.WebGLRenderer({clearColor: skyColor, antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMapEnabled = true;
   renderer.shadowMapType = THREE.PCFShadowMap;
@@ -297,7 +296,18 @@ function initLights(){
 
 function initGeometry(){
 
-  groundGeometry = new THREE.PlaneGeometry(4096, 4096, 128, 128);
+  var oceanGeom = new THREE.PlaneGeometry(8000, 8000, 2, 2);
+  var oceanMaterial = new THREE.MeshLambertMaterial({
+    color:0x2753a5,
+    transparent:true,
+    opacity:0.5
+  });
+  var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
+  ocean.rotation.x = -Math.PI / 2;
+  ocean.position.set(4000,40,4000);
+  scene.add(ocean);
+
+  groundGeometry = new THREE.PlaneGeometry(4096, 4096, 256, 256);
   groundMaterial = new THREE.MeshLambertMaterial({
     color:0xffffff,
     map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),

@@ -358,7 +358,7 @@ function makeCrater(position, radius) {
       
         if(dst > 0){
           var depth =  Math.cos( dst/radius * (Math.PI / 2));
-          setGroundHeight(samplePos.x, samplePos.z, elevation - (depth * 25));
+          setGroundHeight(samplePos.x, samplePos.z, elevation - (depth * 50));
         } 
       
         changeCount++;
