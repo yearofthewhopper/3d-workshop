@@ -5,19 +5,24 @@ var PNG = require('png-js');
 
 var terrainData;
 
+var MAP_DATA_WIDTH = 1024;
+var MAP_DATA_HEIGHT = 1024;
+var terrainHeightScale = 1.5;
+var SEA_LEVEL = 0;
+var terrainResolution = 16;
 
-PNG.decode('public/textures/terrain_height_map.png', function(pixels) {
+PNG.decode('public/textures/terrain_height_map_mars2.png', function(pixels) {
     // pixels is a 1d array of decoded pixel data
-    console.log("Loaded PNG!");
+    console.log("Loaded map data!");
     
-    var count = 512*512;
+    var count = MAP_DATA_WIDTH * MAP_DATA_HEIGHT;
     terrainData = new Buffer(count);
 
     for(var i = 0; i < count; i++){
       terrainData[i] = pixels[i*4];
     }
    // console.log(terrainData.toString("base64").length);
-})
+});
 
 var app = express();
 var httpServer = http.createServer(app);
@@ -28,8 +33,35 @@ app.configure(function() {
 });
 
 app.get("/terrain", function(req, res){
+  
+  var chunkSize = 32;
+
+  var x = Number(req.query.x);// * chunkSize;
+  var z = Number(req.query.z);// * chunkSize;
+  
+  var dataX = x * chunkSize;
+  var dataZ = z * chunkSize;
+  chunkSize++;
+  var data = new Buffer(chunkSize * chunkSize);
+  //console.log("Chunk:" + x + "," + z);
+  for(var i = 0; i < chunkSize; i++){
+    //console.log("Data Z:" + (dataZ+i));
+    var srcOffset = (dataX) + ((dataZ+i)*MAP_DATA_WIDTH);
+    terrainData.copy( data, chunkSize * i, srcOffset, srcOffset + chunkSize );
+  }
+
+  var response = {
+    chunk : x + "_" + z,
+    data : data.toString("base64")
+  };
+
+  res.end(JSON.stringify(response));
+});
+
+app.get("/terrain-all", function(req, res){
   res.end(terrainData.toString("base64"));
 });
+
 
 httpServer.listen(7777);
 
@@ -38,7 +70,8 @@ socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
 socketio.set('log level', 2);
 
-var forwardDelta = 50;
+
+var forwardDelta = 60;
 var rotationDelta = 1;
 var turretDelta = 1;
 var turretMax = Math.PI * 0.5;
@@ -211,14 +244,18 @@ socketio.sockets.on('connection', function (socket) {
 
 function updatePlayer(player, delta) {
 
-  var maxVelocity   = 610;
+  var maxVelocity   = 675;
   var gravity       = 230;
 
-  
-
   player.velocity.y -= (gravity * delta);
-  player.velocity.x *= 0.7;
-  player.velocity.z *= 0.7;
+
+  if(player.position.y < SEA_LEVEL){
+    player.velocity.x *= 0.55;
+    player.velocity.z *= 0.55;
+  } else{
+    player.velocity.x *= 0.75;
+    player.velocity.z *= 0.75;
+  }
   
   var tmp = player.position.clone();
 
@@ -335,13 +372,15 @@ function startGameLoop() {
 startGameLoop();
 
 function makeCrater(position, radius) {
-  
+  return;
   var samplePos = new THREE.Vector3();
   var changeCount = 0;
   
   var gridRadius = Math.round(radius / 8);
 
   //console.log("grid radius:" + gridRadius);
+  
+  var dirtyChunks = {};
 
   for(var y = -gridRadius; y < gridRadius+1; y++){
     for(var x = -gridRadius; x < gridRadius+1; x++){
@@ -360,28 +399,24 @@ function makeCrater(position, radius) {
           var depth =  Math.cos( dst/radius * (Math.PI / 2));
           setGroundHeight(samplePos.x, samplePos.z, elevation - (depth * 50));
         } 
-      
-        changeCount++;
-      
       }
     }
   }
-  //console.log(changeCount + " verteces changed");
 }
 
 
 function setGroundHeight(x, y, newHeight){
-  var heightScale = 0.75;
-  var terrainMapWidth = 512;
-  var terrainMapHeight = 512;
+  ;
+  var terrainMapWidth = MAP_DATA_WIDTH;
+  var terrainMapHeight = MAP_DATA_HEIGHT;
 
-  var tx = x / 8;
-  var ty = y / 8;
+  var tx = x / terrainResolution;
+  var ty = y / terrainResolution;
 
   var gridX = Math.floor(tx);
   var gridY = Math.floor(ty);
   if(newHeight > 0.1){
-    terrainData[(gridX + (gridY * terrainMapWidth))] = Math.floor(newHeight / heightScale);
+    terrainData[(gridX + (gridY * terrainMapWidth))] = Math.floor(newHeight / terrainHeightScale);
   } else {
     terrainData[(gridX + (gridY * terrainMapWidth))] = 0.1;
   }
@@ -389,14 +424,14 @@ function setGroundHeight(x, y, newHeight){
 
 function getGroundHeight(wx, wy){
 
-  var gx = Math.floor(wx / 8);
-  var gy = Math.floor(wy / 8);
+  var gx = Math.floor(wx / terrainResolution);
+  var gy = Math.floor(wy / terrainResolution);
 
   var gx1 = gx + 1;
   var gy1 = gy + 1;
 
-  var fracX = (wx - (gx*8)) / 8;
-  var fracY = (wy - (gy*8)) / 8;
+  var fracX = (wx - (gx*terrainResolution)) / terrainResolution;
+  var fracY = (wy - (gy*terrainResolution)) / terrainResolution;
 
   var tempHeight1 = getTerrainHeight(gx,gy) * (1-fracX) + getTerrainHeight(gx1, gy) * (fracX);
   var tempHeight2 = getTerrainHeight(gx,gy1) * (1-fracX) + getTerrainHeight(gx1, gy1) * (fracX);
@@ -405,13 +440,12 @@ function getGroundHeight(wx, wy){
 }
 
 function getTerrainHeight(gridx, gridy){
-  var heightScale = 0.75;
   
-  var terrainMapWidth = 512;
-  var terrainMapHeight = 512;
+  var terrainMapWidth = MAP_DATA_WIDTH;
+  var terrainMapHeight = MAP_DATA_HEIGHT;
 
-  var x = Math.min(511, gridx);
-  var y = Math.min(511, gridy);
+  var x = Math.min(MAP_DATA_WIDTH-1, gridx);
+  var y = Math.min(MAP_DATA_HEIGHT-1, gridy);
 
-  return terrainData[(x + (y * terrainMapWidth))] * heightScale;
+  return terrainData[(x + (y * terrainMapWidth))] * terrainHeightScale;
 }
