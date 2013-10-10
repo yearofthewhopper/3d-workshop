@@ -24,11 +24,13 @@ var oceanUniforms;
 
 var terrainData;
 var chunkSize = 32;
-var terrainResolution = 16;
-var terrainHeightScale = 1.5;
+//var terrainResolution = 16;
+//var terrainHeightScale = 1.5;
 var terrainMaterial;
 var rendering = false;
 var chunkUpdateCount = 0;
+
+var terrain = new charredmesh.Terrain();
 
 var terrainChunks = {
 };
@@ -161,9 +163,12 @@ function updateGameState(state) {
   mapObject(updateProjectile, gameState.projectiles);
   updateChaseCam();
   updateTerrainChunks();
+  controls.center.set(players[playerId].obj.position.x, players[playerId].obj.position.y, players[playerId].obj.position.z);
 }
 
 function updateTerrainChunks(){
+
+  var terrainResolution = terrain.worldUnitsPerDataPoint;
 
   var viewDistanceHQ = 1500;
   var viewDistanceMQ = 3000;
@@ -200,14 +205,11 @@ function updateTerrainChunks(){
       if(dist < viewDistance){
 
         if(dist < viewDistanceHQ){
-          //console.log("adding 1: " + x + "_" + z);
           addTerrainChunk(x, z, 1);
         }else if(dist < viewDistanceMQ){
-          //console.log("adding 2: " + x + "_" + z);
           addTerrainChunk(x, z, 2);  
         }else {
-          //console.log("adding 2: " + x + "_" + z);
-          addTerrainChunk(x, z, 8);  
+          addTerrainChunk(x, z, 8);
         }
       }
       
@@ -222,20 +224,17 @@ function updateTerrainChunks(){
   }
 }
 
-function getAllTerrain(){
+function getAllTerrain() {
   $.ajax("/terrain-all", {
     success:function(data){
-      //var buff = 
-      //console.log(buff.buffer);
-      //updateChunk(data.chunk, buff);
-      terrainData = base64_decode_dataview(data);
+      terrainData = Util.decodeBase64(data);
+      terrain.loadBase64Data(data);
     }
   });
 }
 
 function removeTerrainChunk(chunkId){
   if(terrainChunks.hasOwnProperty(chunkId)){
-    console.log("removing chunk:" + chunkId);
     terrainChunks[chunkId].obj.geometry.dispose();
     scene.remove(terrainChunks[chunkId].obj);
     delete terrainChunks[chunkId];
@@ -243,6 +242,8 @@ function removeTerrainChunk(chunkId){
 }
 
 function addTerrainChunk(tx, ty, quality){
+  
+  // TODO: refactor this.
   if((tx > 31) || (tx < 0) || (ty > 31) || (ty < 0)){
     return;
   }
@@ -250,7 +251,6 @@ function addTerrainChunk(tx, ty, quality){
   var chunkId = tx+"_"+ty;
   if(!terrainChunks.hasOwnProperty(chunkId) || (terrainChunks[chunkId].lod != quality)) {
     if(terrainChunks.hasOwnProperty(chunkId) && (terrainChunks[chunkId].lod != quality)){
-      console.log("quality change!")
       removeTerrainChunk(chunkId);
     }
     chunkUpdateCount++;
@@ -258,26 +258,46 @@ function addTerrainChunk(tx, ty, quality){
     
     var xOffset = tx*chunkSize;
     var yOffset = ty*chunkSize;
+    
+    var max = 1024;
+    var dataX = 0;
+    var dataY = 0;
 
     for(var y = 0; y < chunkSize+1; y++){
+      dataY = yOffset+y;
       for(var x = 0; x < chunkSize+1; x++){
-        data.push( terrainData.getUint8( (xOffset+x) + ((yOffset+y) * 1024) )); 
+        dataX = xOffset+x;
+
+        if(dataX >= max){
+          dataX--;
+        } else if(x < 0){
+          dataX = 0;
+        }
+        if(dataY >= max){
+          dataY--;
+        }else if (y < 0){
+          dataY = 0;
+        }
+        try{
+          data.push( terrain.getTerrainPoint( dataX, dataY) );
+          //data.push( terrainData.getUint8( (dataX) + (dataY) * 1024 )); 
+        } catch(e){
+          //console.log("ERROR for coordinate: " + (dataX) + ", " + (dataY));
+          return;
+        }
       }
     }
     
-    console.log("Adding chunk: " + chunkId + " quality:" + quality);
-
-    var chunkGeometry = new THREE.TerrainGeometry(quality, chunkSize, data);
+    var chunkGeometry = new THREE.TerrainGeometry(quality, chunkSize, terrain.worldUnitsPerDataPoint, data);
     var chunkMesh = new THREE.Mesh(chunkGeometry, terrainMaterial);
-    chunkMesh.name = "chunk" + chunkId;
-    chunkMesh.position.set(tx * chunkSize*terrainResolution, 0, ty * terrainResolution*chunkSize);
+    chunkMesh.name = "chunk_" + chunkId;
+    chunkMesh.position.set(terrain.terrainToWorld(tx * chunkSize), 0, terrain.terrainToWorld(ty * chunkSize));
     scene.add(chunkMesh);
 
     terrainChunks[chunkId] = {
       lod : quality,
       obj : chunkMesh
     };
-    //updateChunk(chunkId, d, quality);
   }
 }
 
@@ -336,7 +356,7 @@ function projectileExplode(id) {
   gx = Math.floor(gx / (chunkSize*8));
   gy = Math.floor(gy / (chunkSize*8));
 
-  getTerrainData(gx, gy);
+//  getTerrainData(gx, gy);
 
   /*
   for (var j = 0; j < groundGeometry.vertices.length; j++) {
@@ -440,17 +460,9 @@ var oceanMaterial;
 function initGeometry(){
 
   var oceanGeom = new THREE.PlaneGeometry(16384, 16384, 2, 2);
-  /*var oceanMaterial = new THREE.MeshLambertMaterial({
-    color:0x2753a5,
-    transparent:true,
-    opacity:0.5
-  });*/
-
-
   var oceanFragmentShader = THREE.ShaderChunk.fog_pars_fragment + document.getElementById('fragment-water').textContent;
 
   for(var itm in THREE.ShaderChunk) {
-    //console.log("//INCLUDE_CHUNK:" + itm);
     if(oceanFragmentShader.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
       console.log("SPLICING SHADER: " + itm);
       oceanFragmentShader = oceanFragmentShader.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
@@ -480,22 +492,10 @@ function initGeometry(){
   terrainMaterial = new THREE.MeshLambertMaterial({
       color:0xffffff,
       map: THREE.ImageUtils.loadTexture("textures/dirt.jpg")
-     // sides:THREE.DoubleSide
       //shading:THREE.FlatShading
       //wireframe:true
     });
-  /*groundGeometry = new THREE.PlaneGeometry(4096, 4096, 256, 256);
-  groundMaterial = new THREE.MeshLambertMaterial({
-    color:0xffffff,
-    map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
-    //shading:THREE.FlatShading
-    //wireframe:true
-    }
-  );
 
-  ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  ground.frustumCulled = false;
-  scene.add(ground);*/
   
   var objLoader = new THREE.OBJLoader();
 
@@ -521,34 +521,7 @@ function init(){
   initLights();
   initGeometry();
   getAllTerrain();
-  //loadChunks();
   //initSocket();
-
-  //getTerrainData(0, 0, 512, 512);
-
-  /*getImageData("textures/terrain_height_map.png", function(imgData) {
-    terrainData = [];
-    var count = 512*512;
-    for(var i = 0; i < count; i++){
-      terrainData[i] = imgData.data[i*4];
-    }
-
-    for (var j = 0; j < groundGeometry.vertices.length; j++) {
-
-      var tx = groundGeometry.vertices[j].x+2048;
-      var ty = groundGeometry.vertices[j].y+2048;
-      var tz = groundGeometry.vertices[j].z;
-
-      groundGeometry.vertices[j].y = findGround(ty, tx);
-      groundGeometry.vertices[j].z = tx;
-      groundGeometry.vertices[j].x = ty;
-    }
-    
-    groundGeometry.computeFaceNormals();
-    groundGeometry.computeVertexNormals();
-    groundGeometry.normalsNeedUpdate = true;
-    groundGeometry.verticesNeedUpdate = true;
-  });*/
 }
 
 function onResize() {
@@ -617,8 +590,9 @@ function animate() {
   $("#stats").html(stats.join("<br>"));
 }
 
-function updateChaseCam(){
+function updateChaseCam() {
 
+  // don't try to update the camera if the player hasn't been instantiated yet.
   if(playerId) {
     var p = players[playerId].obj.position.clone();
 
@@ -626,8 +600,9 @@ function updateChaseCam(){
     p.z -= Math.cos(players[playerId].obj.rotation.y) * 300;
     p.x -= Math.sin(players[playerId].obj.rotation.y) * 300;
 
-    // SHABAM! No clipping through the ground.
-    p.y = Math.max(getGroundHeight(p.x, p.z)+100, p.y + 100);
+    // Use larger of either an offset from the players Y position, or a point above the ground.  
+    // This prevents the camera from clipping into mountains.
+    p.y = Math.max( terrain.getGroundHeight(p.x, p.z)+100, p.y + 100);
 
     // constantly lerp the camera to that position to keep the motion smooth.
     camera.position.lerp(p, 0.05);
@@ -645,6 +620,7 @@ function updateChaseCam(){
   }
 }
 
+
 function updateEffectQueue(delta) {
   for (var e = 0; e < effectQueue.length; e++) {
     effectQueue[e].update(delta);
@@ -655,123 +631,9 @@ function updateEffectQueue(delta) {
     }
   }
 }
-/*
-var chunkQueue = [];
-function getTerrainData(x, z){
-  //console.log("Get chunk:" + x + ", " + z);
-  for(var i = 0; i < chunkQueue.length; i++){
-    if(chunkQueue[i][2] == x+"_"+z){
-      return;
-    }
-  }
-  chunkQueue.push([x, z, x+"_"+z]);
-}
 
 
-function loadChunks() {
-  if(chunkQueue.length > 0){
-
-    var chunk = chunkQueue.splice(0,1);
-    $.ajax("/terrain?x=" + chunk[0][0] + "&z=" + chunk[0][1],{
-      success: function(json){
-      
-        var data = JSON.parse(json);
-        //console.log(data.data);
-        var buff = base64_decode_dataview(data.data);
-        //console.log(buff.buffer);
-        updateChunk(data.chunk, buff);
-
-        setTimeout(loadChunks, 100);
-    }});
-  } else {
-    setTimeout(loadChunks, 50);
-  }  
-}
-*/
-
-
-
-
-
-var base64_decode_dataview = (function() {
-  var   __map = {}
-    , __map_18 = {}
-    , __map_12 = {}
-    , __map_6 = {};
- 
-  !function() {
-    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
- 
-     for (var i = 0, j = chars.length, c; i < j; i ++) {
-      c = chars.charAt(i);
-      __map[c] = i;
-      __map_18[c] = i << 18;
-      __map_12[c] = i << 12;
-      __map_6[c] = i << 6;
-     }
-  }();
- 
-  return function(_a, callback) {
-    if (_a.indexOf('\n') !== -1)
-      _a = _a.replace(/\n/g, '');
- 
-    var execute = function() {
-      var   a = _a
-        , map_18 = __map_18
-        , map_12 = __map_12
-        , map_6 = __map_6
-        , map = __map
-        , length = a.length
-        , padindex = a.indexOf('=')
-        , padlen = padindex > -1 ? length - padindex : 0
-        , result = new DataView(new ArrayBuffer(length * 3 / 4 - padlen))
-        , offset = 0
-        , last = length - 4 - (length % 4);
- 
-      for (var i = 0, padding_length, len, n; i < length; i += 4) {
-        if (i === last) {
-          len = 4 - (padlen || (i + 4) - length);
-          padding_length = len % 4;
- 
-          n = (len > 0 ? map_18[a[i + 0]] : 0) |
-            (len > 1 ? map_12[a[i + 1]] : 0) |
-            (len > 2 ? map_6[a[i + 2]] : 0) |
-            (len > 3 ? map[a[i + 3]] : 0);
-        } else {
-          padding_length = 0;
-          n = map_18[a[i + 0]] | map_12[a[i + 1]] | map_6[a[i + 2]] | map[a[i + 3]];
-        }
- 
-        switch (padding_length) {
-        case 0:
-        case 1:
-          result.setUint8(offset ++, n >>> 16);
-          result.setUint8(offset ++, (n >>> 8) & 0xff);
-          result.setUint8(offset ++, n & 0xff);
-          break;
-        case 2:
-          result.setUint8(offset ++, n >>> 16);
-          break;
-        case 3:
-          result.setUint8(offset ++, n >>> 16);
-          result.setUint8(offset ++, (n >>> 8) & 0xff);
-          break;
-        }
-      }
- 
-      return result;
-    };
- 
-    if (callback) {
-      setTimeout(function() {
-        callback(execute());
-      }, 0);
-    } else {
-      return execute();
-    }
-  };
-})();
-
+// Load pixel data from an image (asynchronously)
 function getImageData(imgPath, callback) {
   var img = document.createElement('img');
   img.onload = function(){
@@ -785,38 +647,6 @@ function getImageData(imgPath, callback) {
     callback(ctx.getImageData(0, 0, img.width, img.height));
   }
   img.src = imgPath;
-}
-
-function getGroundHeight(wx, wy){
-
-  var gx = Math.floor(wx / terrainResolution);
-  var gy = Math.floor(wy / terrainResolution);
-
-  var gx1 = gx + 1;
-  var gy1 = gy + 1;
-
-  var fracX = (wx - (gx*terrainResolution)) / terrainResolution;
-  var fracY = (wy - (gy*terrainResolution)) / terrainResolution;
-
-  var tempHeight1 = getTerrainHeight(gx,gy) * (1-fracX) + getTerrainHeight(gx1, gy) * (fracX);
-  var tempHeight2 = getTerrainHeight(gx,gy1) * (1-fracX) + getTerrainHeight(gx1, gy1) * (fracX);
-
-  return tempHeight1 * (1-fracY) + tempHeight2 * (fracY);
-}
-
-
-var MAP_DATA_WIDTH = 1024;
-var MAP_DATA_HEIGHT = 1024;
-
-function getTerrainHeight(gridx, gridy){
-  
-  var terrainMapWidth = MAP_DATA_WIDTH;
-  var terrainMapHeight = MAP_DATA_HEIGHT;
-
-  var x = Math.min(MAP_DATA_WIDTH-1, gridx);
-  var y = Math.min(MAP_DATA_HEIGHT-1, gridy);
-
-  return terrainData.getUint8((x + (y * terrainMapWidth))) * 1.5;
 }
 
 
