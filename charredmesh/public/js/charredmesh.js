@@ -30,7 +30,13 @@ var terrainMaterial;
 var rendering = false;
 var chunkUpdateCount = 0;
 
+var particleGroups = {}
+
 var terrain = new charredmesh.Terrain();
+
+var cube1, cube2;
+
+var HUD = {};
 
 var terrainChunks = {
 };
@@ -62,6 +68,7 @@ var turretLength = 50;
 var caliber = 1.5;
 
 function createPlayer(playerData) {
+
   var position = new THREE.Vector3().fromArray(playerData.position);
   var rotation = playerData.rotation;
 
@@ -97,7 +104,36 @@ function createPlayer(playerData) {
   newPlayer.obj.add(tank);
   newPlayer.obj.add(turret);
   newPlayer.turret = turret;
+  newPlayer.obj.eulerOrder = "YZX";
   
+  // add the health bar to all other players
+  if(newPlayer.id != playerId){
+    var overlayCanvas = makeCanvas(100, 20);
+    var ctx = overlayCanvas.getContext("2d");
+
+    var overlayTexture = new THREE.Texture(overlayCanvas);
+    overlayTexture.needsUpdate = true;
+
+    var overlaygeom = new THREE.PlaneGeometry(50, 10);
+    var overlaymaterial = new THREE.MeshBasicMaterial({
+      map : overlayTexture,
+      transparent:true
+    });
+
+    
+    var overlay = new THREE.Mesh(overlaygeom, overlaymaterial);
+    overlay.rotation.y = -Math.PI;
+    overlay.position.y = 50;
+    scene.add(overlay);
+
+    newPlayer.overlay = {
+      texture : overlayTexture,
+      canvas : overlayCanvas,
+      material : overlaymaterial,
+      obj : overlay
+    };
+  }
+
   scene.add(newPlayer.obj);
   players[newPlayer.id] = newPlayer;
 }
@@ -121,8 +157,102 @@ function createProjectile(projectile) {
   projectile.obj = projectileobj;
   projectiles[projectile.id] = projectile;
 
+
+  var emitter = particleGroups["bulletTrail"].getFromPool();
+  emitter.position.copy(projectileobj.position);
+  emitter.enable();
+  projectile.particleEmitter = emitter;
+
   return projectile;
 }
+
+
+function createHUD(){
+
+  var hudScene = new THREE.Scene();
+  var hudCamera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 22500);
+  
+  hudCamera.lookAt(new THREE.Vector3(0, 0, -1));
+  var overlayCanvas = makeCanvas(512, 512);
+  var ctx = overlayCanvas.getContext("2d");
+
+  var overlayTexture = new THREE.Texture(overlayCanvas);
+  overlayTexture.needsUpdate = true;
+
+  var overlaygeom = new THREE.PlaneGeometry(50, 50);
+  var overlaymaterial = new THREE.MeshBasicMaterial({
+    map : overlayTexture,
+    transparent:true,
+    blending:THREE.AdditiveBlending
+  });
+  
+  var radarMesh = new THREE.Mesh(overlaygeom, overlaymaterial);
+  
+  radarMesh.position.set( 50,0,-150 );
+  radarMesh.rotation.y = -30 * Math.PI / 180;
+
+  hudScene.add(radarMesh);
+
+  HUD.scene = hudScene;
+  HUD.camera = hudCamera;
+  HUD.radar = {
+    obj:radarMesh, 
+    canvas: overlayCanvas,
+    texture: overlayTexture
+  };
+}
+
+function updateHUD(){
+
+  if(!playerId){
+    return;
+  }
+
+  var radarRange = 3000;
+  var radarCanvasScale = (radarRange * 2) / HUD.radar.canvas.width;
+
+  var ctx = HUD.radar.canvas.getContext("2d");
+  ctx.clearRect(0,0,HUD.radar.canvas.width, HUD.radar.canvas.height);
+  ctx.fillStyle = "rgba(0, 160, 0, 0.35)";
+  ctx.fillRect(0, 0, HUD.radar.canvas.width, HUD.radar.canvas.height);
+  HUD.radar.texture.needsUpdate = true;
+
+  var currentPlayer = players[playerId];
+
+  ctx.save();
+  ctx.translate(HUD.radar.canvas.width/2, HUD.radar.canvas.height/2);
+  //console.log(currentPlayer.obj.rotation.y);
+  ctx.rotate( currentPlayer.obj.rotation.y - Math.PI );
+  
+  ctx.fillStyle = "rgba(0, 255, 0, 0.75)";
+  ctx.fillRect(-5,-5, 10, 10);
+  mapObject(function(player) {
+    var distance = currentPlayer.obj.position.distanceTo( player.obj.position );
+
+    if(distance < radarRange) {
+      //var dotX = 
+      var dotX = player.obj.position.x - currentPlayer.obj.position.x;
+      var dotY = player.obj.position.z - currentPlayer.obj.position.z;
+      dotX /= radarCanvasScale;
+      dotY /= radarCanvasScale;
+      ctx.fillRect(dotX-5,dotY-5, 10, 10);
+    }
+  }, players);
+  ctx.restore();
+
+  /*var lookDirection = new THREE.Vector3();
+  lookDirection.copy(camera.position);
+  lookDirection.sub(cameraTarget);
+  lookDirection.normalize();
+  lookDirection.multiplyScalar(-100);
+
+  lookDirection*/
+
+  //HUD.radar.obj.position.copy(lookDirection.add(camera.position));
+  //HUD.radar.obj.lookAt(camera.position);
+}
+
+
 
 var maxHealthColor = new THREE.Color(0x00ff00);
 var minHealthColor = new THREE.Color(0xff0000);
@@ -141,17 +271,63 @@ function updateHealthBar(health) {
 function updatePlayer(player) {
   players[player.id].obj.position.fromArray(player.position);
 
+  if(players[player.id].overlay){
+    players[player.id].overlay.obj.position.fromArray(player.position);
+    players[player.id].overlay.obj.position.y += 50;
+  }
+
+
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
 
+  var directionVector = new THREE.Vector3( Math.cos(-player.rotation+Math.PI/2), 0, Math.sin(-player.rotation+Math.PI/2) );
+
+  var pt1 = players[player.id].obj.position.clone().add(directionVector.clone().multiplyScalar(20));
+  var pt2 = players[player.id].obj.position.clone().add(directionVector.clone().multiplyScalar(-20));
+
+
+  var height1 = terrain.getGroundHeight(pt1.x, pt1.z);
+  var height2 = terrain.getGroundHeight(pt2.x, pt2.z);
+  pt1.y = height1;
+  pt2.y = height2;
+  
+  players[player.id].obj.rotation.x += (Math.atan((height2-height1) / 40) - players[player.id].obj.rotation.x) * 0.15;
+  directionVector = new THREE.Vector3( Math.cos(-player.rotation), 0, Math.sin(-player.rotation) );
+
+   
   players[player.id].health = player.health;
   if (player.id === playerId) {
     updateHealthBar(player.health);
+    
+    cube1.position.copy(pt1);
+    cube2.position.copy(pt2);
+  } else {
+    // update UI overlay for other players.
+   // players[player.id].overlay.canvas.getContext("2d");
+   updateOverlay(players[player.id]);
   }
 }
 
+function updateOverlay( player ){
+  var canvas = player.overlay.canvas;
+
+  var ctx = player.overlay.canvas.getContext("2d");
+
+  //ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "red";
+  ctx.fillRect(0, 0, Math.max(0, player.health/100 * canvas.width), canvas.height);
+ 
+  player.overlay.texture.needsUpdate = true;
+
+}
+
+
+
 function updateProjectile(projectile) {
   projectiles[projectile.id].obj.position.fromArray(projectile.position);
+  projectiles[projectile.id].particleEmitter.position.copy(projectiles[projectile.id].obj.position);
   projectiles[projectile.id].obj.lookAt(
     projectiles[projectile.id].obj.position.clone().add(
       new THREE.Vector3().fromArray(projectile.velocity)));
@@ -170,9 +346,9 @@ function updateTerrainChunks(){
 
   var terrainResolution = terrain.worldUnitsPerDataPoint;
 
-  var viewDistanceHQ = 1500;
-  var viewDistanceMQ = 3000;
-  var viewDistance = 6000;
+  var viewDistanceHQ = 1000;
+  var viewDistanceMQ = 2000;
+  var viewDistance = 8000;
 
   var playerX = players[playerId].obj.position.x;
   var playerZ = players[playerId].obj.position.z;
@@ -209,7 +385,7 @@ function updateTerrainChunks(){
         }else if(dist < viewDistanceMQ){
           addTerrainChunk(x, z, 2);  
         }else {
-          addTerrainChunk(x, z, 8);
+          addTerrainChunk(x, z, 4);
         }
       }
       
@@ -259,7 +435,7 @@ function addTerrainChunk(tx, ty, quality){
     var xOffset = tx*chunkSize;
     var yOffset = ty*chunkSize;
     
-    var max = 1024;
+    var max = 1023;
     var dataX = 0;
     var dataY = 0;
 
@@ -268,18 +444,18 @@ function addTerrainChunk(tx, ty, quality){
       for(var x = 0; x < chunkSize+1; x++){
         dataX = xOffset+x;
 
-        if(dataX >= max){
-          dataX--;
-        } else if(x < 0){
+        if(dataX > max){
+          dataX = max;
+        } else if(dataX < 0){
           dataX = 0;
         }
-        if(dataY >= max){
-          dataY--;
-        }else if (y < 0){
+        if(dataY > max){
+          dataY = max;
+        }else if (dataY < 0){
           dataY = 0;
         }
         try{
-          data.push( terrain.getTerrainPoint( dataX, dataY) );
+          data.push( terrain.getTerrainPoint(dataX, dataY) );
           //data.push( terrainData.getUint8( (dataX) + (dataY) * 1024 )); 
         } catch(e){
           //console.log("ERROR for coordinate: " + (dataX) + ", " + (dataY));
@@ -340,15 +516,94 @@ function Explosion(position) {
   };
 }
 
+
+function initParticles(){
+
+   var explostionEmitterSettings = {
+      type: 'sphere',
+      positionSpread: new THREE.Vector3(30, 10, 30),
+      radius: 1,
+      speed: 200,
+      size: 30,
+      sizeSpread: 30,
+      sizeEnd: 0,
+      opacityStart: 1,
+      opacityEnd: 0,
+      acceleration:new THREE.Vector3(0, -100, 0),
+      colorStart: new THREE.Color('yellow'),
+      colorSpread: new THREE.Vector3(0, 10, 0),
+      colorEnd: new THREE.Color('red'),
+      particlesPerSecond: 2000,
+      alive: 0,
+      emitterDuration: 0.12
+  };
+
+   var bulletTrailEmitterSettings = {
+      type: 'sphere',
+      positionSpread: new THREE.Vector3(1, 1, 1),
+      radius: 3,
+      speed: 1,
+      size: 10,
+      sizeSpread: 10,
+      sizeEnd: 300,
+      opacityStart: 0.5,
+      opacityEnd: 0,
+      acceleration:new THREE.Vector3(0, 8, 0),
+      accelerationSpread:new THREE.Vector3(3, 5, 3),
+      colorStart: new THREE.Color('gray'),
+      colorEnd: new THREE.Color('white'),
+      particlesPerSecond: 50,
+      alive: 0
+  };
+  
+  particleGroups["explosion"] = new ShaderParticleGroup({
+    texture: THREE.ImageUtils.loadTexture('textures/smokeparticle.png'),
+    maxAge: 2.0,
+    blending: THREE.AdditiveBlending
+  });
+
+  particleGroups["explosion"].addPool( 10, explostionEmitterSettings, false );
+  
+
+  particleGroups["bulletTrail"] = new ShaderParticleGroup({
+    texture: THREE.ImageUtils.loadTexture('textures/smokeparticle.png'),
+    maxAge: 3.0,
+    blending: THREE.NormalBlending,
+    depthTest:true
+   //depthWrite:true
+  });
+
+  particleGroups["bulletTrail"].addPool( 10, bulletTrailEmitterSettings, false );
+  
+    // Add particle group to scene.
+  scene.add( particleGroups["explosion"].mesh );
+  scene.add( particleGroups["bulletTrail"].mesh );
+}
+
+
 function projectileExplode(id) {
+  if(!projectiles[id]){
+    return;
+  }
+
   var oldProjectile = projectiles[id];
+  
+  window.setTimeout(function() {
+    oldProjectile.particleEmitter.disable();
+    particleGroups["bulletTrail"].releaseIntoPool(oldProjectile.particleEmitter);  
+  }, 250);
+  
+
   scene.remove(oldProjectile.obj);
   delete gameState.projectiles[id];
   delete projectiles[id];
 
-  explosion = new Explosion(oldProjectile.obj.position);
+  /*explosion = new Explosion(oldProjectile.obj.position);
   scene.add(explosion.obj);
-  effectQueue.push(explosion);
+  effectQueue.push(explosion);*/
+
+
+  particleGroups["explosion"].triggerPoolEmitter( 1, oldProjectile.obj.position.clone() );
 
   var gx = oldProjectile.obj.position.x;
   var gy = oldProjectile.obj.position.z;
@@ -379,10 +634,10 @@ function initSocket() {
 
   socket.on('welcome', function(data) {
     //console.log('game state ', data);
+    playerId = data.id;
     gameState = data.state;
     mapObject(createPlayer, gameState.players);
     mapObject(createProjectile, gameState.projectiles);
-    playerId = data.id;
   });
 
   socket.on('playerJoin', function(data) {
@@ -397,11 +652,14 @@ function initSocket() {
   socket.on('projectileExplode', projectileExplode);
 
   socket.on('playerDisconnect', function(id) {
+    console.log("Player removed.");
     projectileExplode(id);
     var oldPlayer = players[id];
     scene.remove(oldPlayer.obj);
+    scene.remove(oldPlayer.overlay.obj);
     delete gameState.players[id];
     delete players[id];
+
   });
 }
 
@@ -422,7 +680,18 @@ function initScene() {
   //camera.target = new THREE.Vector3(2048,0,2048);
 
   // Initialize the renderer
-  renderer = new THREE.WebGLRenderer({clearColor: skyColor, antialias:true});
+  renderer = new THREE.WebGLRenderer( {
+    clearColor: skyColor, 
+    antialias:true
+    //precision:'highp',
+    //antialias: true,
+    //stencil: false,
+    //premultipliedAlpha: true 
+  });
+  renderer.autoClear = false;
+  
+  renderer.sortObjects = false;
+
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMapEnabled = true;
   renderer.shadowMapType = THREE.PCFShadowMap;
@@ -490,9 +759,9 @@ function initGeometry(){
   ocean.position.set(8192,40,8192);
   scene.add(ocean);
   terrainMaterial = new THREE.MeshLambertMaterial({
-      color:0xffffff,
-      map: THREE.ImageUtils.loadTexture("textures/dirt.jpg")
-      //shading:THREE.FlatShading
+      color:0x606060,
+      //map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
+      shading:THREE.FlatShading
       //wireframe:true
     });
 
@@ -508,6 +777,13 @@ function initGeometry(){
   });
 
   objLoader.load( "models/T72.obj" ); 
+
+
+
+  cube1 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0xff0000}));
+  //scene.add(cube1);
+  cube2 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0x00ff00}));
+  //scene.add(cube2);
 }
 
 function init(){
@@ -519,9 +795,14 @@ function init(){
 
   initScene();
   initLights();
+  initParticles();
   initGeometry();
+
+  createHUD();
+
   getAllTerrain();
-  //initSocket();
+  
+  // Socket is connected after assets are loaded.
 }
 
 function onResize() {
@@ -529,6 +810,10 @@ function onResize() {
   aspectRatio = window.innerWidth / window.innerHeight;
   camera.aspect = aspectRatio;
   camera.updateProjectionMatrix();
+
+  HUD.camera.aspect = aspecRatio;
+  HUD.camera.updateProjectionMatrix();
+  
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -593,31 +878,40 @@ function animate() {
 function updateChaseCam() {
 
   // don't try to update the camera if the player hasn't been instantiated yet.
-  if(playerId) {
-    var p = players[playerId].obj.position.clone();
-
-    // find a spot above and behind the player
-    p.z -= Math.cos(players[playerId].obj.rotation.y) * 300;
-    p.x -= Math.sin(players[playerId].obj.rotation.y) * 300;
-
-    // Use larger of either an offset from the players Y position, or a point above the ground.  
-    // This prevents the camera from clipping into mountains.
-    p.y = Math.max( terrain.getGroundHeight(p.x, p.z)+100, p.y + 100);
-
-    // constantly lerp the camera to that position to keep the motion smooth.
-    camera.position.lerp(p, 0.05);
-
-    // Find a spot in front of the player
-    p.copy(players[playerId].obj.position);
-    p.z += Math.cos(players[playerId].obj.rotation.y) * 300;
-    p.x += Math.sin(players[playerId].obj.rotation.y) * 300;
-
-    // constantly lerp the target position too, again to keep things smooth.
-    cameraTarget.lerp(p, 0.05);
-
-    // look at that spot (looking at the player makes it hard to see what's ahead)  
-    camera.lookAt(cameraTarget);
+  if(!playerId){
+    return;
   }
+
+  var p = players[playerId].obj.position.clone();
+
+  // find a spot above and behind the player
+  p.z -= Math.cos(players[playerId].obj.rotation.y) * 300;
+  p.x -= Math.sin(players[playerId].obj.rotation.y) * 300;
+
+  // Use larger of either an offset from the players Y position, or a point above the ground.  
+  // This prevents the camera from clipping into mountains.
+  p.y = Math.max( terrain.getGroundHeight(p.x, p.z)+100, p.y + 100);
+
+  // constantly lerp the camera to that position to keep the motion smooth.
+  camera.position.lerp(p, 0.05);
+
+  // Find a spot in front of the player
+  p.copy(players[playerId].obj.position);
+  p.z += Math.cos(players[playerId].obj.rotation.y) * 300;
+  p.x += Math.sin(players[playerId].obj.rotation.y) * 300;
+
+  // constantly lerp the target position too, again to keep things smooth.
+  cameraTarget.lerp(p, 0.05);
+
+  // look at that spot (looking at the player makes it hard to see what's ahead)  
+  camera.lookAt(cameraTarget);
+
+  mapObject(function(player){
+   // console.log(player.obj.position.x);
+    if(player.overlay){
+      player.overlay.obj.lookAt(camera.position);
+    }
+  }, players);
 }
 
 
@@ -650,6 +944,21 @@ function getImageData(imgPath, callback) {
 }
 
 
+function makeCanvas(width, height){
+  var canvas = document.createElement("canvas");
+  
+  canvas.width = width;
+  canvas.height = height;
+
+  canvas.style.position = "absolute";
+  canvas.style.zIndex = 100000;
+
+  document.body.appendChild(canvas);
+
+  return canvas;
+}
+
+
 
 function render() {
   var delta = clock.getDelta();
@@ -657,7 +966,16 @@ function render() {
   
   //controls.update();
   updateEffectQueue(delta);
+
+  updateHUD();
+
+  particleGroups["explosion"].tick(delta);
+  particleGroups["bulletTrail"].tick(delta);
+  
+  renderer.clear();
   renderer.render(scene, camera);
+  renderer.render(HUD.scene, HUD.camera);
+
   oceanUniforms.time.value += 0.01;
 }
 

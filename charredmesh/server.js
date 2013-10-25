@@ -235,6 +235,7 @@ socketio.sockets.on('connection', function (socket) {
   });
 
   socket.on('disconnect', function() {
+    console.log("Player disconnected!");
     delete gameState.players[player.id];
     delete gameState.projectiles[player.id];
     broadcast('playerDisconnect', player.id);
@@ -370,7 +371,8 @@ function startGameLoop() {
 startGameLoop();
 
 function makeCrater(position, radius) {
-  //return;
+  return;
+
   var samplePos = new THREE.Vector3();
   var changeCount = 0;
   
