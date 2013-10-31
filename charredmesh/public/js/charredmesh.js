@@ -221,7 +221,6 @@ function updateHUD(){
 
   ctx.save();
   ctx.translate(HUD.radar.canvas.width/2, HUD.radar.canvas.height/2);
-  //console.log(currentPlayer.obj.rotation.y);
   ctx.rotate( currentPlayer.obj.rotation.y - Math.PI );
   
   ctx.fillStyle = "rgba(0, 255, 0, 0.75)";
@@ -230,7 +229,6 @@ function updateHUD(){
     var distance = currentPlayer.obj.position.distanceTo( player.obj.position );
 
     if(distance < radarRange) {
-      //var dotX = 
       var dotX = player.obj.position.x - currentPlayer.obj.position.x;
       var dotY = player.obj.position.z - currentPlayer.obj.position.z;
       dotX /= radarCanvasScale;
@@ -241,12 +239,12 @@ function updateHUD(){
   ctx.restore();
 
   /*var lookDirection = new THREE.Vector3();
-  lookDirection.copy(camera.position);
-  lookDirection.sub(cameraTarget);
-  lookDirection.normalize();
-  lookDirection.multiplyScalar(-100);
+    lookDirection.copy(camera.position);
+    lookDirection.sub(cameraTarget);
+    lookDirection.normalize();
+    lookDirection.multiplyScalar(-100);
 
-  lookDirection*/
+    lookDirection*/
 
   //HUD.radar.obj.position.copy(lookDirection.add(camera.position));
   //HUD.radar.obj.lookAt(camera.position);
@@ -276,7 +274,6 @@ function updatePlayer(player) {
     players[player.id].overlay.obj.position.y += 50;
   }
 
-
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
 
@@ -294,7 +291,7 @@ function updatePlayer(player) {
   players[player.id].obj.rotation.x += (Math.atan((height2-height1) / 40) - players[player.id].obj.rotation.x) * 0.15;
   directionVector = new THREE.Vector3( Math.cos(-player.rotation), 0, Math.sin(-player.rotation) );
 
-   
+  
   players[player.id].health = player.health;
   if (player.id === playerId) {
     updateHealthBar(player.health);
@@ -303,8 +300,8 @@ function updatePlayer(player) {
     cube2.position.copy(pt2);
   } else {
     // update UI overlay for other players.
-   // players[player.id].overlay.canvas.getContext("2d");
-   updateOverlay(players[player.id]);
+    // players[player.id].overlay.canvas.getContext("2d");
+    updateOverlay(players[player.id]);
   }
 }
 
@@ -318,7 +315,7 @@ function updateOverlay( player ){
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "red";
   ctx.fillRect(0, 0, Math.max(0, player.health/100 * canvas.width), canvas.height);
- 
+  
   player.overlay.texture.needsUpdate = true;
 
 }
@@ -519,41 +516,41 @@ function Explosion(position) {
 
 function initParticles(){
 
-   var explostionEmitterSettings = {
-      type: 'sphere',
-      positionSpread: new THREE.Vector3(30, 10, 30),
-      radius: 1,
-      speed: 200,
-      size: 30,
-      sizeSpread: 30,
-      sizeEnd: 0,
-      opacityStart: 1,
-      opacityEnd: 0,
-      acceleration:new THREE.Vector3(0, -100, 0),
-      colorStart: new THREE.Color('yellow'),
-      colorSpread: new THREE.Vector3(0, 10, 0),
-      colorEnd: new THREE.Color('red'),
-      particlesPerSecond: 2000,
-      alive: 0,
-      emitterDuration: 0.12
+  var explosionEmitterSettings = {
+    type: 'sphere',
+    positionSpread: new THREE.Vector3(30, 10, 30),
+    radius: 100,
+    speed: 700,
+    size: 30,
+    sizeSpread: 30,
+    sizeEnd: 30,
+    opacityStart: 1,
+    opacityEnd: 0,
+    acceleration:new THREE.Vector3(0, 0, 0),
+    colorStart: new THREE.Color('yellow'),
+    colorSpread: new THREE.Vector3(0, 10, 0),
+    colorEnd: new THREE.Color('red'),
+    particlesPerSecond: 2000,
+    alive: 0,
+    emitterDuration: 0.5
   };
 
-   var bulletTrailEmitterSettings = {
-      type: 'sphere',
-      positionSpread: new THREE.Vector3(1, 1, 1),
-      radius: 3,
-      speed: 1,
-      size: 10,
-      sizeSpread: 10,
-      sizeEnd: 300,
-      opacityStart: 0.5,
-      opacityEnd: 0,
-      acceleration:new THREE.Vector3(0, 8, 0),
-      accelerationSpread:new THREE.Vector3(3, 5, 3),
-      colorStart: new THREE.Color('gray'),
-      colorEnd: new THREE.Color('white'),
-      particlesPerSecond: 50,
-      alive: 0
+  var bulletTrailEmitterSettings = {
+    type: 'sphere',
+    positionSpread: new THREE.Vector3(1, 1, 1),
+    radius: 3,
+    speed: 1,
+    size: 10,
+    sizeSpread: 10,
+    sizeEnd: 300,
+    opacityStart: 0.5,
+    opacityEnd: 0,
+    acceleration:new THREE.Vector3(0, 8, 0),
+    accelerationSpread:new THREE.Vector3(3, 5, 3),
+    colorStart: new THREE.Color('gray'),
+    colorEnd: new THREE.Color('white'),
+    particlesPerSecond: 50,
+    alive: 0
   };
   
   particleGroups["explosion"] = new ShaderParticleGroup({
@@ -562,7 +559,7 @@ function initParticles(){
     blending: THREE.AdditiveBlending
   });
 
-  particleGroups["explosion"].addPool( 10, explostionEmitterSettings, false );
+  particleGroups["explosion"].addPool( 10, explosionEmitterSettings, false );
   
 
   particleGroups["bulletTrail"] = new ShaderParticleGroup({
@@ -570,12 +567,12 @@ function initParticles(){
     maxAge: 3.0,
     blending: THREE.NormalBlending,
     depthTest:true
-   //depthWrite:true
+    //depthWrite:true
   });
 
   particleGroups["bulletTrail"].addPool( 10, bulletTrailEmitterSettings, false );
   
-    // Add particle group to scene.
+  // Add particle group to scene.
   scene.add( particleGroups["explosion"].mesh );
   scene.add( particleGroups["bulletTrail"].mesh );
 }
@@ -592,40 +589,38 @@ function projectileExplode(id) {
     oldProjectile.particleEmitter.disable();
     particleGroups["bulletTrail"].releaseIntoPool(oldProjectile.particleEmitter);  
   }, 250);
-  
 
   scene.remove(oldProjectile.obj);
   delete gameState.projectiles[id];
   delete projectiles[id];
 
-  /*explosion = new Explosion(oldProjectile.obj.position);
+  explosion = new Explosion(oldProjectile.obj.position);
   scene.add(explosion.obj);
-  effectQueue.push(explosion);*/
-
+  effectQueue.push(explosion);
 
   particleGroups["explosion"].triggerPoolEmitter( 1, oldProjectile.obj.position.clone() );
 
   var gx = oldProjectile.obj.position.x;
   var gy = oldProjectile.obj.position.z;
- 
+  
   gx = Math.floor(gx / (chunkSize*8));
   gy = Math.floor(gy / (chunkSize*8));
 
-//  getTerrainData(gx, gy);
+  //  getTerrainData(gx, gy);
 
   /*
-  for (var j = 0; j < groundGeometry.vertices.length; j++) {
+    for (var j = 0; j < groundGeometry.vertices.length; j++) {
     var dst = oldProjectile.obj.position.distanceTo(groundGeometry.vertices[j]);
     if(dst < 100) {
-      groundGeometry.vertices[j].y -= (50 * ((100 - dst) / 100));
-      console.log("boom");
+    groundGeometry.vertices[j].y -= (50 * ((100 - dst) / 100));
+    console.log("boom");
     }
-  }
-  
-  groundGeometry.computeFaceNormals();
-  groundGeometry.computeVertexNormals();
-  groundGeometry.normalsNeedUpdate = true;
-  groundGeometry.verticesNeedUpdate = true;
+    }
+    
+    groundGeometry.computeFaceNormals();
+    groundGeometry.computeVertexNormals();
+    groundGeometry.normalsNeedUpdate = true;
+    groundGeometry.verticesNeedUpdate = true;
   */
 }
 
@@ -759,11 +754,11 @@ function initGeometry(){
   ocean.position.set(8192,40,8192);
   scene.add(ocean);
   terrainMaterial = new THREE.MeshLambertMaterial({
-      color:0x606060,
-      //map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
-      shading:THREE.FlatShading
-      //wireframe:true
-    });
+    color:0x606060,
+    //map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
+    shading:THREE.FlatShading
+    //wireframe:true
+  });
 
   
   var objLoader = new THREE.OBJLoader();
@@ -772,12 +767,11 @@ function initGeometry(){
     tankModel = event.content;
     tankModel.scale.set(1.1, 1.1, 1.1);
     tankModel.position.set(0, 0, 0);
- 
+    
     initSocket();
   });
 
   objLoader.load( "models/T72.obj" ); 
-
 
 
   cube1 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0xff0000}));
@@ -907,7 +901,7 @@ function updateChaseCam() {
   camera.lookAt(cameraTarget);
 
   mapObject(function(player){
-   // console.log(player.obj.position.x);
+    // console.log(player.obj.position.x);
     if(player.overlay){
       player.overlay.obj.lookAt(camera.position);
     }
