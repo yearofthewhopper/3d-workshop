@@ -74,15 +74,19 @@ function createPlayer(playerData) {
 
   var newPlayer = {
     id: playerData.id,
-    health: playerData.health
+    health: playerData.health,
+    name: playerData.name,
+    color: playerData.color
   };
 
+  console.log(newPlayer.name + " has entered the game!");
+
   var material = new THREE.MeshLambertMaterial({
-    color: 0xFF0000
+    color: new THREE.Color().setStyle(newPlayer.color)
   });
   
   var turretmaterial = new THREE.MeshLambertMaterial({
-    color: 0xffffff
+    color: new THREE.Color().setStyle(newPlayer.color)
   });
   
   var turretgeom = new THREE.CylinderGeometry(caliber, caliber, turretLength, 16);
@@ -98,6 +102,9 @@ function createPlayer(playerData) {
   //var tank = new THREE.Mesh(geom, material);
   //tank.position.y += 10;
   tank = tankModel.clone();
+  tank.children[1].children[0].material = material;
+  tank.children[1].children[1].material = material;
+
   newPlayer.obj = new THREE.Object3D();
   newPlayer.obj.position.copy(position);
   newPlayer.obj.rotation.y = rotation;
@@ -119,7 +126,6 @@ function createPlayer(playerData) {
       map : overlayTexture,
       transparent:true
     });
-
     
     var overlay = new THREE.Mesh(overlaygeom, overlaymaterial);
     overlay.rotation.y = -Math.PI;
@@ -140,8 +146,8 @@ function createPlayer(playerData) {
 
 function createProjectile(projectile) {
   var projectilematerial = new THREE.MeshLambertMaterial({
-    color: 0xdddd00,
-    emissive: 0x444400
+    color: players[projectile.owner].color,
+    emissive: 0x222222
   });
   var projectilegeom = new THREE.CylinderGeometry(0, caliber, 20, 16);
   var projectilemesh = new THREE.Mesh(projectilegeom, projectilematerial);
@@ -233,6 +239,7 @@ function updateHUD(){
       var dotY = player.obj.position.z - currentPlayer.obj.position.z;
       dotX /= radarCanvasScale;
       dotY /= radarCanvasScale;
+      ctx.fillStyle = player.color; // "rgba(0, 255, 0, 0.75)";
       ctx.fillRect(dotX-5,dotY-5, 10, 10);
     }
   }, players);
@@ -481,9 +488,9 @@ function projectileAppear(projectile) {
   createProjectile(projectile);
 }
 
-function Explosion(position) {
+function Explosion(position, color) {
   var explosionmaterial = new THREE.MeshBasicMaterial({
-    color: 0xFFFF00,
+    color: color,
     transparent: true,
     blending: THREE.AdditiveBlending
   });
@@ -594,7 +601,7 @@ function projectileExplode(id) {
   delete gameState.projectiles[id];
   delete projectiles[id];
 
-  explosion = new Explosion(oldProjectile.obj.position);
+  explosion = new Explosion(oldProjectile.obj.position, players[id].color);
   scene.add(explosion.obj);
   effectQueue.push(explosion);
 

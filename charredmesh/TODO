@@ -15,15 +15,14 @@
 * particles for motion, smoke, fire
 * reduce terrain update area
 * Add Radar (and place for other HUD to live)
-
+* random color for each player
+* name for player!  (color + animal)
 
 ## GAMEPLAY STUFF ##
 
-random color for each player
-name for player
+show player names
 score for kills, accuracy
 respawn upon empty health
-
 
 ## TERRAIN STUFF ##
 
@@ -31,9 +30,6 @@ create lookup function to get surface normal for any terrain coordinate
 multiple landscapes (terrain shader)
 crater texture (charred mesh!)
 world boundaries (define the landscape)
-
-
-
 
 sound!
 projectile force
