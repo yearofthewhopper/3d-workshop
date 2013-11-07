@@ -32,13 +32,18 @@ var chunkUpdateCount = 0;
 
 var particleGroups = {}
 
-var terrain = new charredmesh.Terrain();
+var terrain = new charredmesh.Terrain(Util);
 
 var cube1, cube2;
 
 var HUD = {};
 
 var terrainChunks = {
+};
+
+var readyFlags = {
+  terrain : false,
+  geometry : false
 };
 
 function mapObject(f, m) {
@@ -346,6 +351,25 @@ function updateGameState(state) {
   controls.center.set(players[playerId].obj.position.x, players[playerId].obj.position.y, players[playerId].obj.position.z);
 }
 
+function updateModifiedTerrainChunks(region){
+  var id = Math.floor(region.x / chunkSize) + "_" + Math.floor(region.y / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
+  id = Math.floor((region.x+region.w) / chunkSize) + "_" +  Math.floor(region.y / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
+  id = Math.floor((region.x+region.w) / chunkSize) + "_" + Math.floor((region.y+region.w) / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
+  id = Math.floor(region.x / chunkSize) + "_" + Math.floor((region.y+region.h) / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
+}
+
 function updateTerrainChunks(){
 
   var terrainResolution = terrain.worldUnitsPerDataPoint;
@@ -409,6 +433,8 @@ function getAllTerrain() {
     success:function(data){
       terrainData = Util.decodeBase64(data);
       terrain.loadBase64Data(data);
+      readyFlags.terrain = true;
+      checkReadyState();
     }
   });
 }
@@ -480,8 +506,6 @@ function addTerrainChunk(tx, ty, quality){
     };
   }
 }
-
-
 
 
 function projectileAppear(projectile) {
@@ -661,7 +685,11 @@ function initSocket() {
     scene.remove(oldPlayer.overlay.obj);
     delete gameState.players[id];
     delete players[id];
+  });
 
+  socket.on("terrainUpdate", function(region){
+    terrain.setDataRegion(region);
+    updateModifiedTerrainChunks(region);
   });
 }
 
@@ -775,7 +803,8 @@ function initGeometry(){
     tankModel.scale.set(1.1, 1.1, 1.1);
     tankModel.position.set(0, 0, 0);
     
-    initSocket();
+    readyFlags.geometry = true;
+    checkReadyState();
   });
 
   objLoader.load( "models/T72.obj" ); 
@@ -785,6 +814,19 @@ function initGeometry(){
   //scene.add(cube1);
   cube2 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0x00ff00}));
   //scene.add(cube2);
+}
+
+// check to see when all the various async stuff is done loading.
+function checkReadyState(){
+  var ready = true;
+
+  mapObject(function(item){
+    ready = ready && item;
+  }, readyFlags);
+
+  if(ready){
+    initSocket();
+  }
 }
 
 function init(){
@@ -812,7 +854,7 @@ function onResize() {
   camera.aspect = aspectRatio;
   camera.updateProjectionMatrix();
 
-  HUD.camera.aspect = aspecRatio;
+  HUD.camera.aspect = aspectRatio;
   HUD.camera.updateProjectionMatrix();
   
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -873,6 +915,10 @@ function animate() {
   stats.push("geometries: " + renderer.info.memory.geometries);
   stats.push("textures: " + renderer.info.memory.textures);
   stats.push("chunk updates: " + chunkUpdateCount);
+  if(playerId){
+    stats.push("Player Chunk ID: " + Math.floor((players[playerId].obj.position.x / terrain.worldUnitsPerDataPoint) / chunkSize) + "_" + + Math.floor((players[playerId].obj.position.z / terrain.worldUnitsPerDataPoint) / chunkSize));
+  }
+
   $("#stats").html(stats.join("<br>"));
 }
 

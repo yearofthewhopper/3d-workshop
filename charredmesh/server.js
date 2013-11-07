@@ -2,11 +2,13 @@ var express = require('express');
 var http = require('http');
 var THREE = require("three");
 var PNG = require('png-js');
+var Util = require("./public/js/utils.js");
 var Terrain = require("./public/js/terrain.js");
 
 
+
 var terrainData;
-var terrain = new Terrain();
+var terrain = new Terrain(Util);
 
 var SEA_LEVEL       = 40;
 
@@ -323,11 +325,11 @@ var animalNames = [
 
 PNG.decode('public/textures/terrain_height_map_mountains.png', function(pixels) {
     // pixels is a 1d array of decoded pixel data
-    var count = terrain.terrainDataWidth * terrain.terrainDataHeight;
-    terrainData = new Buffer(count);
-    for(var i = 0; i < count; i++){
-      terrainData[i] = pixels[i*4];
-    }
+    //var count = terrain.terrainDataWidth * terrain.terrainDataHeight;
+    //terrainData = new Buffer(count);
+    //for(var i = 0; i < count; i++){
+      //terrainData[i] = pixels[i*4];
+    //}
 
     terrain.loadRGBA(pixels);
     console.log("Loaded map data!");
@@ -343,31 +345,20 @@ app.configure(function() {
 
 app.get("/terrain", function(req, res){
   
-  var chunkSize = 32;
-
   var x = Number(req.query.x);
-  var z = Number(req.query.z);
-  
-  var dataX = x * chunkSize;
-  var dataZ = z * chunkSize;
-  chunkSize++;
-  var data = new Buffer(chunkSize * chunkSize);
-  
-  for(var i = 0; i < chunkSize; i++){
-    var srcOffset = (dataX) + ((dataZ+i) * MAP_DATA_WIDTH);
-    terrainData.copy( data, chunkSize * i, srcOffset, srcOffset + chunkSize );
-  }
+  var y = Number(req.query.y);
 
-  var response = {
-    chunk : x + "_" + z,
-    data : data.toString("base64")
-  };
+  var w = Number(req.query.w);
+  var h = Number(req.query.h);
+  
+  var response = terrain.getDataRegion(x, y, w, h);
 
   res.end(JSON.stringify(response));
 });
 
+
 app.get("/terrain-all", function(req, res){
-  res.end(terrainData.toString("base64"));
+  res.end( terrain.getDataRegion(0,0,1024,1024).data);
 });
 
 
@@ -691,7 +682,6 @@ function startGameLoop() {
 startGameLoop();
 
 function makeCrater(position, radius) {
-  return;
 
   var samplePos = new THREE.Vector3();
   var changeCount = 0;
@@ -699,6 +689,11 @@ function makeCrater(position, radius) {
   var gridRadius = Math.round(terrain.worldToTerrain(radius));
 
   var dirtyChunks = {};
+
+  var dx = Math.floor(terrain.worldToTerrain(position.x) - gridRadius);
+  var dy = Math.floor(terrain.worldToTerrain(position.z) - gridRadius);
+  var dw = Math.floor(terrain.worldToTerrain(radius*2));
+  var dh = dw;
 
   for(var y = -gridRadius; y < gridRadius+1; y++){
     var worldY = terrain.terrainToWorld(y);
@@ -712,9 +707,14 @@ function makeCrater(position, radius) {
       if(dst < radius) {
         if(dst > 0){
           var depth =  Math.cos( dst/radius * (Math.PI / 2));
-          terrain.setGroundHeight(samplePos.x, samplePos.z, samplePos.y - (depth * 50));
+          terrain.setGroundHeight(samplePos.x, samplePos.z, Math.max(0, samplePos.y - (depth * 50)));
         } 
       }
     }
   }
+
+  var f = terrain.getDataRegion(dx,dy,dw,dh);
+  console.log(f);
+  socketio.sockets.emit("terrainUpdate", f );
+  //console.log("Terrain change: " + (w*h));
 }
