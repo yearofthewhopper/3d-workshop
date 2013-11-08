@@ -603,7 +603,7 @@ function updatePlayer(player, delta) {
     }
 
     if (player.input.back) {
-      player.velocity.sub(player.orientation.clone().multiplyScalar(forwardDelta));
+      player.velocity.sub(player.orientation.clone().multiplyScalar(forwardDelta*0.6));
     }
 
     if (player.input.left) {
