@@ -285,7 +285,7 @@ function updatePlayer(player) {
     players[player.id].overlay.obj.position.fromArray(player.position);
     players[player.id].overlay.obj.position.y += 50;
   }
-
+  players[player.id].score = player.score;
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
 
@@ -691,6 +691,40 @@ function initSocket() {
     terrain.setDataRegion(region);
     updateModifiedTerrainChunks(region);
   });
+
+  socket.on("playerDied", function(id){
+    if(id == playerId){
+      // do stuff.. show score?
+      //alert("YOU ARE DEAD");
+    } 
+
+    setPlayerVisibility(id, false);
+
+    //players[id].obj.visible = false;
+    
+    //console.log("DEADDDDED: " + id);
+  });
+
+  socket.on("playerSpawned", function(player){
+    if(playerId == player.id){
+      // do stuff.. hide score?
+    } 
+    setPlayerVisibility(player.id, true);
+  })
+}
+
+function setPlayerVisibility(id, visible){
+  if(!players.hasOwnProperty(id)){
+    return;
+  }
+
+  players[id].obj.traverse( function(child){
+    child.visible = visible;
+  });
+
+  if(playerId != id){
+    players[id].overlay.obj.visible = visible;
+  }
 }
 
 function initScene() {
@@ -918,6 +952,11 @@ function animate() {
   if(playerId){
     stats.push("Player Chunk ID: " + Math.floor((players[playerId].obj.position.x / terrain.worldUnitsPerDataPoint) / chunkSize) + "_" + + Math.floor((players[playerId].obj.position.z / terrain.worldUnitsPerDataPoint) / chunkSize));
   }
+
+  mapObject(function(player){
+    stats.push(player.name + ": " + player.score);
+
+  }, players);
 
   $("#stats").html(stats.join("<br>"));
 }

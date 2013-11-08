@@ -20,9 +20,12 @@
 
 ## GAMEPLAY STUFF ##
 
+variable firing distance
+angle of tank should contribute to firing angle
 show player names
 score for kills, accuracy
 respawn upon empty health
+
 
 ## TERRAIN STUFF ##
 

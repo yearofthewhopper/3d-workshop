@@ -437,6 +437,9 @@ function makePlayer(socket) {
 
   return {
     id: socket.id,
+    alive:true,
+    respawnTimer:0,
+    score:0,
     socket: socket,
     health: maxHealth,
     position: makePlayerPosition(),
@@ -479,7 +482,10 @@ function serializePlayer(player) {
     rotation: player.rotation,
     turretAngle: player.turretAngle,
     name: player.name,
-    color: player.color
+    color: player.color,
+    alive: player.alive,
+    respawn: player.respawnTimer,
+    score: player.score
   }
 }
 
@@ -526,7 +532,7 @@ socketio.sockets.on('connection', function (socket) {
   });
 
   socket.on('playerFire', function() {
-    if (!gameState.projectiles[player.id]) {
+    if (player.alive && !gameState.projectiles[player.id]) {
       var direction = zAxis.clone();
       direction.applyAxisAngle(xAxis, -player.turretAngle);
       direction.applyAxisAngle(yAxis, player.rotation);
@@ -555,59 +561,84 @@ socketio.sockets.on('connection', function (socket) {
 
 function updatePlayer(player, delta) {
 
-  var maxVelocity   = 675;
-  var gravity       = 230;
-
-  player.velocity.y -= (gravity * delta);
-
-  if(player.position.y < SEA_LEVEL){
-    player.velocity.x *= 0.50;
-    player.velocity.z *= 0.50;
-  } else{
-    player.velocity.x *= 0.75;
-    player.velocity.z *= 0.75;
-  }
-  
-  var tmp = player.position.clone();
-
-  player.position.add(player.velocity.clone().multiplyScalar(delta));
-    
-  if(player.velocity.length() > maxVelocity){
-    player.velocity.setLength(maxVelocity);
+  if(player.alive && (player.health <= 0)){
+    // dead.
+    player.alive = false;
+    player.respawnTimer = 5;
+    socketio.sockets.emit("playerDied", player.id);
   } 
 
-  var ground = terrain.getGroundHeight(player.position.x, player.position.z);
+  if(player.alive){
 
-  if(player.position.y < ground){
-    player.position.y = ground;
-    player.velocity.y = 0;
-  }
+    var maxVelocity   = 675;
+    var gravity       = 230;
 
-  if (player.input.forward) {
-    player.velocity.add(player.orientation.clone().multiplyScalar(forwardDelta))
-  }
+    player.velocity.y -= (gravity * delta);
 
-  if (player.input.back) {
-    player.velocity.sub(player.orientation.clone().multiplyScalar(forwardDelta));
-  }
+    if(player.position.y < SEA_LEVEL){
+      player.velocity.x *= 0.50;
+      player.velocity.z *= 0.50;
+    } else{
+      player.velocity.x *= 0.75;
+      player.velocity.z *= 0.75;
+    }
+    
+    var tmp = player.position.clone();
 
-  if (player.input.left) {
-    player.rotation += delta * rotationDelta;
-    setOrientationFromRotation(player.orientation, player.rotation);
-  }
+    player.position.add(player.velocity.clone().multiplyScalar(delta));
+      
+    if(player.velocity.length() > maxVelocity){
+      player.velocity.setLength(maxVelocity);
+    } 
 
-  if (player.input.right) {
-    player.rotation -= delta * rotationDelta;
-    setOrientationFromRotation(player.orientation, player.rotation);
-  }
+    var ground = terrain.getGroundHeight(player.position.x, player.position.z);
 
-  if (player.input.up) {
-    player.turretAngle = Math.min(turretMax, player.turretAngle + delta * turretDelta);
-  }
+    if(player.position.y < ground){
+      player.position.y = ground;
+      player.velocity.y = 0;
+    }
 
-  if (player.input.down) {
-    player.turretAngle = Math.max(turretMin, player.turretAngle - delta * turretDelta);
+    if (player.input.forward) {
+      player.velocity.add(player.orientation.clone().multiplyScalar(forwardDelta))
+    }
+
+    if (player.input.back) {
+      player.velocity.sub(player.orientation.clone().multiplyScalar(forwardDelta));
+    }
+
+    if (player.input.left) {
+      player.rotation += delta * rotationDelta;
+      setOrientationFromRotation(player.orientation, player.rotation);
+    }
+
+    if (player.input.right) {
+      player.rotation -= delta * rotationDelta;
+      setOrientationFromRotation(player.orientation, player.rotation);
+    }
+
+    if (player.input.up) {
+      player.turretAngle = Math.min(turretMax, player.turretAngle + delta * turretDelta);
+    }
+
+    if (player.input.down) {
+      player.turretAngle = Math.max(turretMin, player.turretAngle - delta * turretDelta);
+    }
+  } else {
+    // player is dead.. count-down to respawn.
+    player.respawnTimer -= delta;
+    if(player.respawnTimer <= 0){
+      respawnPlayer(player);
+    }
   }
+}
+
+function respawnPlayer(player){
+  player.alive = true;
+  player.health = 100;
+  player.position.set(2048, 500, 2048);
+
+  socketio.sockets.emit("playerSpawned", serializePlayer(player));
+
 }
 
 function collidesWithEarth(projectile) {
@@ -624,8 +655,10 @@ function collidesWithPlayer(projectile) {
   collision.y += playerHeight * 0.5;
   for (var id in gameState.players) {
     if (gameState.players.hasOwnProperty(id)) {
-      var distance = gameState.players[id].position.distanceTo(collision);
-      if (distance < playerHeight * 0.5) return true;
+      if(gameState.players[id].alive){
+        var distance = gameState.players[id].position.distanceTo(collision);
+        if (distance < playerHeight * 0.5) return true;
+      }
     }
   }
 }
@@ -634,10 +667,19 @@ function projectileDamage(projectile) {
   var collision = projectile.position.clone();
   collision.y += playerHeight * 0.5;
   mapObject(function(player) {
-    var distance = player.position.distanceTo(collision);
-    if (distance < explosionRadius) {
-      player.health -= maxDamage * (1 - (distance / explosionRadius));
-      player.health = Math.max(player.health, 0);
+    if(player.alive){
+      var distance = player.position.distanceTo(collision);
+      if (distance < explosionRadius) {
+        player.health -= maxDamage * (1 - (distance / explosionRadius));
+        player.health = Math.max(player.health, 0);
+        if(player.health <= 0){
+          if(player.id == projectile.owner) {
+            gameState.players[projectile.owner].score -= 5;
+          } else {
+            gameState.players[projectile.owner].score++;
+          }
+        }
+      }
     }
   }, gameState.players);
 }
