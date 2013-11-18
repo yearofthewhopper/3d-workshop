@@ -3,12 +3,12 @@ var http = require('http');
 var THREE = require("three");
 var PNG = require('png-js');
 var Util = require("./public/js/utils.js");
-var Terrain = require("./public/js/terrain.js");
+var Terrain = require("./public/js/terrain.js", "three");
 
 
 
 var terrainData;
-var terrain = new Terrain(Util);
+var terrain = new Terrain(Util, THREE);
 
 var SEA_LEVEL       = 40;
 

@@ -1,12 +1,14 @@
 var charredmesh = charredmesh || {};
 
-charredmesh.Terrain = function(util) {
+charredmesh.Terrain = function(util, three) {
 	this.Util = util;
+	this.THREE = three;
 	this.terrainDataWidth = 1024;
 	this.terrainDataHeight = 1024;
 
-	this.terrainData = null;
-
+	this.terrainData 	= new Uint16Array(this.terrainDataWidth * this.terrainDataHeight);
+	this.terrainNormals = new Uint8Array(this.terrainDataWidth * this.terrainDataHeight * 3);
+	this.terrainHeight  = new Uint8Array(this.terrainDataWidth * this.terrainDataHeight * 3);
 	this.terrainHeightScale = 1.5;
 	this.worldUnitsPerDataPoint = 16;
 
@@ -15,17 +17,22 @@ charredmesh.Terrain = function(util) {
 
 charredmesh.Terrain.prototype.loadRGBA = function(data) {
 	
-	//this.terrainData = [];
 	this.terrainData = new Uint16Array(this.terrainDataWidth * this.terrainDataHeight);
 	var count = this.terrainDataWidth * this.terrainDataHeight;
 	for(var i = 0; i < count; i++) {
 		this.terrainData[i] = data[i*4];
 	} 
+
+	this.updateNormals();
+	this.updateHeight();
 }
 
 charredmesh.Terrain.prototype.loadBase64Data = function(data) {
 	var dataView = Util.decodeBase64(data);
 	this.terrainData = new Uint16Array(dataView.buffer);
+
+	this.updateHeight();
+	this.updateNormals();
 }
 
 charredmesh.Terrain.prototype.worldToTerrain = function(worldCoordinate) {
@@ -74,11 +81,125 @@ charredmesh.Terrain.prototype.setDataRegion = function(region) {
 			this.terrainData[(dx+dataX) + (dy+dataY) * this.terrainDataWidth] = tmp[dx+dy*dataW];
 		}
 	}
+
+	this.updateNormals(region);
+	this.updateHeight();
+}
+
+charredmesh.Terrain.prototype.updateHeight = function(){
+	var count = this.terrainDataWidth * this.terrainDataHeight;
+	for(var i = 0; i < count; i++){
+		this.terrainHeight[i*3] = Math.floor(this.terrainData[i]);
+	}
+}
+
+charredmesh.Terrain.prototype.updateNormals = function(region) {
+	
+	var idx = 0;
+	var dx = 0; 
+	var dy = 0;
+	var sobelTaps = [];
+	var valueRange = 64;
+	var valueHalf = valueRange / 2;
+
+	var startX = 1;
+	var startY = 1;
+	var endX = this.terrainDataWidth - 1;
+	var endY = this.terrainDataHeight - 1;
+	var rowStep = 6; // two pixels
+
+	if(region != null){
+		startX = region.x;
+		startY = region.y;
+		endX = region.x + region.w;
+		endY = region.y + region.h;
+		idx = (startX + startY * this.terrainDataWidth) * 3;
+		var width = endX - startX;
+		// todo: calculate row step.
+		rowStep = (this.terrainDataWidth - width) * 3;
+		console.log(region);
+	}
+
+	var tmpVecZ = new this.THREE.Vector3();
+	var tmpVecX = new this.THREE.Vector3();
+	var tmpVecNorm = new this.THREE.Vector3();
+
+	for(var y = startY; y < endY; y++) {
+		for(var x = startX; x < endX; x++) {
+
+
+			var nx = x;
+			var ny = y;
+			// Get sobel samples
+			sobelTaps[0] = this.terrainData[ (nx - 1 + (ny - 1) * this.terrainDataWidth) ];
+			sobelTaps[1] = this.terrainData[ (nx + (ny - 1) * this.terrainDataWidth) ];
+			sobelTaps[2] = this.terrainData[ (nx + 1 + (ny - 1) * this.terrainDataWidth) ];
+
+			sobelTaps[3] = this.terrainData[ (nx - 1 + (ny + 1) * this.terrainDataWidth) ];
+			sobelTaps[4] = this.terrainData[ (nx  + (ny + 1) * this.terrainDataWidth) ];
+			sobelTaps[5] = this.terrainData[ (nx + 1 + (ny + 1) * this.terrainDataWidth) ];
+
+			sobelTaps[6] = this.terrainData[ (nx - 1 + ny * this.terrainDataWidth) ];
+			sobelTaps[7] = this.terrainData[ (nx + 1 + ny * this.terrainDataWidth) ];
+
+			// Do y sobel filter
+			dy  = sobelTaps[0] * 1;
+			dy += sobelTaps[1] * 2;
+			dy += sobelTaps[2] * 1;
+
+			dy += sobelTaps[3] * -1;
+			dy += sobelTaps[4] * -2;
+			dy += sobelTaps[5] * -1;
+
+			// Do x sobel filter
+			dx  = sobelTaps[0] * -1;
+			dx += sobelTaps[6] * -2;
+			dx += sobelTaps[3] * -1;
+
+			dx += sobelTaps[2] * +1;
+			dx += sobelTaps[7] * +2;
+			dx += sobelTaps[5] * +1;
+
+			dx = (dx / valueRange);
+			dy = (dy / valueRange);
+
+			if((dx != 0) || (dy != 0)){
+
+				tmpVecX.set(1, 0, dx);
+				tmpVecZ.set(0, 1, dy);
+
+				tmpVecX.normalize();
+				tmpVecZ.normalize();
+
+				tmpVecNorm = tmpVecX.cross(tmpVecZ);
+				tmpVecNorm.normalize();
+
+				this.terrainNormals[idx] = Math.floor(tmpVecNorm.x * 128 + 128);
+				this.terrainNormals[idx+1] = Math.floor(tmpVecNorm.z * 128 + 128);
+				this.terrainNormals[idx+2] = Math.floor(tmpVecNorm.y * 128 + 128);
+			} else {
+				this.terrainNormals[idx] = 127;
+				this.terrainNormals[idx+1] = 255;
+				this.terrainNormals[idx+2] = 127;
+			}
+
+			idx += 3;
+			
+		}
+
+		// skip furthest right and left-most columns
+		idx += rowStep;
+	}
+  
+	//normalDataTexture.needsUpdate = true
 }
 
 charredmesh.Terrain.prototype.getGroundNormal = function(worldX, worldY) {
+	var gx = Math.floor(this.worldToTerrain(worldX));
+	var gy = Math.floor(this.worldToTerrain(worldY));
 	// todo: implement this.
-	return [0, 1, 0];
+	var idx = gx + gy * this.terrainDataWidth;
+	return [idx, idx+1, idx+2];
 }
 
 charredmesh.Terrain.prototype.getGroundHeight = function(wx, wy) {

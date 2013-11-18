@@ -26,13 +26,17 @@ var terrainData;
 var chunkSize = 32;
 //var terrainResolution = 16;
 //var terrainHeightScale = 1.5;
+
 var terrainMaterial;
+var terrainNormalMap;
+var terrainHeightMap;
+var layerTextures = [];
 var rendering = false;
 var chunkUpdateCount = 0;
 
 var particleGroups = {}
 
-var terrain = new charredmesh.Terrain(Util);
+var terrain = new charredmesh.Terrain(Util, THREE);
 
 var cube1, cube2;
 
@@ -428,6 +432,25 @@ function updateTerrainChunks(){
   }
 }
 
+function updateTerrainNormalMap(){
+
+  var count = 1024 * 1024 * 3;
+
+  for(var i = 0; i < count; i += 3){
+    terrainNormalMap.image.data[i] = terrain.terrainNormals[i];
+    terrainNormalMap.image.data[i+1] = terrain.terrainNormals[i+1];
+    terrainNormalMap.image.data[i+2] = terrain.terrainNormals[i+2];
+  }
+
+  terrainNormalMap.needsUpdate = true;
+
+  count = 1024 * 1024 * 3;
+  for(var i = 0; i < count; i++){
+    terrainHeightMap.image.data[i] = terrain.terrainHeight[i];
+  }
+  terrainHeightMap.needsUpdate = true;
+}
+
 function getAllTerrain() {
   $.ajax("/terrain-all", {
     success:function(data){
@@ -435,6 +458,8 @@ function getAllTerrain() {
       terrain.loadBase64Data(data);
       readyFlags.terrain = true;
       checkReadyState();
+      
+      updateTerrainNormalMap();
     }
   });
 }
@@ -495,6 +520,11 @@ function addTerrainChunk(tx, ty, quality){
     }
     
     var chunkGeometry = new THREE.TerrainGeometry(quality, chunkSize, terrain.worldUnitsPerDataPoint, data);
+    //var mat = terrainMaterial.clone();
+
+   // terrainMaterial.uniforms.uvOffset.x = tx / 31;
+   // terrainMaterial.uniforms.uvOffset.y = ty / 31;
+
     var chunkMesh = new THREE.Mesh(chunkGeometry, terrainMaterial);
     chunkMesh.name = "chunk_" + chunkId;
     chunkMesh.position.set(terrain.terrainToWorld(tx * chunkSize), 0, terrain.terrainToWorld(ty * chunkSize));
@@ -690,6 +720,7 @@ function initSocket() {
   socket.on("terrainUpdate", function(region){
     terrain.setDataRegion(region);
     updateModifiedTerrainChunks(region);
+    updateTerrainNormalMap();
   });
 
   socket.on("playerDied", function(id){
@@ -782,8 +813,9 @@ function initLights(){
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
   dirLight.color.setHSL( 0.1, 1, 0.95 );
-  dirLight.position.set( -1, 1.75, 1 );
+  dirLight.position.set( 0.35, 1, 0.5 );
   dirLight.position.multiplyScalar( 50 );
+  dirLight.name = "sun";
   scene.add( dirLight );
 
   scene.add(point);
@@ -794,12 +826,17 @@ function initGeometry(){
 
   var oceanGeom = new THREE.PlaneGeometry(16384, 16384, 2, 2);
   var oceanFragmentShader = THREE.ShaderChunk.fog_pars_fragment + document.getElementById('fragment-water').textContent;
-
+  var terrainFragmentShader = THREE.ShaderChunk.fog_pars_fragment + document.getElementById('fragment-terrain').textContent;
   for(var itm in THREE.ShaderChunk) {
     if(oceanFragmentShader.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
       console.log("SPLICING SHADER: " + itm);
       oceanFragmentShader = oceanFragmentShader.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
     }
+    if(terrainFragmentShader.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
+      console.log("SPLICING SHADER: " + itm);
+      terrainFragmentShader = terrainFragmentShader.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
+    }
+    
   }
 
   oceanUniforms = {
@@ -818,17 +855,49 @@ function initGeometry(){
   });
 
 
+  layerTextures[0] = THREE.ImageUtils.loadTexture("textures/terrain/tile_rock.png");
+  layerTextures[1] = THREE.ImageUtils.loadTexture("textures/terrain/tile_dirt.png");
+  layerTextures[2] = THREE.ImageUtils.loadTexture("textures/terrain/tile_grass.png");
+  layerTextures[3] = THREE.ImageUtils.loadTexture("textures/terrain/tile_sand.png");
+  layerTextures[4] = THREE.ImageUtils.loadTexture("textures/terrain/tile_cliff.png");
+
+  for(var i = 0; i < layerTextures.length; i++){
+    layerTextures[i].wrapS = layerTextures[i].wrapT = THREE.RepeatWrapping;
+  }
+  terrainNormalMap = THREE.ImageUtils.generateDataTexture(1024, 1024, new THREE.Color( 0x888888 )  );
+  terrainNormalMap.flipY = false;
+  terrainNormalMap.needsUpdate = true;
+
+  terrainHeightMap = THREE.ImageUtils.generateDataTexture(1024, 1024, new THREE.Color( 0x000000 )  );
+  //terrainHeightMap.flipY = false;
+  terrainHeightMap.needsUpdate = true;
+
   var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
   ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(8192,40,8192);
+  ocean.position.set(8192,40.5,8192);
   scene.add(ocean);
-  terrainMaterial = new THREE.MeshLambertMaterial({
-    color:0x606060,
-    //map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
-    shading:THREE.FlatShading
-    //wireframe:true
+  terrainMaterial = new THREE.ShaderMaterial({
+    uniforms : {
+      fogColor:    { type: "c", value: scene.fog.color },
+      fogNear:     { type: "f", value: scene.fog.near },
+      fogFar:      { type: "f", value: scene.fog.far },
+      normalmap : { type: "t", value: terrainNormalMap },
+      uvOffset : { type: "v2", value: new THREE.Vector2() },
+      heightmap : { type: "t", value: terrainHeightMap },
+      tex0: { type: "t", value: layerTextures[3] },
+      tex1: { type: "t", value: layerTextures[2] },
+      tex2: { type: "t", value: layerTextures[1] },
+      tex3: { type: "t", value: layerTextures[0] },
+      cliffTexture: { type: "t", value: layerTextures[4] },
+      lightDirection : { type: "v3", value : scene.getChildByName("sun").position.clone() },
+      uvTest : { type: "t", value:THREE.ImageUtils.loadTexture("textures/dirt.jpg") }
+    },
+    vertexShader: document.getElementById('vertex-terrain').textContent,
+    fragmentShader: terrainFragmentShader,
+    fog:true
   });
 
+  terrainMaterial.uniforms.uvTest.value.wrapS = terrainMaterial.uniforms.uvTest.value.wrapT = THREE.RepeatWrapping;
   
   var objLoader = new THREE.OBJLoader();
 
