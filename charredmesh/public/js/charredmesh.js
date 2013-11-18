@@ -121,6 +121,13 @@ function createPlayer(playerData) {
   newPlayer.obj.add(turret);
   newPlayer.turret = turret;
   newPlayer.obj.eulerOrder = "YZX";
+
+  var emitter = particleGroups["trackDust"].getFromPool();
+  emitter.position.copy(newPlayer.obj.position);
+  emitter.enable();
+
+  newPlayer.dust = emitter;
+  
   
   // add the health bar to all other players
   if(newPlayer.id != playerId){
@@ -145,7 +152,7 @@ function createPlayer(playerData) {
       texture : overlayTexture,
       canvas : overlayCanvas,
       material : overlaymaterial,
-      obj : overlay
+      obj : overlay,
     };
   }
 
@@ -289,9 +296,24 @@ function updatePlayer(player) {
     players[player.id].overlay.obj.position.fromArray(player.position);
     players[player.id].overlay.obj.position.y += 50;
   }
+
+  
+  if(players[player.id].isDriving != player.driving){
+    if(player.driving){
+      players[player.id].dust.enable();
+    } else {
+      players[player.id].dust.disable();
+    }
+  }
+  players[player.id].isDriving = player.driving;
+  players[player.id].dust.position.copy(players[player.id].obj.position);
+
   players[player.id].score = player.score;
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
+  players[player.id].driving = player.isDriving;
+
+  players[player.id].dust.position.copy(players[player.id].obj.position);
 
   var directionVector = new THREE.Vector3( Math.cos(-player.rotation+Math.PI/2), 0, Math.sin(-player.rotation+Math.PI/2) );
 
@@ -304,8 +326,12 @@ function updatePlayer(player) {
   pt1.y = height1;
   pt2.y = height2;
   
-  players[player.id].obj.rotation.x += (Math.atan((height2-height1) / 40) - players[player.id].obj.rotation.x) * 0.15;
-  directionVector = new THREE.Vector3( Math.cos(-player.rotation), 0, Math.sin(-player.rotation) );
+  if(players[player.id].obj.position.y - terrain.getGroundHeight(players[player.id].obj.position.x, players[player.id].obj.position.z) < 1) {
+    players[player.id].obj.rotation.x += (Math.atan((height2-height1) / 40) - players[player.id].obj.rotation.x) * 0.15;
+  } else {
+    players[player.id].obj.rotation.x += (0.2 - players[player.id].obj.rotation.x) * 0.15;
+  }
+  //directionVector = new THREE.Vector3( Math.cos(-player.rotation), 0, Math.sin(-player.rotation) );
 
   
   players[player.id].health = player.health;
@@ -613,6 +639,24 @@ function initParticles(){
     particlesPerSecond: 50,
     alive: 0
   };
+
+  var trackDustEmitterSettings = {
+    type: 'cube',
+    positionSpread: new THREE.Vector3(20, 1, 20),
+    radius: 3,
+    speed: 1,
+    size: 40,
+    sizeSpread: 15,
+    sizeEnd: 200,
+    opacityStart: 0.45,
+    opacityEnd: 0,
+    acceleration:new THREE.Vector3(0, 1, 0),
+    accelerationSpread:new THREE.Vector3(1, 0, 1),
+    colorStart: new THREE.Color(0xebdcb6),
+    colorEnd: new THREE.Color(0xebe7dc),
+    particlesPerSecond: 20,
+    alive: 0
+  };
   
   particleGroups["explosion"] = new ShaderParticleGroup({
     texture: THREE.ImageUtils.loadTexture('textures/smokeparticle.png'),
@@ -632,10 +676,21 @@ function initParticles(){
   });
 
   particleGroups["bulletTrail"].addPool( 10, bulletTrailEmitterSettings, false );
+
+  particleGroups["trackDust"] = new ShaderParticleGroup({
+    texture: THREE.ImageUtils.loadTexture('textures/smokeparticle.png'),
+    maxAge: 1.0,
+    blending: THREE.NormalBlending,
+    depthTest:true
+    //depthWrite:true
+  });
+
+  particleGroups["trackDust"].addPool( 20, trackDustEmitterSettings, false );
   
   // Add particle group to scene.
   scene.add( particleGroups["explosion"].mesh );
   scene.add( particleGroups["bulletTrail"].mesh );
+  scene.add( particleGroups["trackDust"].mesh );
 }
 
 
@@ -869,12 +924,12 @@ function initGeometry(){
   terrainNormalMap.needsUpdate = true;
 
   terrainHeightMap = THREE.ImageUtils.generateDataTexture(1024, 1024, new THREE.Color( 0x000000 )  );
-  //terrainHeightMap.flipY = false;
   terrainHeightMap.needsUpdate = true;
 
   var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
   ocean.rotation.x = -Math.PI / 2;
   ocean.position.set(8192,40.5,8192);
+  ocean.name = "ocean";
   scene.add(ocean);
   terrainMaterial = new THREE.ShaderMaterial({
     uniforms : {
@@ -1126,6 +1181,7 @@ function render() {
 
   particleGroups["explosion"].tick(delta);
   particleGroups["bulletTrail"].tick(delta);
+  particleGroups["trackDust"].tick(delta);
   
   renderer.clear();
   renderer.render(scene, camera);

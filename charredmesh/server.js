@@ -449,7 +449,8 @@ function makePlayer(socket) {
     turretAngle: turretAngle,
     input: playerInput(),
     name: randomName(),
-    color: "#" + color.getHexString()
+    color: "#" + color.getHexString(),
+    isDriving: false
   }
 }
 
@@ -485,7 +486,8 @@ function serializePlayer(player) {
     color: player.color,
     alive: player.alive,
     respawn: player.respawnTimer,
-    score: player.score
+    score: player.score,
+    driving: player.isDriving
   }
 }
 
@@ -630,6 +632,8 @@ function updatePlayer(player, delta) {
       respawnPlayer(player);
     }
   }
+
+  player.isDriving = (player.input.forward || player.input.back) && (player.position.y - ground < 0.1);
 }
 
 function respawnPlayer(player){

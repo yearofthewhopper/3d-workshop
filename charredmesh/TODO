@@ -26,10 +26,13 @@ show player names
 score for kills, accuracy
 respawn upon empty health
 
+destructible objects (trees, houses, etc)
+
 
 ## TERRAIN STUFF ##
 
-create lookup function to get surface normal for any terrain coordinate
+!!! create lookup function to get surface normal for any terrain coordinate
+
 multiple landscapes (terrain shader)
 crater texture (charred mesh!)
 world boundaries (define the landscape)

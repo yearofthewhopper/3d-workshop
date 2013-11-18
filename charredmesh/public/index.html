@@ -215,7 +215,7 @@
       }
 
       // apply lighting
-      gl_FragColor *= angle;
+      gl_FragColor *= pow(angle, 1.25);
       gl_FragColor.a = 1.0;
 
       //gl_FragColor = vec4(steepness,steepness,steepness, 1.0);
