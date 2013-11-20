@@ -323,7 +323,7 @@ var animalNames = [
   "Flamingo",
   "Mallard"];
 
-PNG.decode('public/textures/terrain_height_map_mountains.png', function(pixels) {
+PNG.decode('public/textures/terrain_height_map_mountains2.png', function(pixels) {
     // pixels is a 1d array of decoded pixel data
     //var count = terrain.terrainDataWidth * terrain.terrainDataHeight;
     //terrainData = new Buffer(count);

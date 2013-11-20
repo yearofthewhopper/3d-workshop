@@ -128,18 +128,11 @@ THREE.TerrainGeometry = function ( resolution, chunkSize, terrainScale, chunkDat
 
 	}
 
-	//this.computeCentroids();
-	this.computeFaceNormals();
-    this.computeVertexNormals();
-
     for(var i = 0; i < skirtIndeces.length; i++){
     	this.vertices[ skirtIndeces[i] ].y -= 50;
     }
 
 };
 
-THREE.TerrainGeometry.prototype.updateTerrainNormals = function(){
-	// TODO: update normals?  Or try to do all of this in the shader?
-}
 
 THREE.TerrainGeometry.prototype = Object.create( THREE.Geometry.prototype );

@@ -114,7 +114,17 @@ function createPlayer(playerData) {
   tank.children[1].children[0].material = material;
   tank.children[1].children[1].material = material;
 
+
+
   newPlayer.obj = new THREE.Object3D();
+/*
+  var lightProbe = new THREE.Mesh(
+    new THREE.SphereGeometry(15,15,16,16),
+    new THREE.MeshLambertMaterial()
+  );
+  lightProbe.position.y = 25;
+  newPlayer.obj.add(lightProbe);
+*/
   newPlayer.obj.position.copy(position);
   newPlayer.obj.rotation.y = rotation;
   newPlayer.obj.add(tank);
@@ -210,7 +220,7 @@ function createHUD(){
   
   var radarMesh = new THREE.Mesh(overlaygeom, overlaymaterial);
   
-  radarMesh.position.set( 50,0,-150 );
+  radarMesh.position.set( 50, 0, -150 );
   radarMesh.rotation.y = -30 * Math.PI / 180;
 
   hudScene.add(radarMesh);
@@ -864,11 +874,12 @@ function initLights(){
   hemiLight.color.setHSL( 0.6, 1, 0.6 );
   hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
   hemiLight.position.set( 0, 500, 0 );
+  hemiLight.name = "sky";
   scene.add( hemiLight );
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
   dirLight.color.setHSL( 0.1, 1, 0.95 );
-  dirLight.position.set( 0.35, 1, 0.5 );
+  dirLight.position.set( 0.65, 0.65, 0 );
   dirLight.position.multiplyScalar( 50 );
   dirLight.name = "sun";
   scene.add( dirLight );
@@ -944,7 +955,8 @@ function initGeometry(){
       tex2: { type: "t", value: layerTextures[1] },
       tex3: { type: "t", value: layerTextures[0] },
       cliffTexture: { type: "t", value: layerTextures[4] },
-      lightDirection : { type: "v3", value : scene.getChildByName("sun").position.clone() },
+      lightDirection : { type: "v3", value : scene.getChildByName("sun").position },
+      skyColor : { type: "c", value : scene.getChildByName("sky").color },
       uvTest : { type: "t", value:THREE.ImageUtils.loadTexture("textures/dirt.jpg") }
     },
     vertexShader: document.getElementById('vertex-terrain').textContent,
@@ -1174,6 +1186,8 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   
+ // scene.getObjectByName("sun").position.set( Math.cos(time * 0.01), Math.sin(time * 0.01), 0);
+
   //controls.update();
   updateEffectQueue(delta);
 

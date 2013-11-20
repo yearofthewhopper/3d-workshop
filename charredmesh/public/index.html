@@ -161,6 +161,8 @@
     uniform sampler2D tex2; 
     uniform sampler2D tex3;
 
+    uniform vec3 skyColor;
+
     uniform sampler2D cliffTexture;  
 
     uniform vec3 lightDirection;
@@ -170,7 +172,7 @@
       vec2 tmp = UVw;
       tmp.y = 1.0 - tmp.y;
       float height = texture2D( heightmap, tmp ).r;
-      vec2 texPos = UV * 4.0;
+      vec2 texPos = UVw * 64.0;
       
 
       vec3 normalSample = texture2D(normalmap, UVw).rgb;
@@ -215,7 +217,9 @@
       }
 
       // apply lighting
-      gl_FragColor *= pow(angle, 1.25);
+      
+      gl_FragColor *= pow(mix(0.3, 1.0, angle), 1.0);
+      //gl_FragColor += vec4(skyColor, 1.0) * ;
       gl_FragColor.a = 1.0;
 
       //gl_FragColor = vec4(steepness,steepness,steepness, 1.0);

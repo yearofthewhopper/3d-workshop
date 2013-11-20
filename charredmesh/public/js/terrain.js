@@ -9,7 +9,7 @@ charredmesh.Terrain = function(util, three) {
 	this.terrainData 	= new Uint16Array(this.terrainDataWidth * this.terrainDataHeight);
 	this.terrainNormals = new Uint8Array(this.terrainDataWidth * this.terrainDataHeight * 3);
 	this.terrainHeight  = new Uint8Array(this.terrainDataWidth * this.terrainDataHeight * 3);
-	this.terrainHeightScale = 1.5;
+	this.terrainHeightScale = 5;
 	this.worldUnitsPerDataPoint = 16;
 
 	this.BYTE_COUNT = 2;
@@ -20,7 +20,7 @@ charredmesh.Terrain.prototype.loadRGBA = function(data) {
 	this.terrainData = new Uint16Array(this.terrainDataWidth * this.terrainDataHeight);
 	var count = this.terrainDataWidth * this.terrainDataHeight;
 	for(var i = 0; i < count; i++) {
-		this.terrainData[i] = data[i*4];
+		this.terrainData[i] = data[i*4] * this.terrainHeightScale;
 	} 
 
 	this.updateNormals();
@@ -89,7 +89,7 @@ charredmesh.Terrain.prototype.setDataRegion = function(region) {
 charredmesh.Terrain.prototype.updateHeight = function(){
 	var count = this.terrainDataWidth * this.terrainDataHeight;
 	for(var i = 0; i < count; i++){
-		this.terrainHeight[i*3] = Math.floor(this.terrainData[i]);
+		this.terrainHeight[i*3] = Math.floor(this.terrainData[i] / 10);
 	}
 }
 
