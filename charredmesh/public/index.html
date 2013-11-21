@@ -138,10 +138,9 @@
         float b = (snoise(vec3(UV*77.0, time)) + snoise(vec3(UV * 172.0, time))) / 2.0;
         vec4 color1 = vec4(0.0, 0.333, 0.6, 0.5);
         vec4 color2 = vec4(0.23, 0.75, 0.83, 0.7);
-        vec3 diffuse =  mix(color1, color2, b).xyz;
+        vec4 diffuse =  mix(color1, color2, b);
 
-        gl_FragColor.xyz = diffuse;
-
+        gl_FragColor = diffuse;
 
         //INCLUDE_CHUNK:fog_fragment
       }

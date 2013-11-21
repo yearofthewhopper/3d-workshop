@@ -916,12 +916,15 @@ function initGeometry(){
     transparent: true,
     vertexShader: loadShaderSource("vertex-passthrough"),
     fragmentShader: loadShaderSource("fragment-water"),
+    fog:true
   });
 
   var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
   
   ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(8192,40.5,8192);
+
+  // TODO: add dynamic sea level.
+  ocean.position.set(8192, 40.5, 8192);
   ocean.name = "ocean";
   
   scene.add(ocean);
