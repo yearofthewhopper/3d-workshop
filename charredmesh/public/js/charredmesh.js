@@ -347,9 +347,6 @@ function updatePlayer(player) {
   players[player.id].health = player.health;
   if (player.id === playerId) {
     updateHealthBar(player.health);
-    
-    cube1.position.copy(pt1);
-    cube2.position.copy(pt2);
   } else {
     // update UI overlay for other players.
     // players[player.id].overlay.canvas.getContext("2d");
@@ -887,23 +884,25 @@ function initLights(){
   scene.add(point);
 }
 
+
+function loadShaderSource(scriptId){
+  var source = document.getElementById(scriptId).textContent;
+
+  for(var itm in THREE.ShaderChunk) {
+    if(source.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
+      console.log("INCUDING CHUNK: " + itm);
+      source = source.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
+    }
+  }
+
+  return source;
+}
+
+
 var oceanMaterial;
 function initGeometry(){
 
   var oceanGeom = new THREE.PlaneGeometry(16384, 16384, 2, 2);
-  var oceanFragmentShader = THREE.ShaderChunk.fog_pars_fragment + document.getElementById('fragment-water').textContent;
-  var terrainFragmentShader = THREE.ShaderChunk.fog_pars_fragment + document.getElementById('fragment-terrain').textContent;
-  for(var itm in THREE.ShaderChunk) {
-    if(oceanFragmentShader.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
-      console.log("SPLICING SHADER: " + itm);
-      oceanFragmentShader = oceanFragmentShader.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
-    }
-    if(terrainFragmentShader.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
-      console.log("SPLICING SHADER: " + itm);
-      terrainFragmentShader = terrainFragmentShader.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
-    }
-    
-  }
 
   oceanUniforms = {
     time: { type: 'f', value: 1.0 },
@@ -915,11 +914,20 @@ function initGeometry(){
   oceanMaterial = new THREE.ShaderMaterial({
     uniforms: oceanUniforms,
     transparent: true,
-    vertexShader: document.getElementById('vertex-passthrough').textContent,
-    fragmentShader: oceanFragmentShader,
-    fog:true
+    vertexShader: loadShaderSource("vertex-passthrough"),
+    fragmentShader: loadShaderSource("fragment-water"),
   });
 
+  var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
+  
+  ocean.rotation.x = -Math.PI / 2;
+  ocean.position.set(8192,40.5,8192);
+  ocean.name = "ocean";
+  
+  scene.add(ocean);
+  
+
+  // Terrain stuff
 
   layerTextures[0] = THREE.ImageUtils.loadTexture("textures/terrain/tile_rock.png");
   layerTextures[1] = THREE.ImageUtils.loadTexture("textures/terrain/tile_dirt.png");
@@ -930,42 +938,45 @@ function initGeometry(){
   for(var i = 0; i < layerTextures.length; i++){
     layerTextures[i].wrapS = layerTextures[i].wrapT = THREE.RepeatWrapping;
   }
+
   terrainNormalMap = THREE.ImageUtils.generateDataTexture(1024, 1024, new THREE.Color( 0x888888 )  );
   terrainNormalMap.flipY = false;
   terrainNormalMap.needsUpdate = true;
 
   terrainHeightMap = THREE.ImageUtils.generateDataTexture(1024, 1024, new THREE.Color( 0x000000 )  );
+  terrainHeightMap.flipY = false;
   terrainHeightMap.needsUpdate = true;
 
-  var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
-  ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(8192,40.5,8192);
-  ocean.name = "ocean";
-  scene.add(ocean);
   terrainMaterial = new THREE.ShaderMaterial({
     uniforms : {
       fogColor:    { type: "c", value: scene.fog.color },
       fogNear:     { type: "f", value: scene.fog.near },
       fogFar:      { type: "f", value: scene.fog.far },
+
       normalmap : { type: "t", value: terrainNormalMap },
       uvOffset : { type: "v2", value: new THREE.Vector2() },
       heightmap : { type: "t", value: terrainHeightMap },
+      
       tex0: { type: "t", value: layerTextures[3] },
       tex1: { type: "t", value: layerTextures[2] },
       tex2: { type: "t", value: layerTextures[1] },
       tex3: { type: "t", value: layerTextures[0] },
+      
       cliffTexture: { type: "t", value: layerTextures[4] },
       lightDirection : { type: "v3", value : scene.getChildByName("sun").position },
-      skyColor : { type: "c", value : scene.getChildByName("sky").color },
-      uvTest : { type: "t", value:THREE.ImageUtils.loadTexture("textures/dirt.jpg") }
+      
+      skyColor : { type: "c", value : scene.getChildByName("sky").color }
     },
-    vertexShader: document.getElementById('vertex-terrain').textContent,
-    fragmentShader: terrainFragmentShader,
+    vertexShader: loadShaderSource('vertex-terrain'),
+    fragmentShader: loadShaderSource('fragment-terrain'),
     fog:true
   });
 
-  terrainMaterial.uniforms.uvTest.value.wrapS = terrainMaterial.uniforms.uvTest.value.wrapT = THREE.RepeatWrapping;
+  //terrainMaterial.uniforms.uvTest.value.wrapS = terrainMaterial.uniforms.uvTest.value.wrapT = THREE.RepeatWrapping;
   
+
+  // Player model
+
   var objLoader = new THREE.OBJLoader();
 
   objLoader.addEventListener( 'load', function ( event ) {
@@ -978,13 +989,8 @@ function initGeometry(){
   });
 
   objLoader.load( "models/T72.obj" ); 
-
-
-  cube1 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0xff0000}));
-  //scene.add(cube1);
-  cube2 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0x00ff00}));
-  //scene.add(cube2);
 }
+
 
 // check to see when all the various async stuff is done loading.
 function checkReadyState(){
@@ -1186,7 +1192,7 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   
- // scene.getObjectByName("sun").position.set( Math.cos(time * 0.01), Math.sin(time * 0.01), 0);
+  //scene.getObjectByName("sun").position.set( Math.cos(time * 0.), Math.sin(time * 0.1), 0);
 
   //controls.update();
   updateEffectQueue(delta);

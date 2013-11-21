@@ -17,6 +17,7 @@
 * Add Radar (and place for other HUD to live)
 * random color for each player
 * name for player!  (color + animal)
+* multiple landscapes (terrain shader)
 
 ## GAMEPLAY STUFF ##
 
@@ -31,9 +32,20 @@ destructible objects (trees, houses, etc)
 
 ## TERRAIN STUFF ##
 
+Decals on terrain (blast marks, tread track marks)
+Lighting effects on terrain (explosions)
+
+## Time of day stuff ##
+
+Add lighting to water shader
+Time of day effects sky color
+Sky illuminates shadows at dusk/dawn
+
+
+
 !!! create lookup function to get surface normal for any terrain coordinate
 
-multiple landscapes (terrain shader)
+
 crater texture (charred mesh!)
 world boundaries (define the landscape)
 
