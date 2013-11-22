@@ -26,55 +26,55 @@ var maxHealth       = 100;
 var maxDamage       = 20;
 var minEarthLevel   = 0;
 var explosionRadius = 138;
-var colorNames = [
-  "Gold",
-  "Turquoise",
-  "Seashell",
-  "Tan",
-  "Khaki",
-  "Orchid",
-  "Snow",
-  "Gray",
-  "Green",
-  "Cyan",
-  "Beige",
-  "Lavender",
-  "Wheat",
-  "White",
-  "Magenta",
-  "Ivory",
-  "Tomato",
-  "Firebrick",
-  "Orange",
-  "Salmon",
-  "Thistle",
-  "Azure",
-  "Maroon",
-  "Coral",
-  "Red",
-  "Sienna",
-  "Yellow",
-  "Plum",
-  "Bisque",
-  "Brown",
-  "Chartreuse",
-  "Pink",
-  "Navy",
-  "Peru",
-  "Burlywood",
-  "Moccasin",
-  "Blue",
-  "Linen",
-  "Honeydew",
-  "Chocolate",
-  "Purple",
-  "Cornsilk",
-  "Goldenrod",
-  "Gainsboro",
-  "Aquamarine",
-  "Violet",
-  "Grey",
-  "Black"];
+var colorNames = {
+  "Gold": "#FFD700",
+  "Turquoise": "#40E0D0",
+  "Seashell": "#FFF5EE",
+  "Tan": "#D2B48C",
+  "Khaki": "#F0E68C",
+  "Orchid": "#DA70D6",
+  "Snow": "#FFFAFA",
+  "Gray": "#bebebe",
+  "Green": "#00FF00",
+  "Cyan": "#00FFFF",
+  "Beige": "#F5F5DC",
+  "Lavender": "#E6E6FA",
+  "Wheat": "#F5DEB3",
+  "White": "#FFFFFF",
+  "Magenta": "#FF00FF",
+  "Ivory": "#FFFFF0",
+  "Tomato": "#FF6347",
+  "Firebrick": "#B22222",
+  "Orange": "#FFA500",
+  "Salmon": "#FA8072",
+  "Thistle": "#D8BFD8",
+  "Azure": "#F0FFFF",
+  "Maroon": "#b03060",
+  "Coral": "#FF7F50",
+  "Red": "#FF0000",
+  "Sienna": "#A0522D",
+  "Yellow": "#ffffff",
+  "Plum": "#DDA0DD",
+  "Bisque": "#FFE4C4",
+  "Brown": "#A52A2A",
+  "Chartreuse": "#7FFF00",
+  "Pink": "#FFC0CB",
+  "Navy": "#000080",
+  "Peru": "#cd853f",
+  "Burlywood": "#deb887",
+  "Moccasin": "#ffe4b5",
+  "Blue": "#0000ff",
+  "Linen": "#faf0e6",
+  "Honeydew": "#f0fff0",
+  "Chocolate": "#d2691e",
+  "Purple": "#7f007f",
+  "Cornsilk": "#fff8dc",
+  "Goldenrod": "#daa520",
+  "Gainsboro": "#dcdcdc",
+  "Aquamarine": "#7fffd4",
+  "Violet": "#ee82ee",
+  "Grey": "#888888",
+  "Black": "#000000"};
 
 var animalNames = [
   "Kangaroo",
@@ -425,15 +425,20 @@ function randomElement(a) {
 }
 
 function randomName() {
-  return randomElement(colorNames) + " " + randomElement(animalNames);
+  var colorName = randomElement(Object.keys(colorNames));
+  return {
+    name: colorName + " " + randomElement(animalNames),
+    color: colorNames[colorName]
+  };
 }
 
 function makePlayer(socket) {
   var rotation = Math.random() * 2 * Math.PI;
   var orientation = setOrientationFromRotation(new THREE.Vector3(), rotation);
   var turretAngle = 0;
-  var colorIndex = colorPoolIndex++;
-  var color = colorPool[(colorPoolIndex*11) % colorPool.length];
+  var name = randomName();
+  // var colorIndex = colorPoolIndex++;
+  // var color = colorPool[(colorPoolIndex*11) % colorPool.length]
 
   return {
     id: socket.id,
@@ -448,8 +453,9 @@ function makePlayer(socket) {
     orientation: orientation,
     turretAngle: turretAngle,
     input: playerInput(),
-    name: randomName(),
-    color: "#" + color.getHexString(),
+    name: name.name,
+    color: name.color,
+    // color: "#" + color.getHexString(),
     isDriving: false
   }
 }
