@@ -18,14 +18,18 @@
 * random color for each player
 * name for player!  (color + animal)
 * multiple landscapes (terrain shader)
+* respawn upon empty health
+* score for kills
+* variable firing distance
 
 ## GAMEPLAY STUFF ##
 
-variable firing distance
+random spawn locations
 angle of tank should contribute to firing angle
 show player names
-score for kills, accuracy
-respawn upon empty health
+score for accuracy
+set the HUD to ignore depth buffer
+
 
 destructible objects (trees, houses, etc)
 

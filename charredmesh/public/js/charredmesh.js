@@ -38,11 +38,15 @@ var particleGroups = {}
 
 var terrain = new charredmesh.Terrain(Util, THREE);
 
-var cube1, cube2;
-
 var HUD = {};
 
 var terrainChunks = {
+};
+
+
+var clientState = {
+  fireTimer : 0,
+  firePower : 0
 };
 
 var readyFlags = {
@@ -215,12 +219,13 @@ function createHUD(){
   var overlaymaterial = new THREE.MeshBasicMaterial({
     map : overlayTexture,
     transparent:true,
-    blending:THREE.AdditiveBlending
+    blending:THREE.AdditiveBlending,
+    depthTest: false
   });
   
   var radarMesh = new THREE.Mesh(overlaygeom, overlaymaterial);
   
-  radarMesh.position.set( 50, 0, -150 );
+  radarMesh.position.set( 50, -30, -150 );
   radarMesh.rotation.y = -30 * Math.PI / 180;
 
   hudScene.add(radarMesh);
@@ -235,7 +240,6 @@ function createHUD(){
 }
 
 function updateHUD(){
-
   if(!playerId){
     return;
   }
@@ -246,13 +250,20 @@ function updateHUD(){
   var ctx = HUD.radar.canvas.getContext("2d");
   ctx.clearRect(0,0,HUD.radar.canvas.width, HUD.radar.canvas.height);
   ctx.fillStyle = "rgba(0, 160, 0, 0.35)";
-  ctx.fillRect(0, 0, HUD.radar.canvas.width, HUD.radar.canvas.height);
+
+      
+ // ctx.fillRect(0, 0, HUD.radar.canvas.width, HUD.radar.canvas.height);
   HUD.radar.texture.needsUpdate = true;
 
   var currentPlayer = players[playerId];
 
   ctx.save();
   ctx.translate(HUD.radar.canvas.width/2, HUD.radar.canvas.height/2);
+  
+  ctx.beginPath();
+  ctx.arc(0, 0, (HUD.radar.canvas.width / 2), 0, 2 * Math.PI, false);
+  ctx.fill();
+  
   ctx.rotate( currentPlayer.obj.rotation.y - Math.PI );
   
   ctx.fillStyle = "rgba(0, 255, 0, 0.75)";
@@ -270,6 +281,24 @@ function updateHUD(){
     }
   }, players);
   ctx.restore();
+
+  
+  ctx.fillStyle = "rgba(125, 125, 125, 0.5)";
+  ctx.fillRect(0, 0, HUD.radar.canvas.width, 20);
+  ctx.fillRect(0, HUD.radar.canvas.height-20, HUD.radar.canvas.width, 20);
+  
+  if(input.fire){
+    ctx.fillStyle = "rgba(255, 0, 0, 1)";
+    ctx.fillRect(0, 0, HUD.radar.canvas.width * clientState.firePower, 20);
+  }
+
+
+
+  var health = players[playerId].health;
+  var healthColor = interpolateColor(maxHealthColor, minHealthColor, health * 0.01);
+  
+  ctx.fillStyle = healthColor.getStyle();
+  ctx.fillRect(0, HUD.radar.canvas.height-20, HUD.radar.canvas.width * health*0.01, 20);
 
   /*var lookDirection = new THREE.Vector3();
     lookDirection.copy(camera.position);
@@ -293,10 +322,10 @@ function interpolateColor(max, min, level) {
 }
 
 function updateHealthBar(health) {
-  var healthbar = document.getElementById("health");
+  /*var healthbar = document.getElementById("health");
   var healthColor = interpolateColor(maxHealthColor, minHealthColor, health * 0.01);
   healthbar.style.width = "" + health + "%";
-  healthbar.style.backgroundColor = healthColor.getStyle();
+  healthbar.style.backgroundColor = healthColor.getStyle();*/
 }
 
 function updatePlayer(player) {
@@ -345,9 +374,7 @@ function updatePlayer(player) {
 
   
   players[player.id].health = player.health;
-  if (player.id === playerId) {
-    updateHealthBar(player.health);
-  } else {
+  if (player.id !== playerId) {
     // update UI overlay for other players.
     // players[player.id].overlay.canvas.getContext("2d");
     updateOverlay(players[player.id]);
@@ -1036,6 +1063,9 @@ function onResize() {
   HUD.camera.aspect = aspectRatio;
   HUD.camera.updateProjectionMatrix();
   
+  HUD.radar.obj.position.x = 40 * aspectRatio;
+  HUD.radar.obj.position.y = -50 / aspectRatio;
+
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -1050,9 +1080,19 @@ function onKeyChange(code, state) {
   switch(code)
   {
   case 32:
-    if (state && !input.fire) {
-      socket.emit('playerFire');
+    //if (state && !input.fire) {
+    //  socket.emit('playerFire');
+   // }
+    console.log("fire:" + state);
+    if(state){
+      clientState.fireTimer = time;
+      // start a timer
+    } else {
+      
+
+      socket.emit('playerFire', {"power" : clientState.firePower});
     }
+
     input.fire = state;
     return;
     break;
@@ -1069,13 +1109,15 @@ function onKeyChange(code, state) {
     input.right = state;
     break;
   case 82: // R
+  case 38: // Up arrow
     input.up = state;
     break;
   case 70: // F
+  case 40: // down arrow
     input.down = state;
     break;
   }
-
+  
   socket.emit('playerInput', input);
 }
 
@@ -1190,16 +1232,23 @@ function makeCanvas(width, height){
 }
 
 
+function updateClient(delta){
+  if(input.fire){
+    clientState.firePower = Math.sin((time - clientState.fireTimer) + (3 * Math.PI / 2));
+    clientState.firePower = (clientState.firePower + 1) / 2;
+  }
+}
+
 
 function render() {
   var delta = clock.getDelta();
   time += delta;
   
-  //scene.getObjectByName("sun").position.set( Math.cos(time * 0.), Math.sin(time * 0.1), 0);
+  //scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
 
   //controls.update();
+  updateClient(delta);
   updateEffectQueue(delta);
-
   updateHUD();
 
   particleGroups["explosion"].tick(delta);

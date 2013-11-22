@@ -533,7 +533,7 @@ socketio.sockets.on('connection', function (socket) {
     player.input = input;
   });
 
-  socket.on('playerFire', function() {
+  socket.on('playerFire', function(params) {
     if (player.alive && !gameState.projectiles[player.id]) {
       var direction = zAxis.clone();
       direction.applyAxisAngle(xAxis, -player.turretAngle);
@@ -545,7 +545,7 @@ socketio.sockets.on('connection', function (socket) {
         player.id, 
         position,
         direction,
-        basePower
+        basePower + (params.power * basePower)
       );
 
       gameState.projectiles[player.id] = projectile;
@@ -740,6 +740,10 @@ function makeCrater(position, radius) {
   var dy = Math.floor(terrain.worldToTerrain(position.z) - gridRadius);
   var dw = Math.floor(terrain.worldToTerrain(radius*2));
   var dh = dw;
+
+  if( (dx < 0) || ((dx+dw) >= terrain.terrainDataWidth) || (dy < 0) || ((dy+dh) >= terrain.terrainDataHeight)){
+    return;
+  }
 
   for(var y = -gridRadius; y < gridRadius+1; y++){
     var worldY = terrain.terrainToWorld(y);
