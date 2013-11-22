@@ -17,17 +17,35 @@
 * Add Radar (and place for other HUD to live)
 * random color for each player
 * name for player!  (color + animal)
+* multiple landscapes (terrain shader)
 
 ## GAMEPLAY STUFF ##
 
+variable firing distance
+angle of tank should contribute to firing angle
 show player names
 score for kills, accuracy
 respawn upon empty health
 
+destructible objects (trees, houses, etc)
+
+
 ## TERRAIN STUFF ##
 
-create lookup function to get surface normal for any terrain coordinate
-multiple landscapes (terrain shader)
+Decals on terrain (blast marks, tread track marks)
+Lighting effects on terrain (explosions)
+
+## Time of day stuff ##
+
+Add lighting to water shader
+Time of day effects sky color
+Sky illuminates shadows at dusk/dawn
+
+
+
+!!! create lookup function to get surface normal for any terrain coordinate
+
+
 crater texture (charred mesh!)
 world boundaries (define the landscape)
 

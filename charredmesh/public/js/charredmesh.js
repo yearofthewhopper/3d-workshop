@@ -26,19 +26,28 @@ var terrainData;
 var chunkSize = 32;
 //var terrainResolution = 16;
 //var terrainHeightScale = 1.5;
+
 var terrainMaterial;
+var terrainNormalMap;
+var terrainHeightMap;
+var layerTextures = [];
 var rendering = false;
 var chunkUpdateCount = 0;
 
 var particleGroups = {}
 
-var terrain = new charredmesh.Terrain();
+var terrain = new charredmesh.Terrain(Util, THREE);
 
 var cube1, cube2;
 
 var HUD = {};
 
 var terrainChunks = {
+};
+
+var readyFlags = {
+  terrain : false,
+  geometry : false
 };
 
 function mapObject(f, m) {
@@ -105,13 +114,30 @@ function createPlayer(playerData) {
   tank.children[1].children[0].material = material;
   tank.children[1].children[1].material = material;
 
+
+
   newPlayer.obj = new THREE.Object3D();
+/*
+  var lightProbe = new THREE.Mesh(
+    new THREE.SphereGeometry(15,15,16,16),
+    new THREE.MeshLambertMaterial()
+  );
+  lightProbe.position.y = 25;
+  newPlayer.obj.add(lightProbe);
+*/
   newPlayer.obj.position.copy(position);
   newPlayer.obj.rotation.y = rotation;
   newPlayer.obj.add(tank);
   newPlayer.obj.add(turret);
   newPlayer.turret = turret;
   newPlayer.obj.eulerOrder = "YZX";
+
+  var emitter = particleGroups["trackDust"].getFromPool();
+  emitter.position.copy(newPlayer.obj.position);
+  emitter.enable();
+
+  newPlayer.dust = emitter;
+  
   
   // add the health bar to all other players
   if(newPlayer.id != playerId){
@@ -136,7 +162,7 @@ function createPlayer(playerData) {
       texture : overlayTexture,
       canvas : overlayCanvas,
       material : overlaymaterial,
-      obj : overlay
+      obj : overlay,
     };
   }
 
@@ -194,7 +220,7 @@ function createHUD(){
   
   var radarMesh = new THREE.Mesh(overlaygeom, overlaymaterial);
   
-  radarMesh.position.set( 50,0,-150 );
+  radarMesh.position.set( 50, 0, -150 );
   radarMesh.rotation.y = -30 * Math.PI / 180;
 
   hudScene.add(radarMesh);
@@ -281,8 +307,23 @@ function updatePlayer(player) {
     players[player.id].overlay.obj.position.y += 50;
   }
 
+  
+  if(players[player.id].isDriving != player.driving){
+    if(player.driving){
+      players[player.id].dust.enable();
+    } else {
+      players[player.id].dust.disable();
+    }
+  }
+  players[player.id].isDriving = player.driving;
+  players[player.id].dust.position.copy(players[player.id].obj.position);
+
+  players[player.id].score = player.score;
   players[player.id].obj.rotation.y = player.rotation;
   players[player.id].turret.rotation.x = -player.turretAngle;
+  players[player.id].driving = player.isDriving;
+
+  players[player.id].dust.position.copy(players[player.id].obj.position);
 
   var directionVector = new THREE.Vector3( Math.cos(-player.rotation+Math.PI/2), 0, Math.sin(-player.rotation+Math.PI/2) );
 
@@ -295,16 +336,17 @@ function updatePlayer(player) {
   pt1.y = height1;
   pt2.y = height2;
   
-  players[player.id].obj.rotation.x += (Math.atan((height2-height1) / 40) - players[player.id].obj.rotation.x) * 0.15;
-  directionVector = new THREE.Vector3( Math.cos(-player.rotation), 0, Math.sin(-player.rotation) );
+  if(players[player.id].obj.position.y - terrain.getGroundHeight(players[player.id].obj.position.x, players[player.id].obj.position.z) < 1) {
+    players[player.id].obj.rotation.x += (Math.atan((height2-height1) / 40) - players[player.id].obj.rotation.x) * 0.15;
+  } else {
+    players[player.id].obj.rotation.x += (0.2 - players[player.id].obj.rotation.x) * 0.15;
+  }
+  //directionVector = new THREE.Vector3( Math.cos(-player.rotation), 0, Math.sin(-player.rotation) );
 
   
   players[player.id].health = player.health;
   if (player.id === playerId) {
     updateHealthBar(player.health);
-    
-    cube1.position.copy(pt1);
-    cube2.position.copy(pt2);
   } else {
     // update UI overlay for other players.
     // players[player.id].overlay.canvas.getContext("2d");
@@ -344,6 +386,25 @@ function updateGameState(state) {
   updateChaseCam();
   updateTerrainChunks();
   controls.center.set(players[playerId].obj.position.x, players[playerId].obj.position.y, players[playerId].obj.position.z);
+}
+
+function updateModifiedTerrainChunks(region){
+  var id = Math.floor(region.x / chunkSize) + "_" + Math.floor(region.y / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
+  id = Math.floor((region.x+region.w) / chunkSize) + "_" +  Math.floor(region.y / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
+  id = Math.floor((region.x+region.w) / chunkSize) + "_" + Math.floor((region.y+region.w) / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
+  id = Math.floor(region.x / chunkSize) + "_" + Math.floor((region.y+region.h) / chunkSize);
+  if(terrainChunks.hasOwnProperty(id)){
+    terrainChunks[id].lod = -1; // mark for deletion.
+  }
 }
 
 function updateTerrainChunks(){
@@ -404,11 +465,34 @@ function updateTerrainChunks(){
   }
 }
 
+function updateTerrainNormalMap(){
+
+  var count = 1024 * 1024 * 3;
+
+  for(var i = 0; i < count; i += 3){
+    terrainNormalMap.image.data[i] = terrain.terrainNormals[i];
+    terrainNormalMap.image.data[i+1] = terrain.terrainNormals[i+1];
+    terrainNormalMap.image.data[i+2] = terrain.terrainNormals[i+2];
+  }
+
+  terrainNormalMap.needsUpdate = true;
+
+  count = 1024 * 1024 * 3;
+  for(var i = 0; i < count; i++){
+    terrainHeightMap.image.data[i] = terrain.terrainHeight[i];
+  }
+  terrainHeightMap.needsUpdate = true;
+}
+
 function getAllTerrain() {
   $.ajax("/terrain-all", {
     success:function(data){
       terrainData = Util.decodeBase64(data);
       terrain.loadBase64Data(data);
+      readyFlags.terrain = true;
+      checkReadyState();
+      
+      updateTerrainNormalMap();
     }
   });
 }
@@ -469,6 +553,11 @@ function addTerrainChunk(tx, ty, quality){
     }
     
     var chunkGeometry = new THREE.TerrainGeometry(quality, chunkSize, terrain.worldUnitsPerDataPoint, data);
+    //var mat = terrainMaterial.clone();
+
+   // terrainMaterial.uniforms.uvOffset.x = tx / 31;
+   // terrainMaterial.uniforms.uvOffset.y = ty / 31;
+
     var chunkMesh = new THREE.Mesh(chunkGeometry, terrainMaterial);
     chunkMesh.name = "chunk_" + chunkId;
     chunkMesh.position.set(terrain.terrainToWorld(tx * chunkSize), 0, terrain.terrainToWorld(ty * chunkSize));
@@ -480,8 +569,6 @@ function addTerrainChunk(tx, ty, quality){
     };
   }
 }
-
-
 
 
 function projectileAppear(projectile) {
@@ -559,6 +646,24 @@ function initParticles(){
     particlesPerSecond: 50,
     alive: 0
   };
+
+  var trackDustEmitterSettings = {
+    type: 'cube',
+    positionSpread: new THREE.Vector3(20, 1, 20),
+    radius: 3,
+    speed: 1,
+    size: 40,
+    sizeSpread: 15,
+    sizeEnd: 200,
+    opacityStart: 0.45,
+    opacityEnd: 0,
+    acceleration:new THREE.Vector3(0, 1, 0),
+    accelerationSpread:new THREE.Vector3(1, 0, 1),
+    colorStart: new THREE.Color(0xebdcb6),
+    colorEnd: new THREE.Color(0xebe7dc),
+    particlesPerSecond: 20,
+    alive: 0
+  };
   
   particleGroups["explosion"] = new ShaderParticleGroup({
     texture: THREE.ImageUtils.loadTexture('textures/smokeparticle.png'),
@@ -578,10 +683,21 @@ function initParticles(){
   });
 
   particleGroups["bulletTrail"].addPool( 10, bulletTrailEmitterSettings, false );
+
+  particleGroups["trackDust"] = new ShaderParticleGroup({
+    texture: THREE.ImageUtils.loadTexture('textures/smokeparticle.png'),
+    maxAge: 1.0,
+    blending: THREE.NormalBlending,
+    depthTest:true
+    //depthWrite:true
+  });
+
+  particleGroups["trackDust"].addPool( 20, trackDustEmitterSettings, false );
   
   // Add particle group to scene.
   scene.add( particleGroups["explosion"].mesh );
   scene.add( particleGroups["bulletTrail"].mesh );
+  scene.add( particleGroups["trackDust"].mesh );
 }
 
 
@@ -661,8 +777,47 @@ function initSocket() {
     scene.remove(oldPlayer.overlay.obj);
     delete gameState.players[id];
     delete players[id];
-
   });
+
+  socket.on("terrainUpdate", function(region){
+    terrain.setDataRegion(region);
+    updateModifiedTerrainChunks(region);
+    updateTerrainNormalMap();
+  });
+
+  socket.on("playerDied", function(id){
+    if(id == playerId){
+      // do stuff.. show score?
+      //alert("YOU ARE DEAD");
+    } 
+
+    setPlayerVisibility(id, false);
+
+    //players[id].obj.visible = false;
+    
+    //console.log("DEADDDDED: " + id);
+  });
+
+  socket.on("playerSpawned", function(player){
+    if(playerId == player.id){
+      // do stuff.. hide score?
+    } 
+    setPlayerVisibility(player.id, true);
+  })
+}
+
+function setPlayerVisibility(id, visible){
+  if(!players.hasOwnProperty(id)){
+    return;
+  }
+
+  players[id].obj.traverse( function(child){
+    child.visible = visible;
+  });
+
+  if(playerId != id){
+    players[id].overlay.obj.visible = visible;
+  }
 }
 
 function initScene() {
@@ -716,29 +871,38 @@ function initLights(){
   hemiLight.color.setHSL( 0.6, 1, 0.6 );
   hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
   hemiLight.position.set( 0, 500, 0 );
+  hemiLight.name = "sky";
   scene.add( hemiLight );
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
   dirLight.color.setHSL( 0.1, 1, 0.95 );
-  dirLight.position.set( -1, 1.75, 1 );
+  dirLight.position.set( 0.65, 0.65, 0 );
   dirLight.position.multiplyScalar( 50 );
+  dirLight.name = "sun";
   scene.add( dirLight );
 
   scene.add(point);
 }
 
+
+function loadShaderSource(scriptId){
+  var source = document.getElementById(scriptId).textContent;
+
+  for(var itm in THREE.ShaderChunk) {
+    if(source.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
+      console.log("INCUDING CHUNK: " + itm);
+      source = source.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
+    }
+  }
+
+  return source;
+}
+
+
 var oceanMaterial;
 function initGeometry(){
 
   var oceanGeom = new THREE.PlaneGeometry(16384, 16384, 2, 2);
-  var oceanFragmentShader = THREE.ShaderChunk.fog_pars_fragment + document.getElementById('fragment-water').textContent;
-
-  for(var itm in THREE.ShaderChunk) {
-    if(oceanFragmentShader.indexOf("//INCLUDE_CHUNK:" + itm) != -1) {
-      console.log("SPLICING SHADER: " + itm);
-      oceanFragmentShader = oceanFragmentShader.replace("//INCLUDE_CHUNK:" + itm, THREE.ShaderChunk[itm]);
-    }
-  }
 
   oceanUniforms = {
     time: { type: 'f', value: 1.0 },
@@ -750,24 +914,72 @@ function initGeometry(){
   oceanMaterial = new THREE.ShaderMaterial({
     uniforms: oceanUniforms,
     transparent: true,
-    vertexShader: document.getElementById('vertex-passthrough').textContent,
-    fragmentShader: oceanFragmentShader,
+    vertexShader: loadShaderSource("vertex-passthrough"),
+    fragmentShader: loadShaderSource("fragment-water"),
     fog:true
   });
 
-
   var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
+  
   ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(8192,40,8192);
+
+  // TODO: add dynamic sea level.
+  ocean.position.set(8192, 40.5, 8192);
+  ocean.name = "ocean";
+  
   scene.add(ocean);
-  terrainMaterial = new THREE.MeshLambertMaterial({
-    color:0x606060,
-    //map: THREE.ImageUtils.loadTexture("textures/dirt.jpg"),
-    shading:THREE.FlatShading
-    //wireframe:true
+  
+
+  // Terrain stuff
+
+  layerTextures[0] = THREE.ImageUtils.loadTexture("textures/terrain/tile_rock.png");
+  layerTextures[1] = THREE.ImageUtils.loadTexture("textures/terrain/tile_dirt.png");
+  layerTextures[2] = THREE.ImageUtils.loadTexture("textures/terrain/tile_grass.png");
+  layerTextures[3] = THREE.ImageUtils.loadTexture("textures/terrain/tile_sand.png");
+  layerTextures[4] = THREE.ImageUtils.loadTexture("textures/terrain/tile_cliff.png");
+
+  for(var i = 0; i < layerTextures.length; i++){
+    layerTextures[i].wrapS = layerTextures[i].wrapT = THREE.RepeatWrapping;
+  }
+
+  terrainNormalMap = THREE.ImageUtils.generateDataTexture(1024, 1024, new THREE.Color( 0x888888 )  );
+  terrainNormalMap.flipY = false;
+  terrainNormalMap.needsUpdate = true;
+
+  terrainHeightMap = THREE.ImageUtils.generateDataTexture(1024, 1024, new THREE.Color( 0x000000 )  );
+  terrainHeightMap.flipY = false;
+  terrainHeightMap.needsUpdate = true;
+
+  terrainMaterial = new THREE.ShaderMaterial({
+    uniforms : {
+      fogColor:    { type: "c", value: scene.fog.color },
+      fogNear:     { type: "f", value: scene.fog.near },
+      fogFar:      { type: "f", value: scene.fog.far },
+
+      normalmap : { type: "t", value: terrainNormalMap },
+      uvOffset : { type: "v2", value: new THREE.Vector2() },
+      heightmap : { type: "t", value: terrainHeightMap },
+      
+      tex0: { type: "t", value: layerTextures[3] },
+      tex1: { type: "t", value: layerTextures[2] },
+      tex2: { type: "t", value: layerTextures[1] },
+      tex3: { type: "t", value: layerTextures[0] },
+      
+      cliffTexture: { type: "t", value: layerTextures[4] },
+      lightDirection : { type: "v3", value : scene.getChildByName("sun").position },
+      
+      skyColor : { type: "c", value : scene.getChildByName("sky").color }
+    },
+    vertexShader: loadShaderSource('vertex-terrain'),
+    fragmentShader: loadShaderSource('fragment-terrain'),
+    fog:true
   });
 
+  //terrainMaterial.uniforms.uvTest.value.wrapS = terrainMaterial.uniforms.uvTest.value.wrapT = THREE.RepeatWrapping;
   
+
+  // Player model
+
   var objLoader = new THREE.OBJLoader();
 
   objLoader.addEventListener( 'load', function ( event ) {
@@ -775,16 +987,25 @@ function initGeometry(){
     tankModel.scale.set(1.1, 1.1, 1.1);
     tankModel.position.set(0, 0, 0);
     
-    initSocket();
+    readyFlags.geometry = true;
+    checkReadyState();
   });
 
   objLoader.load( "models/T72.obj" ); 
+}
 
 
-  cube1 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0xff0000}));
-  //scene.add(cube1);
-  cube2 = new THREE.Mesh(new THREE.CubeGeometry(5,5,5), new THREE.MeshBasicMaterial({color:0x00ff00}));
-  //scene.add(cube2);
+// check to see when all the various async stuff is done loading.
+function checkReadyState(){
+  var ready = true;
+
+  mapObject(function(item){
+    ready = ready && item;
+  }, readyFlags);
+
+  if(ready){
+    initSocket();
+  }
 }
 
 function init(){
@@ -812,7 +1033,7 @@ function onResize() {
   camera.aspect = aspectRatio;
   camera.updateProjectionMatrix();
 
-  HUD.camera.aspect = aspecRatio;
+  HUD.camera.aspect = aspectRatio;
   HUD.camera.updateProjectionMatrix();
   
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -873,6 +1094,15 @@ function animate() {
   stats.push("geometries: " + renderer.info.memory.geometries);
   stats.push("textures: " + renderer.info.memory.textures);
   stats.push("chunk updates: " + chunkUpdateCount);
+  if(playerId){
+    stats.push("Player Chunk ID: " + Math.floor((players[playerId].obj.position.x / terrain.worldUnitsPerDataPoint) / chunkSize) + "_" + + Math.floor((players[playerId].obj.position.z / terrain.worldUnitsPerDataPoint) / chunkSize));
+  }
+
+  mapObject(function(player){
+    stats.push(player.name + ": " + player.score);
+
+  }, players);
+
   $("#stats").html(stats.join("<br>"));
 }
 
@@ -965,6 +1195,8 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   
+  //scene.getObjectByName("sun").position.set( Math.cos(time * 0.), Math.sin(time * 0.1), 0);
+
   //controls.update();
   updateEffectQueue(delta);
 
@@ -972,6 +1204,7 @@ function render() {
 
   particleGroups["explosion"].tick(delta);
   particleGroups["bulletTrail"].tick(delta);
+  particleGroups["trackDust"].tick(delta);
   
   renderer.clear();
   renderer.render(scene, camera);
