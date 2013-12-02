@@ -9,7 +9,7 @@ charredmesh.Terrain = function(util, three) {
 	this.terrainData 	= new Uint16Array(this.terrainDataWidth * this.terrainDataHeight);
 	this.terrainNormals = new Uint8Array(this.terrainDataWidth * this.terrainDataHeight * 3);
 	this.terrainHeight  = new Uint8Array(this.terrainDataWidth * this.terrainDataHeight * 3);
-	this.terrainHeightScale = 5;
+	this.terrainHeightScale = 4;
 	this.worldUnitsPerDataPoint = 16;
 
 	this.BYTE_COUNT = 2;
@@ -94,7 +94,7 @@ charredmesh.Terrain.prototype.updateHeight = function(){
 }
 
 charredmesh.Terrain.prototype.updateNormals = function(region) {
-	
+
 	var idx = 0;
 	var dx = 0; 
 	var dy = 0;
@@ -115,21 +115,81 @@ charredmesh.Terrain.prototype.updateNormals = function(region) {
 		endY = region.y + region.h;
 		idx = (startX + startY * this.terrainDataWidth) * 3;
 		var width = endX - startX;
-		// todo: calculate row step.
 		rowStep = (this.terrainDataWidth - width) * 3;
-		console.log(region);
 	}
 
 	var tmpVecZ = new this.THREE.Vector3();
 	var tmpVecX = new this.THREE.Vector3();
 	var tmpVecNorm = new this.THREE.Vector3();
+	
+	var plane = new this.THREE.Plane();
+
+	var samples = [];
+	for(var i = 0; i < 9; i++){
+		samples.push(new this.THREE.Vector3());
+	}
+	var totals = new this.THREE.Vector3();
+
+	var norm = new this.THREE.Vector3();
 
 	for(var y = startY; y < endY; y++) {
 		for(var x = startX; x < endX; x++) {
 
+			//var nx = x;
+			//var ny = y;
 
-			var nx = x;
-			var ny = y;
+			var sy = (y-1) * this.worldUnitsPerDatPoint;
+
+			samples[0].set( (x-1) * this.worldUnitsPerDataPoint, this.terrainData[ (x-1) + ((y-1) * this.terrainDataWidth) ], (y-1) * this.worldUnitsPerDataPoint );
+			samples[1].set(  x    * this.worldUnitsPerDataPoint, this.terrainData[  x    + ((y-1) * this.terrainDataWidth) ], (y-1) * this.worldUnitsPerDataPoint );
+			samples[2].set( (x+1) * this.worldUnitsPerDataPoint, this.terrainData[ (x+1) + ((y-1) * this.terrainDataWidth) ], (y-1) * this.worldUnitsPerDataPoint );
+			
+			samples[3].set( (x-1) * this.worldUnitsPerDataPoint, this.terrainData[ (x-1) + (y * this.terrainDataWidth) ], y * this.worldUnitsPerDataPoint );
+			samples[4].set(  x    * this.worldUnitsPerDataPoint, this.terrainData[  x    + (y * this.terrainDataWidth) ], y * this.worldUnitsPerDataPoint );
+			samples[5].set( (x+1) * this.worldUnitsPerDataPoint, this.terrainData[ (x+1) + (y * this.terrainDataWidth) ], y * this.worldUnitsPerDataPoint );
+
+			samples[6].set( (x-1) * this.worldUnitsPerDataPoint, this.terrainData[ (x-1) + ((y+1) * this.terrainDataWidth) ], (y+1) * this.worldUnitsPerDataPoint );
+			samples[7].set(  x    * this.worldUnitsPerDataPoint, this.terrainData[  x    + ((y+1) * this.terrainDataWidth) ], (y+1) * this.worldUnitsPerDataPoint );
+			samples[8].set( (x+1) * this.worldUnitsPerDataPoint, this.terrainData[ (x+1) + ((y+1) * this.terrainDataWidth) ], (y+1) * this.worldUnitsPerDataPoint );
+
+			
+			totals.set(0,0,0);			
+			
+			plane.setFromCoplanarPoints(samples[0], samples[1], samples[4]);
+			totals.add(plane.normal.negate());
+
+			plane.setFromCoplanarPoints(samples[1], samples[2], samples[4]);
+			totals.add(plane.normal.negate());
+
+			plane.setFromCoplanarPoints(samples[2], samples[5], samples[4]);
+			totals.add(plane.normal.negate());
+
+			plane.setFromCoplanarPoints(samples[5], samples[8], samples[4]);
+			totals.add(plane.normal.negate());
+
+			plane.setFromCoplanarPoints(samples[8], samples[7], samples[4]);
+			totals.add(plane.normal.negate());
+
+			plane.setFromCoplanarPoints(samples[7], samples[6], samples[4]);
+			totals.add(plane.normal.negate());
+
+			plane.setFromCoplanarPoints(samples[6], samples[3], samples[4]);
+			totals.add(plane.normal.negate());
+
+			plane.setFromCoplanarPoints(samples[3], samples[0], samples[4]);
+			totals.add(plane.normal.negate());
+
+			
+			totals.multiplyScalar(0.125);
+
+			this.terrainNormals[idx] = Math.floor(totals.x * 128 + 127);
+			this.terrainNormals[idx+1] = Math.floor(totals.y * 128 + 127);
+			this.terrainNormals[idx+2] = Math.floor(totals.z * 128 + 127);
+
+
+
+
+			/*
 			// Get sobel samples
 			sobelTaps[0] = this.terrainData[ (nx - 1 + (ny - 1) * this.terrainDataWidth) ];
 			sobelTaps[1] = this.terrainData[ (nx + (ny - 1) * this.terrainDataWidth) ];
@@ -165,8 +225,8 @@ charredmesh.Terrain.prototype.updateNormals = function(region) {
 
 			if((dx != 0) || (dy != 0)){
 
-				tmpVecX.set(1, 0, dx);
-				tmpVecZ.set(0, 1, dy);
+				tmpVecX.set(1, dx, 0);
+				tmpVecZ.set(0, dy, 1);
 
 				tmpVecX.normalize();
 				tmpVecZ.normalize();
@@ -175,14 +235,19 @@ charredmesh.Terrain.prototype.updateNormals = function(region) {
 				tmpVecNorm.normalize();
 
 				this.terrainNormals[idx] = Math.floor(tmpVecNorm.x * 128 + 128);
-				this.terrainNormals[idx+1] = Math.floor(tmpVecNorm.z * 128 + 128);
-				this.terrainNormals[idx+2] = Math.floor(tmpVecNorm.y * 128 + 128);
+				this.terrainNormals[idx+1] = Math.floor(tmpVecNorm.y * 128 + 128);
+				this.terrainNormals[idx+2] = Math.floor(tmpVecNorm.z * 128 + 128);
 			} else {
 				this.terrainNormals[idx] = 127;
-				this.terrainNormals[idx+1] = 255;
-				this.terrainNormals[idx+2] = 127;
+				this.terrainNormals[idx+1] = 127;
+				this.terrainNormals[idx+2] = 255;
 			}
 
+			if( x == 50){
+				//console.log(samp1.toArray(),this.terrainNormals[idx], this.terrainNormals[idx+1], this.terrainNormals[idx+2]);
+			}
+
+			*/
 			idx += 3;
 			
 		}
@@ -195,11 +260,36 @@ charredmesh.Terrain.prototype.updateNormals = function(region) {
 }
 
 charredmesh.Terrain.prototype.getGroundNormal = function(worldX, worldY) {
+
 	var gx = Math.floor(this.worldToTerrain(worldX));
 	var gy = Math.floor(this.worldToTerrain(worldY));
-	// todo: implement this.
-	var idx = gx + gy * this.terrainDataWidth;
-	return [idx, idx+1, idx+2];
+
+	var gx1 = gx + 1;
+	var gy1 = gy + 1;
+
+	var fracX = (worldX - (gx * this.worldUnitsPerDataPoint)) / this.worldUnitsPerDataPoint;
+	var fracY = (worldY - (gy * this.worldUnitsPerDataPoint)) / this.worldUnitsPerDataPoint;
+
+	var tempNormal1 = this.getTerrainNormal(gx, gy);
+	tempNormal1.multiplyScalar(1-fracX);
+	tempNormal1.add( this.getTerrainNormal(gx1, gy).multiplyScalar(fracX) );
+
+	var tempNormal2 = this.getTerrainNormal(gx, gy1);
+	tempNormal2.multiplyScalar(1-fracX);
+	tempNormal2.add( this.getTerrainNormal(gx1, gy1).multiplyScalar(fracX) );
+
+	tempNormal1.multiplyScalar(1-fracY);
+	tempNormal2.multiplyScalar(fracY);
+
+	/*tempNormal1[0] *= (1-fracY);
+	tempNormal1[1] *= (1-fracY);
+	tempNormal1[2] *= (1-fracY);
+
+	tempNormal2[0] *= fracY;
+	tempNormal2[1] *= fracY;
+	tempNormal2[2] *= fracY;*/
+//	console.log(fracX, fracY, this.getTerrainNormal(gx, gy1).toArray(), tempNormal1.toArray(), tempNormal2.toArray());
+	return tempNormal1.add(tempNormal2);
 }
 
 charredmesh.Terrain.prototype.getGroundHeight = function(wx, wy) {
@@ -216,7 +306,7 @@ charredmesh.Terrain.prototype.getGroundHeight = function(wx, wy) {
 	var tempHeight1 = this.getTerrainPoint(gx,gy) * (1-fracX) + this.getTerrainPoint(gx1, gy) * (fracX);
 	var tempHeight2 = this.getTerrainPoint(gx,gy1) * (1-fracX) + this.getTerrainPoint(gx1, gy1) * (fracX);
 
-	return tempHeight1 * (1-fracY) + tempHeight2 * (fracY);
+	return tempHeight1 * (1-fracY) + tempHeight2 * fracY;
 }
 
 charredmesh.Terrain.prototype.setGroundHeight = function(worldX, worldY, newHeight) {
@@ -224,6 +314,12 @@ charredmesh.Terrain.prototype.setGroundHeight = function(worldX, worldY, newHeig
 	var gy = Math.floor(this.worldToTerrain(worldY));
 
   	this.setTerrainPoint(gx, gy, newHeight);
+}
+
+charredmesh.Terrain.prototype.getTerrainNormal = function(x, y){
+	var idx = (x + y * this.terrainDataWidth) * 3;
+	var vec = new this.THREE.Vector3( (this.terrainNormals[idx] - 127) / 128, (this.terrainNormals[idx+1] - 127) / 128, (this.terrainNormals[idx+2] - 127) / 128);
+	return vec.normalize();
 }
 
 charredmesh.Terrain.prototype.setTerrainPoint = function(x, y, newHeight) {

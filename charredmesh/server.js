@@ -4,21 +4,20 @@ var THREE = require("three");
 var PNG = require('png-js');
 var Util = require("./public/js/utils.js");
 var Terrain = require("./public/js/terrain.js", "three");
-
-
+var nameData = require("./public/js/names.js");
 
 var terrainData;
 var terrain = new Terrain(Util, THREE);
 
 var SEA_LEVEL       = 40;
 
-var forwardDelta    = 75;
+var forwardDelta    = 120;
 var rotationDelta   = 1;
 var turretDelta     = 1;
 var turretMax       = Math.PI * 0.5;
 var turretMin       = 0;
 var basePower       = 1000;
-var gravity         = new THREE.Vector3(0, -40, 0);
+var gravity         = new THREE.Vector3(0, -20, 0);
 var wind            = new THREE.Vector3(0, 0, 0);
 var turretLength    = 50;
 var playerHeight    = 20;
@@ -26,302 +25,9 @@ var maxHealth       = 100;
 var maxDamage       = 20;
 var minEarthLevel   = 0;
 var explosionRadius = 138;
-var colorNames = {
-  "Gold": "#FFD700",
-  "Turquoise": "#40E0D0",
-  "Seashell": "#FFF5EE",
-  "Tan": "#D2B48C",
-  "Khaki": "#F0E68C",
-  "Orchid": "#DA70D6",
-  "Snow": "#FFFAFA",
-  "Gray": "#bebebe",
-  "Green": "#00FF00",
-  "Cyan": "#00FFFF",
-  "Beige": "#F5F5DC",
-  "Lavender": "#E6E6FA",
-  "Wheat": "#F5DEB3",
-  "White": "#FFFFFF",
-  "Magenta": "#FF00FF",
-  "Ivory": "#FFFFF0",
-  "Tomato": "#FF6347",
-  "Firebrick": "#B22222",
-  "Orange": "#FFA500",
-  "Salmon": "#FA8072",
-  "Thistle": "#D8BFD8",
-  "Azure": "#F0FFFF",
-  "Maroon": "#b03060",
-  "Coral": "#FF7F50",
-  "Red": "#FF0000",
-  "Sienna": "#A0522D",
-  "Yellow": "#ffffff",
-  "Plum": "#DDA0DD",
-  "Bisque": "#FFE4C4",
-  "Brown": "#A52A2A",
-  "Chartreuse": "#7FFF00",
-  "Pink": "#FFC0CB",
-  "Navy": "#000080",
-  "Peru": "#cd853f",
-  "Burlywood": "#deb887",
-  "Moccasin": "#ffe4b5",
-  "Blue": "#0000ff",
-  "Linen": "#faf0e6",
-  "Honeydew": "#f0fff0",
-  "Chocolate": "#d2691e",
-  "Purple": "#7f007f",
-  "Cornsilk": "#fff8dc",
-  "Goldenrod": "#daa520",
-  "Gainsboro": "#dcdcdc",
-  "Aquamarine": "#7fffd4",
-  "Violet": "#ee82ee",
-  "Grey": "#888888",
-  "Black": "#000000"};
 
-var animalNames = [
-  "Kangaroo",
-  "Quail",
-  "Rhinoceros",
-  "Snake",
-  "Dragonfly",
-  "Sandpiper",
-  "Sardine",
-  "Gazelle",
-  "Rooster",
-  "Wombat",
-  "Planula",
-  "Mule",
-  "Woodcock",
-  "Cannibalism",
-  "Vulture",
-  "Bee",
-  "Oryx",
-  "Gorilla",
-  "Jay",
-  "Hamster",
-  "Bacon",
-  "Grouse",
-  "Yak",
-  "Ruff",
-  "Aves",
-  "Beef",
-  "Elk",
-  "Wren",
-  "Louse",
-  "Eagle",
-  "Polyp",
-  "Owl",
-  "Frog",
-  "Rat",
-  "Mouse",
-  "Poultry",
-  "Armadillo",
-  "Cobra",
-  "Beaver",
-  "Herring",
-  "Spider",
-  "Swallow",
-  "Shark",
-  "Lapwing",
-  "Opossum",
-  "Blackback",
-  "Escargot",
-  "Chimpanzee",
-  "Zebra",
-  "Reindeer",
-  "Albatross",
-  "Weasel",
-  "Chinchilla",
-  "Stork",
-  "Taurotragus",
-  "Kouprey",
-  "Kitten",
-  "Ant",
-  "Hyena",
-  "Wasp",
-  "Mare",
-  "Quelea",
-  "Venison",
-  "Chamois",
-  "Starling",
-  "Wildebeest",
-  "Tarsier",
-  "Equidae",
-  "Pheasant",
-  "Bovidae",
-  "Snail",
-  "Whale",
-  "Ox",
-  "Stingray",
-  "Viperidae",
-  "Porpoise",
-  "Pony",
-  "Peafowl",
-  "Jackal",
-  "Crocodile",
-  "Grasshopper",
-  "Scorpion",
-  "Bison",
-  "Baboon",
-  "Hare",
-  "Gelding",
-  "Penguin",
-  "Chough",
-  "Felidae",
-  "Eel",
-  "Ostrich",
-  "Tapir",
-  "Manatee",
-  "Emu",
-  "Human",
-  "Hawk",
-  "Lobster",
-  "Caterpillar",
-  "Ferret",
-  "Termite",
-  "Walrus",
-  "Seahorse",
-  "Deer",
-  "Pig",
-  "Wallaby",
-  "Lark",
-  "Salmon",
-  "Gull",
-  "Rallidae",
-  "Hummingbird",
-  "Vixen",
-  "Herd",
-  "Fox",
-  "Badger",
-  "Shrew",
-  "Shrimp",
-  "Canidae",
-  "Stinkbug",
-  "Mosquito",
-  "Nightingale",
-  "Crab",
-  "Finch",
-  "Raven",
-  "Trout",
-  "Carabeef",
-  "Barracuda",
-  "Falcon",
-  "Capon",
-  "Gerbil",
-  "Swan",
-  "Hippopotamus",
-  "Wolverine",
-  "Elephant",
-  "Lemur",
-  "Dinosaur",
-  "Oxen",
-  "Dugong",
-  "Guanaco",
-  "Squid",
-  "Hornet",
-  "Koala",
-  "Wolf",
-  "Fly",
-  "Bull",
-  "Butterfly",
-  "Caribou",
-  "Coyote",
-  "Worm",
-  "Monkey",
-  "Silverback",
-  "Puppy",
-  "Ham",
-  "Foal",
-  "Newt",
-  "Giraffe",
-  "Heron",
-  "Dunlin",
-  "Bear",
-  "Llama",
-  "Alligator",
-  "Porcupine",
-  "Chicken",
-  "Clam",
-  "Vicuña",
-  "Cockroach",
-  "Bat",
-  "Camel",
-  "Pigeon",
-  "Carduelis",
-  "Cheetah",
-  "Parrot",
-  "Ape",
-  "Locust",
-  "Jellyfish",
-  "Antelope",
-  "Filly",
-  "Jaguar",
-  "Aardvark",
-  "Cat",
-  "Galago",
-  "Gaur",
-  "Cattle",
-  "Crow",
-  "Woodpecker",
-  "Goshawk",
-  "Pork",
-  "Blubber",
-  "Cod",
-  "Swarm",
-  "Echidna",
-  "Fish",
-  "Calf",
-  "Partridge",
-  "Goldfish",
-  "Oyster",
-  "Mink",
-  "Loris",
-  "Bird",
-  "Duck",
-  "Goose",
-  "Lyrebird",
-  "Leopard",
-  "Meerkat",
-  "Magpie",
-  "Squirrel",
-  "Squaliformes",
-  "Rabbit",
-  "Dove",
-  "Osteichthyes",
-  "Alpaca",
-  "Salamander",
-  "Veal",
-  "Skunk",
-  "Gnat",
-  "Hedgehog",
-  "Narwhal",
-  "Sheep",
-  "Goat",
-  "Kudu",
-  "Lion",
-  "Dog",
-  "Turtle",
-  "Donkey",
-  "Otter",
-  "Cormorant",
-  "Horse",
-  "Pelican",
-  "Scyphozoa",
-  "Anteater",
-  "Boar",
-  "Dolphin",
-  "Okapi",
-  "Calamari",
-  "Toad",
-  "Curlew",
-  "Hoggett",
-  "Tiger",
-  "Dotterel",
-  "Pinniped",
-  "Raccoon",
-  "Octopus",
-  "Moose",
-  "Marten",
-  "Flamingo",
-  "Mallard"];
+var animalNames = nameData.animals;
+var colorNames = nameData.colors;
 
 PNG.decode('public/textures/terrain_height_map_mountains.png', function(pixels) {
     // pixels is a 1d array of decoded pixel data
@@ -394,7 +100,7 @@ function makeGameState() {
   // colorPool.sort(function(a, b) {return Math.random() < 0.5 ? -1 : 1});
 
   return {
-    worldBounds: new THREE.Vector3(4096, 1028, 4096),
+    worldBounds: new THREE.Vector3(terrain.worldUnitsPerDataPoint * 1024, 1028, terrain.worldUnitsPerDataPoint * 1024),
     players: {},
     projectiles: {},
     colorPool: colorPool
@@ -405,9 +111,9 @@ var gameState = makeGameState();
 
 function makePlayerPosition() {
   return new THREE.Vector3(
-    gameState.worldBounds.x / 2, //Math.random() * gameState.worldBounds.x, 
+    Math.random() * gameState.worldBounds.x * 0.25 + gameState.worldBounds.x * 0.5,
     0,
-    gameState.worldBounds.z / 2);//Math.random() * gameState.worldBounds.z);
+    Math.random() * gameState.worldBounds.z * 0.25 + gameState.worldBounds.z * 0.5);
 }
 
 function randomNormal() {
@@ -466,6 +172,7 @@ function makeProjectile(owner, position, direction, power) {
     owner: owner,
     position: position,
     velocity: direction.clone().multiplyScalar(power),
+    bounces : 0,
     state: "flying"
   }
 }
@@ -579,39 +286,71 @@ function updatePlayer(player, delta) {
   if(player.alive){
 
     var maxVelocity   = 675;
-    var gravity       = 230;
 
-    player.velocity.y -= (gravity * delta);
-
-    if(player.position.y < SEA_LEVEL){
-      player.velocity.x *= 0.50;
-      player.velocity.z *= 0.50;
-    } else{
-      player.velocity.x *= 0.75;
-      player.velocity.z *= 0.75;
-    }
+    var impulse = new THREE.Vector3();
     
-    var tmp = player.position.clone();
-
-    player.position.add(player.velocity.clone().multiplyScalar(delta));
-      
     if(player.velocity.length() > maxVelocity){
       player.velocity.setLength(maxVelocity);
-    } 
+    }    
 
+    var thrust = new THREE.Vector3();
+    
     var ground = terrain.getGroundHeight(player.position.x, player.position.z);
+    var onGround = (player.position.y - ground) < 0.25;
+    
+    player.isDriving = (player.input.forward || player.input.back) && (onGround);
+    
+    if(onGround) {
 
-    if(player.position.y < ground){
-      player.position.y = ground;
-      player.velocity.y = 0;
-    }
+      var UP = new THREE.Vector3(0, 1, 0);
+      var directionQuat = new THREE.Quaternion();
+      directionQuat.setFromAxisAngle(UP, player.rotation);
+      var norm = terrain.getGroundNormal(player.position.x, player.position.z);
+      norm.normalize();
 
-    if (player.input.forward) {
-      player.velocity.add(player.orientation.clone().multiplyScalar(forwardDelta))
-    }
+      var angle = UP.angleTo(norm);
+      var axis = UP.clone().cross(norm);
+      var forward = new THREE.Vector3(0, 0, 1);
 
-    if (player.input.back) {
-      player.velocity.sub(player.orientation.clone().multiplyScalar(forwardDelta*0.6));
+      normQuat = new THREE.Quaternion();
+      normQuat.setFromAxisAngle(axis, angle);
+      normQuat.normalize();
+      directionQuat.normalize();
+     
+      forward.applyQuaternion( normQuat.multiply(directionQuat));
+
+
+      if (player.input.forward) {
+        thrust.copy( forward.clone().multiplyScalar(forwardDelta) );
+      }
+
+      if (player.input.back) {
+        thrust.copy( forward.clone().multiplyScalar(forwardDelta * 0.5).negate() );
+      }
+
+      if(player.position.y < SEA_LEVEL){
+        thrust.multiplyScalar(0.75);
+      }
+
+      var up = new THREE.Vector3(0,1,0);
+      var normal = terrain.getGroundNormal(player.position.x, player.position.z);
+      var slope = normal.dot(up);
+
+      // limit movement on slopes (and slide down)
+      if(slope < 0.85 && onGround){
+
+        slope = (slope / 0.85);
+        var slide = terrain.getGroundNormal(player.position.x, player.position.z).cross(up);
+        slide = slide.cross(normal);
+
+        var resistance = slide.dot(forward);
+        
+        
+        thrust.multiplyScalar(1-resistance);
+        thrust.sub( slide.multiplyScalar( (1 - slope) * forwardDelta ));
+      }
+      
+      impulse.add(thrust);
     }
 
     if (player.input.left) {
@@ -623,6 +362,24 @@ function updatePlayer(player, delta) {
       player.rotation -= delta * rotationDelta;
       setOrientationFromRotation(player.orientation, player.rotation);
     }
+    
+    player.velocity.add(impulse);
+    player.velocity.add(gravity);
+
+    if(onGround) {
+      player.velocity.x *= 0.65;
+      player.velocity.z *= 0.65;
+    }
+
+    player.position.add(player.velocity.clone().multiplyScalar(delta));
+
+    ground = terrain.getGroundHeight(player.position.x, player.position.z);
+    
+    if(player.position.y < ground){
+      player.position.y = ground;
+      player.velocity.y = 0;
+    }
+
 
     if (player.input.up) {
       player.turretAngle = Math.min(turretMax, player.turretAngle + delta * turretDelta);
@@ -631,6 +388,7 @@ function updatePlayer(player, delta) {
     if (player.input.down) {
       player.turretAngle = Math.max(turretMin, player.turretAngle - delta * turretDelta);
     }
+
   } else {
     // player is dead.. count-down to respawn.
     player.respawnTimer -= delta;
@@ -639,7 +397,7 @@ function updatePlayer(player, delta) {
     }
   }
 
-  player.isDriving = (player.input.forward || player.input.back) && (player.position.y - ground < 0.1);
+  
 }
 
 function respawnPlayer(player){
@@ -695,13 +453,37 @@ function projectileDamage(projectile) {
 }
 
 function updateProjectile(projectile, delta) {
+
   projectile.velocity.add(gravity.clone().add(wind));
   projectile.position.add(projectile.velocity.clone().multiplyScalar(delta));
-  if (collidesWithEarth(projectile) || collidesWithPlayer(projectile)) {
+
+  var groundHeight = terrain.getGroundHeight(projectile.position.x, projectile.position.z);
+  
+  if(projectile.position.y < 0 || projectile.position.y < groundHeight) {
+    var normal = terrain.getGroundNormal(projectile.position.x, projectile.position.z);
+
+    projectile.position.y = groundHeight;
+    projectile.velocity.reflect( normal );
+    projectile.velocity.negate();
+    console.log("Post-reflect:", projectile.velocity.toArray() );
+    projectile.velocity.multiplyScalar(0.6);
+    
+    projectile.bounces++;
+  }
+
+  if(projectile.bounces > 0){
+     projectile.position.y = Math.max(groundHeight + 1, projectile.position.y);
+     projectileDamage(projectile);
+     makeCrater(projectile.position, explosionRadius / 1.5);
+     removeProjectile(projectile);
+  }
+  /*
+   if (collidesWithEarth(projectile) || collidesWithPlayer(projectile)) {
     projectileDamage(projectile);
-    makeCrater(projectile.position, explosionRadius/1.5);
+    makeCrater(projectile.position, explosionRadius / 1.5);
     removeProjectile(projectile);
   }
+  */
 }
 
 function updateAllProjectiles(delta) {

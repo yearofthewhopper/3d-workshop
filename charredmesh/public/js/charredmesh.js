@@ -23,7 +23,7 @@ var skyColor = 0xf3e4d3;
 var oceanUniforms;
 
 var terrainData;
-var chunkSize = 32;
+var chunkSize = 64;
 //var terrainResolution = 16;
 //var terrainHeightScale = 1.5;
 
@@ -39,6 +39,8 @@ var particleGroups = {}
 var terrain = new charredmesh.Terrain(Util, THREE);
 
 var HUD = {};
+
+var debrisGeometry;
 
 var terrainChunks = {
 };
@@ -95,47 +97,91 @@ function createPlayer(playerData) {
   console.log(newPlayer.name + " has entered the game!");
 
   var material = new THREE.MeshLambertMaterial({
-    color: new THREE.Color().setStyle(newPlayer.color)
+    color: new THREE.Color().setStyle(newPlayer.color).offsetHSL(0,-0.2,0)
   });
   
-  var turretmaterial = new THREE.MeshLambertMaterial({
-    color: new THREE.Color().setStyle(newPlayer.color)
+  var turretMaterial = new THREE.MeshLambertMaterial({
+    color: new THREE.Color().setStyle(newPlayer.color).offsetHSL(0,-0.2,0)
+  });
+
+  var equipmentMaterial = new THREE.MeshPhongMaterial({
+    color: new THREE.Color().setStyle(newPlayer.color).offsetHSL(0, -0.8, 0),
+    shininess:150
+  });
+
+  var tracksMaterial = new THREE.MeshLambertMaterial({
+    color: new THREE.Color().setStyle("#505050")
   });
   
-  var turretgeom = new THREE.CylinderGeometry(caliber, caliber, turretLength, 16);
-  var turretmesh = new THREE.Mesh(turretgeom, turretmaterial);
-  turretmesh.rotation.z = Math.PI / 2;
-  turretmesh.position.set(turretLength * 0.5, 0, 0);
-  var turret = new THREE.Object3D();
-  turret.rotation.y = -Math.PI * 0.5;
-  turret.position.set(0, 20 + caliber*0.5, 0);
-  turret.add(turretmesh);
   
-  //var geom = new THREE.CubeGeometry(20, 20, 20);
-  //var tank = new THREE.Mesh(geom, material);
-  //tank.position.y += 10;
   tank = tankModel.clone();
-  tank.children[1].children[0].material = material;
-  tank.children[1].children[1].material = material;
+  
+  console.log(tank);
+  tank.traverse(function(obj){
+    console.log(obj.name);
+    switch(obj.name){
+      case "chassis" :
+        obj.material = material;
+        break;
+      case "turret" :
+      case "turret barrel_mount":
+        obj.material = turretMaterial;
+        break;
+      case "turret barrel_mount barrel":
+      case "tracks":
+        obj.material = tracksMaterial;
+      break;
+      case "turret equipment":
+        obj.material = equipmentMaterial;
+        obj.geometry.computeFaceNormals();
+        obj.geometry.computeVertexNormals();
+        break;
+    }
+  });
 
+  
+  /*
+  var norm = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0x00ffff);
+  var axis = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0xff0000);
+  var up = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0xffff00);
+  var forward = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0x00ff00);
+  
+  scene.add(norm);
+  scene.add(axis);
+  scene.add(up);
+  scene.add(forward);
 
+  newPlayer.arrow = norm;
+  newPlayer.axis = axis;
+  newPlayer.up = up;
+  newPlayer.forward = forward;
+  */
 
   newPlayer.obj = new THREE.Object3D();
-/*
+ 
+  /*
   var lightProbe = new THREE.Mesh(
     new THREE.SphereGeometry(15,15,16,16),
     new THREE.MeshLambertMaterial()
   );
   lightProbe.position.y = 25;
   newPlayer.obj.add(lightProbe);
-*/
+ */
+ 
   newPlayer.obj.position.copy(position);
-  newPlayer.obj.rotation.y = rotation;
+  
   newPlayer.obj.add(tank);
-  newPlayer.obj.add(turret);
-  newPlayer.turret = turret;
-  newPlayer.obj.eulerOrder = "YZX";
 
+  // TODO: Figure out a way to preserve the heirarchy from C4D
+  var turret = tank.getObjectByName("turret");
+  turret.add(tank.getObjectByName("turret barrel_mount"));
+  turret.add(tank.getObjectByName("turret equipment"));
+  var barrel = turret.getObjectByName("turret barrel_mount");
+  barrel.add(tank.getObjectByName("turret barrel_mount barrel"));
+
+  newPlayer.turret = turret;
+  newPlayer.barrel = barrel;
+ 
   var emitter = particleGroups["trackDust"].getFromPool();
   emitter.position.copy(newPlayer.obj.position);
   emitter.enable();
@@ -169,6 +215,8 @@ function createPlayer(playerData) {
       obj : overlay,
     };
   }
+  
+
 
   scene.add(newPlayer.obj);
   players[newPlayer.id] = newPlayer;
@@ -330,12 +378,11 @@ function updateHealthBar(health) {
 
 function updatePlayer(player) {
   players[player.id].obj.position.fromArray(player.position);
-
+  players[player.id].rotation = player.rotation;
   if(players[player.id].overlay){
     players[player.id].overlay.obj.position.fromArray(player.position);
     players[player.id].overlay.obj.position.y += 50;
   }
-
   
   if(players[player.id].isDriving != player.driving){
     if(player.driving){
@@ -344,34 +391,40 @@ function updatePlayer(player) {
       players[player.id].dust.disable();
     }
   }
+
   players[player.id].isDriving = player.driving;
   players[player.id].dust.position.copy(players[player.id].obj.position);
 
   players[player.id].score = player.score;
-  players[player.id].obj.rotation.y = player.rotation;
-  players[player.id].turret.rotation.x = -player.turretAngle;
+  players[player.id].barrel.rotation.x = -player.turretAngle;
   players[player.id].driving = player.isDriving;
 
   players[player.id].dust.position.copy(players[player.id].obj.position);
 
-  var directionVector = new THREE.Vector3( Math.cos(-player.rotation+Math.PI/2), 0, Math.sin(-player.rotation+Math.PI/2) );
-
-  var pt1 = players[player.id].obj.position.clone().add(directionVector.clone().multiplyScalar(20));
-  var pt2 = players[player.id].obj.position.clone().add(directionVector.clone().multiplyScalar(-20));
 
 
-  var height1 = terrain.getGroundHeight(pt1.x, pt1.z);
-  var height2 = terrain.getGroundHeight(pt2.x, pt2.z);
-  pt1.y = height1;
-  pt2.y = height2;
+  var UP = new THREE.Vector3(0, 1, 0);
+
+  var directionQuat = new THREE.Quaternion();
+  directionQuat.setFromAxisAngle(UP, player.rotation);
+
+  var norm = terrain.getGroundNormal(players[player.id].obj.position.x, players[player.id].obj.position.z);
+  norm.normalize();
+
+  var angle = UP.angleTo(norm);
+  var axis = UP.clone().cross(norm);
+  var forward = new THREE.Vector3(0,0,1);
+
+  normQuat = new THREE.Quaternion();
+  normQuat.setFromAxisAngle(axis, angle);
+  normQuat.normalize();
+  directionQuat.normalize();
   
-  if(players[player.id].obj.position.y - terrain.getGroundHeight(players[player.id].obj.position.x, players[player.id].obj.position.z) < 1) {
-    players[player.id].obj.rotation.x += (Math.atan((height2-height1) / 40) - players[player.id].obj.rotation.x) * 0.15;
-  } else {
-    players[player.id].obj.rotation.x += (0.2 - players[player.id].obj.rotation.x) * 0.15;
-  }
-  //directionVector = new THREE.Vector3( Math.cos(-player.rotation), 0, Math.sin(-player.rotation) );
-
+  players[player.id].obj.useQuaternion = true;
+  forward.applyQuaternion( normQuat.multiply(directionQuat));
+  
+  players[player.id].obj.up.copy(norm);
+  players[player.id].obj.lookAt(forward.add(players[player.id].obj.position));
   
   players[player.id].health = player.health;
   if (player.id !== playerId) {
@@ -439,8 +492,8 @@ function updateTerrainChunks(){
   var terrainResolution = terrain.worldUnitsPerDataPoint;
 
   var viewDistanceHQ = 1000;
-  var viewDistanceMQ = 2000;
-  var viewDistance = 8000;
+  var viewDistanceMQ = 6000;
+  var viewDistance = 24000;
 
   var playerX = players[playerId].obj.position.x;
   var playerZ = players[playerId].obj.position.z;
@@ -477,7 +530,7 @@ function updateTerrainChunks(){
         }else if(dist < viewDistanceMQ){
           addTerrainChunk(x, z, 2);  
         }else {
-          addTerrainChunk(x, z, 4);
+          addTerrainChunk(x, z, 8);
         }
       }
       
@@ -578,16 +631,29 @@ function addTerrainChunk(tx, ty, quality){
         }
       }
     }
+
+    var color = 0xff0000;
+    switch(quality){
+      case 1:
+        color = 0xff0000;
+        break;
+      case 2:
+        color = 0x00ff00;
+        break;
+      case 8:
+        color = 0x0000ff;
+        break;
+      default:
+        color = 0xffffff;
+        break;
+    }
     
     var chunkGeometry = new THREE.TerrainGeometry(quality, chunkSize, terrain.worldUnitsPerDataPoint, data);
-    //var mat = terrainMaterial.clone();
-
-   // terrainMaterial.uniforms.uvOffset.x = tx / 31;
-   // terrainMaterial.uniforms.uvOffset.y = ty / 31;
-
+    //var chunkMesh = new THREE.Mesh(chunkGeometry, new THREE.MeshLambertMaterial({color:color, fog:false, emissive:color, wireframe:true}));
     var chunkMesh = new THREE.Mesh(chunkGeometry, terrainMaterial);
     chunkMesh.name = "chunk_" + chunkId;
     chunkMesh.position.set(terrain.terrainToWorld(tx * chunkSize), 0, terrain.terrainToWorld(ty * chunkSize));
+    
     scene.add(chunkMesh);
 
     terrainChunks[chunkId] = {
@@ -606,11 +672,14 @@ function Explosion(position, color) {
   var explosionmaterial = new THREE.MeshBasicMaterial({
     color: color,
     transparent: true,
-    blending: THREE.AdditiveBlending
+    blending: THREE.AdditiveBlending,
+    depthTest:true,
+    depthWrite:false
   });
   var explosiongeom = new THREE.SphereGeometry(1, 16, 16);
   var explosionmesh = new THREE.Mesh(explosiongeom, explosionmaterial);
   explosionmesh.position = position;
+
 
   this.obj = explosionmesh;
   this.time = 0;
@@ -625,12 +694,80 @@ function Explosion(position, color) {
     }
     this.obj.scale.set(this.radius, this.radius, this.radius);
     this.obj.material.opacity = this.opacity;
+
+
   };
   this.remove = function() {
     scene.remove(this.obj);
   };
   this.isDone = function() {
     return this.time > 1;
+  };
+}
+
+function Debris(params) {
+  var debrisMaterial = new THREE.MeshLambertMaterial({
+    color: new THREE.Color(0xffffff).offsetHSL(Math.random() * -0.125, (Math.random() - 0.5) * 0.125, 0),
+    transparent:true,
+    map: layerTextures[4]
+  });
+  
+  var debrisMesh = new THREE.Mesh(debrisGeometry.children[0].geometry, debrisMaterial);
+  
+  debrisMesh.position = params.position.clone();
+  debrisMesh.position.y -= 20;
+
+  var launchNormal = terrain.getGroundNormal(debrisMesh.position.x, debrisMesh.position.z);
+  
+  this.material = debrisMaterial;
+  this.obj = debrisMesh;
+  this.time = 0;
+  this.lifeSpan = Math.random() * 4 + 3;
+
+  launchNormal.x += Math.random() - 0.5;
+  launchNormal.y += Math.random() - 0.5;
+  launchNormal.z += Math.random() - 0.5;
+  launchNormal.normalize();
+  this.velocity = launchNormal;
+  //new THREE.Vector3(Math.random() - 0.5, Math.random() * 2, Math.random() - 0.5);
+
+  
+  
+  var size = Math.random();
+  this.obj.scale.multiplyScalar(size * params.size[0] + params.size[1]);
+  this.velocity.normalize().multiplyScalar((1-size) * 350 + 100);
+
+  this.angularVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+  this.angularVelocity.multiplyScalar((1.5-size) * 20);
+
+  this.update = function(delta) {
+    this.time += delta;
+    
+    var groundHeight = terrain.getGroundHeight(this.obj.position.x, this.obj.position.z);
+    this.velocity.y -= (300 * delta);
+    
+    this.obj.position.add(this.velocity.clone().multiplyScalar(delta));
+    this.obj.rotation.add(this.angularVelocity.clone().multiplyScalar(delta));
+
+    if(this.obj.position.y < 0 || this.obj.position.y < groundHeight) {
+      var normal = terrain.getGroundNormal(this.obj.position.x, this.obj.position.z);
+      this.obj.position.y = groundHeight;
+      this.velocity.reflect( normal );
+      this.velocity.negate();
+      this.velocity.multiplyScalar(0.6);
+      this.angularVelocity.multiplyScalar(0.75);
+    }
+    if(this.lifeSpan - this.time < 1){
+      this.material.opacity = this.lifeSpan - this.time;
+    }
+    
+  };
+
+  this.remove = function() {
+    scene.remove(this.obj);
+  };
+  this.isDone = function() {
+    return this.time > this.lifeSpan;
   };
 }
 
@@ -748,7 +885,15 @@ function projectileExplode(id) {
   scene.add(explosion.obj);
   effectQueue.push(explosion);
 
-  particleGroups["explosion"].triggerPoolEmitter( 1, oldProjectile.obj.position.clone() );
+  var debrisCount = Math.floor(Math.random() * 5 + 10);
+  for(var i = 0; i < debrisCount; i++){
+    var gib = new Debris({"position":oldProjectile.obj.position, "size" : [10, 4]});
+    scene.add(gib.obj);
+    effectQueue.push(gib);
+  }
+  
+
+  //particleGroups["explosion"].triggerPoolEmitter( 1, oldProjectile.obj.position.clone() );
 
   var gx = oldProjectile.obj.position.x;
   var gy = oldProjectile.obj.position.z;
@@ -856,7 +1001,7 @@ function initScene() {
   
   scene = new THREE.Scene();  
 
-  camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 22500);
+  camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 30000);
   camera.position.z = 8192;
   camera.position.x = 8192;
   camera.position.y = 400;
@@ -886,7 +1031,7 @@ function initScene() {
   controls = new THREE.OrbitControls(camera);
   controls.center.set(8192, 0, 8192);
   
-  scene.fog = new THREE.Fog(skyColor, 1500, 4750);
+  scene.fog = new THREE.Fog(skyColor, 4000, 14000);
 
   time = Date.now();
 }
@@ -903,7 +1048,7 @@ function initLights(){
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
   dirLight.color.setHSL( 0.1, 1, 0.95 );
-  dirLight.position.set( 0.65, 0.65, 0 );
+  dirLight.position.set( 0.2, 0.75, 0 ).normalize();
   dirLight.position.multiplyScalar( 50 );
   dirLight.name = "sun";
   scene.add( dirLight );
@@ -999,6 +1144,7 @@ function initGeometry(){
     },
     vertexShader: loadShaderSource('vertex-terrain'),
     fragmentShader: loadShaderSource('fragment-terrain'),
+    //wireframe:true
     fog:true
   });
 
@@ -1018,7 +1164,15 @@ function initGeometry(){
     checkReadyState();
   });
 
-  objLoader.load( "models/T72.obj" ); 
+  objLoader.load( "models/tank_parts.obj" ); 
+
+  var objLoader2 = new THREE.OBJLoader();
+  
+  objLoader2.addEventListener( 'load', function ( event ) {
+    debrisGeometry = event.content;
+    console.log("LOADED DEBRIS");
+  });
+  objLoader2.load("models/debris0.obj");
 }
 
 
@@ -1158,8 +1312,8 @@ function updateChaseCam() {
   var p = players[playerId].obj.position.clone();
 
   // find a spot above and behind the player
-  p.z -= Math.cos(players[playerId].obj.rotation.y) * 300;
-  p.x -= Math.sin(players[playerId].obj.rotation.y) * 300;
+  p.z -= Math.cos(players[playerId].rotation) * 300;
+  p.x -= Math.sin(players[playerId].rotation) * 300;
 
   // Use larger of either an offset from the players Y position, or a point above the ground.  
   // This prevents the camera from clipping into mountains.
@@ -1170,8 +1324,8 @@ function updateChaseCam() {
 
   // Find a spot in front of the player
   p.copy(players[playerId].obj.position);
-  p.z += Math.cos(players[playerId].obj.rotation.y) * 300;
-  p.x += Math.sin(players[playerId].obj.rotation.y) * 300;
+  p.z += Math.cos(players[playerId].rotation) * 300;
+  p.x += Math.sin(players[playerId].rotation) * 300;
 
   // constantly lerp the target position too, again to keep things smooth.
   cameraTarget.lerp(p, 0.05);
@@ -1190,7 +1344,9 @@ function updateChaseCam() {
 
 function updateEffectQueue(delta) {
   for (var e = 0; e < effectQueue.length; e++) {
+    
     effectQueue[e].update(delta);
+    
     if(effectQueue[e].isDone()) {
       effectQueue[e].remove();
       effectQueue.splice(e, 1);
