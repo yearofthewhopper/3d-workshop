@@ -551,7 +551,10 @@ function makeCrater(position, radius) {
     }
   }
 
+
+
   var f = terrain.getDataRegion(dx,dy,dw,dh);
+  terrain.updateNormals(f);
   console.log(f);
   socketio.sockets.emit("terrainUpdate", f );
   //console.log("Terrain change: " + (w*h));
