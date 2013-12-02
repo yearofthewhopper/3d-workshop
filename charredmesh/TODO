@@ -21,16 +21,17 @@
 * respawn upon empty health
 * score for kills
 * variable firing distance
+* create lookup function to get surface normal for any terrain coordinate
+* random spawn locations
+* projectile force
+
 
 ## GAMEPLAY STUFF ##
 
-random spawn locations
 angle of tank should contribute to firing angle
 show player names
 score for accuracy
 set the HUD to ignore depth buffer
-
-
 destructible objects (trees, houses, etc)
 
 
@@ -39,22 +40,17 @@ destructible objects (trees, houses, etc)
 Decals on terrain (blast marks, tread track marks)
 Lighting effects on terrain (explosions)
 
+
 ## Time of day stuff ##
 
 Add lighting to water shader
 Time of day effects sky color
-Sky illuminates shadows at dusk/dawn
-
-
-
-!!! create lookup function to get surface normal for any terrain coordinate
-
+Sky illuminates shadows at dusk/dawn (also, see sky shader technique - http://csc.lsu.edu/~kooima/misc/cs594/final/part2.html)
 
 crater texture (charred mesh!)
 world boundaries (define the landscape)
 
 sound!
-projectile force
 cool down period for firing
 obstacles (trees, rocks): eventually randomized
 shared physics engine
