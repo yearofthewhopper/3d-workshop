@@ -24,6 +24,7 @@
 * create lookup function to get surface normal for any terrain coordinate
 * random spawn locations
 * projectile force
+* set the HUD to ignore depth buffer
 
 
 ## GAMEPLAY STUFF ##
@@ -31,7 +32,6 @@
 angle of tank should contribute to firing angle
 show player names
 score for accuracy
-set the HUD to ignore depth buffer
 destructible objects (trees, houses, etc)
 
 
