@@ -30,6 +30,9 @@ var chunkSize = 64;
 var terrainMaterial;
 var terrainNormalMap;
 var terrainHeightMap;
+
+var skyDome;
+
 var layerTextures = [];
 var rendering = false;
 var chunkUpdateCount = 0;
@@ -1010,7 +1013,7 @@ function initScene() {
 
   // Initialize the renderer
   renderer = new THREE.WebGLRenderer( {
-    clearColor: skyColor, 
+    clearColor: 0x000000, 
     antialias:true
     //precision:'highp',
     //antialias: true,
@@ -1031,7 +1034,7 @@ function initScene() {
   controls = new THREE.OrbitControls(camera);
   controls.center.set(8192, 0, 8192);
   
-  scene.fog = new THREE.Fog(skyColor, 4000, 14000);
+  scene.fog = new THREE.Fog(skyColor, 4000, 9000);
 
   time = Date.now();
 }
@@ -1048,7 +1051,7 @@ function initLights(){
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
   dirLight.color.setHSL( 0.1, 1, 0.95 );
-  dirLight.position.set( 0.2, 0.75, 0 ).normalize();
+  dirLight.position.set( 0.7, 0.35, 0 ).normalize();
   dirLight.position.multiplyScalar( 50 );
   dirLight.name = "sun";
   scene.add( dirLight );
@@ -1074,13 +1077,16 @@ function loadShaderSource(scriptId){
 var oceanMaterial;
 function initGeometry(){
 
-  var oceanGeom = new THREE.PlaneGeometry(16384, 16384, 2, 2);
+  var oceanGeom = new THREE.PlaneGeometry(16384, 16384, 28, 28);
 
   oceanUniforms = {
     time: { type: 'f', value: 1.0 },
     fogColor:    { type: "c", value: scene.fog.color },
     fogNear:     { type: "f", value: scene.fog.near },
-    fogFar:      { type: "f", value: scene.fog.far }
+    fogFar:      { type: "f", value: scene.fog.far },
+    skyColor: { type: "t", value: THREE.ImageUtils.loadTexture("textures/sky.png") },
+    sunGlow: { type: "t", value: THREE.ImageUtils.loadTexture("textures/glow.png") },
+    lightDirection : { type: "v3", value: scene.getChildByName("sun").position }
   };
 
   oceanMaterial = new THREE.ShaderMaterial({
@@ -1090,6 +1096,8 @@ function initGeometry(){
     fragmentShader: loadShaderSource("fragment-water"),
     fog:true
   });
+
+
 
   var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
   
@@ -1101,7 +1109,22 @@ function initGeometry(){
   
   scene.add(ocean);
   
+  var skyUniforms = {
+    skyColor: { type: "t", value: THREE.ImageUtils.loadTexture("textures/sky.png") },
+    sunGlow: { type: "t", value: THREE.ImageUtils.loadTexture("textures/glow.png") },
+    lightDirection : { type: "v3", value: scene.getChildByName("sun").position }
+  };
 
+  skyMaterial = new THREE.ShaderMaterial({
+    uniforms: skyUniforms,
+    vertexShader: loadShaderSource("vertex-sky"),
+    fragmentShader: loadShaderSource("fragment-sky"),
+    transparent:true
+  });
+
+  skyDome = new THREE.Mesh( new THREE.SphereGeometry( 1, 12, 12, 0, Math.PI*2, 0, Math.PI*2 ), skyMaterial );
+  skyDome.scale.set(15000,15000,15000);
+  scene.add(skyDome);
   // Terrain stuff
 
   layerTextures[0] = THREE.ImageUtils.loadTexture("textures/terrain/tile_rock.png");
@@ -1140,7 +1163,7 @@ function initGeometry(){
       cliffTexture: { type: "t", value: layerTextures[4] },
       lightDirection : { type: "v3", value : scene.getChildByName("sun").position },
       
-      skyColor : { type: "c", value : scene.getChildByName("sky").color }
+      skyColor: { type: "t", value: THREE.ImageUtils.loadTexture("textures/sky.png") }
     },
     vertexShader: loadShaderSource('vertex-terrain'),
     fragmentShader: loadShaderSource('fragment-terrain'),
@@ -1339,6 +1362,9 @@ function updateChaseCam() {
       player.overlay.obj.lookAt(camera.position);
     }
   }, players);
+
+  skyDome.position.copy(camera.position);
+  skyDome.position.y = 0;
 }
 
 
@@ -1400,7 +1426,7 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   
-  //scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
+ // scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
 
   //controls.update();
   updateClient(delta);
