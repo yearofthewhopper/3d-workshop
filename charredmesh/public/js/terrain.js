@@ -11,6 +11,14 @@ charredmesh.Terrain = function(util, three) {
 	this.terrainHeight  = new Uint8Array(this.terrainDataWidth * this.terrainDataHeight * 3);
 	this.terrainHeightScale = 4;
 	this.worldUnitsPerDataPoint = 16;
+	
+	for(var i = 0; i < this.terrainNormals.length; i += 3){
+		this.terrainNormals[i+0] = 127;
+		this.terrainNormals[i+1] = 255;
+		this.terrainNormals[i+2] = 127;
+
+		this.terrainHeight[i] = 0;
+	}
 
 	this.BYTE_COUNT = 2;
 }

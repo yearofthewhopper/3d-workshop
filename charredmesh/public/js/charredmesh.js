@@ -56,7 +56,8 @@ var clientState = {
 
 var readyFlags = {
   terrain : false,
-  geometry : false
+  geometry : false,
+  audio: false
 };
 
 function mapObject(f, m) {
@@ -91,10 +92,13 @@ function createPlayer(playerData) {
   var rotation = playerData.rotation;
 
   var newPlayer = {
+    sound : charredmesh.sound.getSound("motor"),
     id: playerData.id,
     health: playerData.health,
     name: playerData.name,
-    color: playerData.color
+    color: playerData.color,
+    lastPosition: new THREE.Vector3(),
+    velocity: new THREE.Vector3()
   };
 
   console.log(newPlayer.name + " has entered the game!");
@@ -159,6 +163,7 @@ function createPlayer(playerData) {
   newPlayer.up = up;
   newPlayer.forward = forward;
   */
+
 
   newPlayer.obj = new THREE.Object3D();
  
@@ -295,7 +300,7 @@ function updateHUD(){
     return;
   }
 
-  var radarRange = 3000;
+  var radarRange = 6000;
   var radarCanvasScale = (radarRange * 2) / HUD.radar.canvas.width;
 
   var ctx = HUD.radar.canvas.getContext("2d");
@@ -315,10 +320,13 @@ function updateHUD(){
   ctx.arc(0, 0, (HUD.radar.canvas.width / 2), 0, 2 * Math.PI, false);
   ctx.fill();
   
-  ctx.rotate( currentPlayer.obj.rotation.y - Math.PI );
+  ctx.rotate( currentPlayer.rotation - Math.PI );
   
   ctx.fillStyle = "rgba(0, 255, 0, 0.75)";
   ctx.fillRect(-5,-5, 10, 10);
+  
+  var point = new THREE.Vector2();
+
   mapObject(function(player) {
     var distance = currentPlayer.obj.position.distanceTo( player.obj.position );
 
@@ -330,7 +338,37 @@ function updateHUD(){
       ctx.fillStyle = player.color; // "rgba(0, 255, 0, 0.75)";
       ctx.fillRect(dotX-5,dotY-5, 10, 10);
     }
+    else {
+      var dotX = player.obj.position.x - currentPlayer.obj.position.x;
+      var dotY = player.obj.position.z - currentPlayer.obj.position.z;
+      
+      point.set(dotX, dotY);
+
+      point.normalize().multiplyScalar(HUD.radar.canvas.width / 2);
+      ctx.fillStyle = player.color;
+      ctx.fillRect(point.x-2, point.y-2, 5, 5);
+    }
+
   }, players);
+
+
+
+  mapObject(function(projectile) {
+    var distance = currentPlayer.obj.position.distanceTo( projectile.obj.position );
+
+    if(distance < radarRange) {
+      var dotX = projectile.obj.position.x - currentPlayer.obj.position.x;
+      var dotY = projectile.obj.position.z - currentPlayer.obj.position.z;
+      dotX /= radarCanvasScale;
+      dotY /= radarCanvasScale;
+      ctx.fillStyle = players[projectile.owner].color; // "rgba(0, 255, 0, 0.75)";
+      ctx.beginPath();
+      ctx.arc(dotX-5, dotY-5, 5, 0, Math.PI * 2, true);
+      ctx.fill();
+    }
+  }, projectiles);
+
+
   ctx.restore();
 
   
@@ -380,8 +418,15 @@ function updateHealthBar(health) {
 }
 
 function updatePlayer(player) {
+
   players[player.id].obj.position.fromArray(player.position);
+  if( (players[player.id].obj.position.y < 40) &&  (players[player.id].lastPosition.y > 40)){
+    charredmesh.sound.playSound("splash", players[player.id].obj.position);
+  }
+
+  players[player.id].velocity = players[player.id].lastPosition.sub(players[player.id].obj.position);
   players[player.id].rotation = player.rotation;
+
   if(players[player.id].overlay){
     players[player.id].overlay.obj.position.fromArray(player.position);
     players[player.id].overlay.obj.position.y += 50;
@@ -394,6 +439,18 @@ function updatePlayer(player) {
       players[player.id].dust.disable();
     }
   }
+
+  if(players[player.id].isDriving){
+    players[player.id].sound.gain.value += (1 - players[player.id].sound.gain.value) * 0.1;
+  } else {
+    players[player.id].sound.gain.value += (0.4 - players[player.id].sound.gain.value) * 0.1;
+  }
+
+
+  players[player.id].sound.playbackRate.value += ((0.5 + players[player.id].velocity.length() / 10) - players[player.id].sound.playbackRate.value) * 0.2;
+  players[player.id].sound.playbackRate.value = Math.min(2.5, players[player.id].sound.playbackRate.value);
+  
+  players[player.id].sound.panner.setPosition(players[player.id].obj.position.x, players[player.id].obj.position.y, players[player.id].obj.position.z);
 
   players[player.id].isDriving = player.driving;
   players[player.id].dust.position.copy(players[player.id].obj.position);
@@ -435,6 +492,8 @@ function updatePlayer(player) {
     // players[player.id].overlay.canvas.getContext("2d");
     updateOverlay(players[player.id]);
   }
+
+  players[player.id].lastPosition.copy(players[player.id].obj.position);
 }
 
 function updateOverlay( player ){
@@ -679,6 +738,11 @@ function Explosion(position, color) {
     depthTest:true,
     depthWrite:false
   });
+
+
+  charredmesh.sound.playSound("fire", position.clone()
+    );
+
   var explosiongeom = new THREE.SphereGeometry(1, 16, 16);
   var explosionmesh = new THREE.Mesh(explosiongeom, explosionmaterial);
   explosionmesh.position = position;
@@ -690,7 +754,7 @@ function Explosion(position, color) {
   this.opacity = 1;
   this.update = function(delta) {
     this.time += delta;
-    this.radius = Math.log(this.time * 1000) * 20;
+    this.radius = Math.log(this.time * 1000) * 40;
 
     if (this.time > 0.5) {
       this.opacity -= delta * 2;
@@ -749,16 +813,27 @@ function Debris(params) {
     var groundHeight = terrain.getGroundHeight(this.obj.position.x, this.obj.position.z);
     this.velocity.y -= (300 * delta);
     
+    var above = this.obj.position.y > 40;
+
     this.obj.position.add(this.velocity.clone().multiplyScalar(delta));
     this.obj.rotation.add(this.angularVelocity.clone().multiplyScalar(delta));
+
+    if(above && this.obj.position.y < 40){
+      charredmesh.sound.playSound("splash", this.obj.position);
+    }
 
     if(this.obj.position.y < 0 || this.obj.position.y < groundHeight) {
       var normal = terrain.getGroundNormal(this.obj.position.x, this.obj.position.z);
       this.obj.position.y = groundHeight;
       this.velocity.reflect( normal );
       this.velocity.negate();
-      this.velocity.multiplyScalar(0.6);
-      this.angularVelocity.multiplyScalar(0.75);
+      this.velocity.multiplyScalar(above ? 0.6 : 0.1);
+      this.angularVelocity.multiplyScalar(above ? 0.76 : 0.1);
+
+      if(this.velocity.length() > 150){
+
+        charredmesh.sound.playSound("dirt", this.obj.position);
+      }
     }
     if(this.lifeSpan - this.time < 1){
       this.material.opacity = this.lifeSpan - this.time;
@@ -1077,7 +1152,7 @@ function loadShaderSource(scriptId){
 var oceanMaterial;
 function initGeometry(){
 
-  var oceanGeom = new THREE.PlaneGeometry(16384, 16384, 28, 28);
+  var oceanGeom = new THREE.PlaneGeometry(16384*10, 16384*10, 28, 28);
 
   oceanUniforms = {
     time: { type: 'f', value: 1.0 },
@@ -1100,8 +1175,20 @@ function initGeometry(){
 
 
   var ocean = new THREE.Mesh( oceanGeom, oceanMaterial );
+
+ 
+  var seaFloor = new THREE.Mesh( oceanGeom, new THREE.MeshLambertMaterial({
+    map: THREE.ImageUtils.loadTexture("textures/terrain/tile_sand.png"),
+    fog:true
+  }) );
+
+  seaFloor.rotation.x = -Math.PI / 2;
+  seaFloor.position.y = -2.5;
+
+  scene.add(seaFloor);
   
   ocean.rotation.x = -Math.PI / 2;
+
 
   // TODO: add dynamic sea level.
   ocean.position.set(8192, 40.5, 8192);
@@ -1123,7 +1210,7 @@ function initGeometry(){
   });
 
   skyDome = new THREE.Mesh( new THREE.SphereGeometry( 1, 12, 12, 0, Math.PI*2, 0, Math.PI*2 ), skyMaterial );
-  skyDome.scale.set(15000,15000,15000);
+  skyDome.scale.set(15000, 15000, 15000);
   scene.add(skyDome);
   // Terrain stuff
 
@@ -1223,6 +1310,11 @@ function init(){
   initLights();
   initParticles();
   initGeometry();
+
+  charredmesh.sound.initialize(function(){
+    readyFlags.audio = true;
+    checkReadyState();
+  });
 
   createHUD();
 
@@ -1345,6 +1437,8 @@ function updateChaseCam() {
   // constantly lerp the camera to that position to keep the motion smooth.
   camera.position.lerp(p, 0.05);
 
+  charredmesh.sound.setListenerPosition(camera.position, cameraTarget.clone().sub(camera.position).normalize());
+
   // Find a spot in front of the player
   p.copy(players[playerId].obj.position);
   p.z += Math.cos(players[playerId].rotation) * 300;
@@ -1426,7 +1520,7 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   
- // scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
+  //scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
 
   //controls.update();
   updateClient(delta);

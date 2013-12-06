@@ -22,9 +22,9 @@ var wind            = new THREE.Vector3(0, 0, 0);
 var turretLength    = 50;
 var playerHeight    = 20;
 var maxHealth       = 100;
-var maxDamage       = 20;
+var maxDamage       = 50;
 var minEarthLevel   = 0;
-var explosionRadius = 138;
+var explosionRadius = 450;
 
 var animalNames = nameData.animals;
 var colorNames = nameData.colors;
@@ -403,7 +403,10 @@ function updatePlayer(player, delta) {
 function respawnPlayer(player){
   player.alive = true;
   player.health = 100;
-  player.position.set(2048, 500, 2048);
+  player.position.set(
+    Math.random() * gameState.worldBounds.x * 0.25 + gameState.worldBounds.x * 0.5,
+    0,
+    Math.random() * gameState.worldBounds.z * 0.25 + gameState.worldBounds.z * 0.5);
 
   socketio.sockets.emit("playerSpawned", serializePlayer(player));
 
@@ -434,12 +437,15 @@ function collidesWithPlayer(projectile) {
 function projectileDamage(projectile) {
   var collision = projectile.position.clone();
   collision.y += playerHeight * 0.5;
+  
   mapObject(function(player) {
     if(player.alive){
       var distance = player.position.distanceTo(collision);
+      
       if (distance < explosionRadius) {
         player.health -= maxDamage * (1 - (distance / explosionRadius));
         player.health = Math.max(player.health, 0);
+        
         if(player.health <= 0){
           if(player.id == projectile.owner) {
             gameState.players[projectile.owner].score -= 5;
