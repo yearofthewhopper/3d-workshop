@@ -49,6 +49,8 @@ var terrainChunks = {
 };
 
 
+var splashTexture;
+
 var clientState = {
   fireTimer : 0,
   firePower : 0
@@ -92,7 +94,8 @@ function createPlayer(playerData) {
   var rotation = playerData.rotation;
 
   var newPlayer = {
-    sound : charredmesh.sound.getSound("motor"),
+    motorSound : charredmesh.sound.getSound("motor"),
+    trackSound : charredmesh.sound.getSound("tracks"),
     id: playerData.id,
     health: playerData.health,
     name: playerData.name,
@@ -418,10 +421,13 @@ function updateHealthBar(health) {
 }
 
 function updatePlayer(player) {
-
+  console.log(player);
   players[player.id].obj.position.fromArray(player.position);
   if( (players[player.id].obj.position.y < 40) &&  (players[player.id].lastPosition.y > 40)){
     charredmesh.sound.playSound("splash", players[player.id].obj.position);
+    var sp = new Splash({"position" : players[player.id].obj.position});
+    scene.add(sp.obj);
+    effectQueue.push(sp);
   }
 
   players[player.id].velocity = players[player.id].lastPosition.sub(players[player.id].obj.position);
@@ -441,16 +447,18 @@ function updatePlayer(player) {
   }
 
   if(players[player.id].isDriving){
-    players[player.id].sound.gain.value += (1 - players[player.id].sound.gain.value) * 0.1;
+    players[player.id].motorSound.gain.value += (1 - players[player.id].motorSound.gain.value) * 0.1;
   } else {
-    players[player.id].sound.gain.value += (0.4 - players[player.id].sound.gain.value) * 0.1;
+    players[player.id].motorSound.gain.value += (0.4 - players[player.id].motorSound.gain.value) * 0.1;
   }
 
-
-  players[player.id].sound.playbackRate.value += ((0.5 + players[player.id].velocity.length() / 10) - players[player.id].sound.playbackRate.value) * 0.2;
-  players[player.id].sound.playbackRate.value = Math.min(2.5, players[player.id].sound.playbackRate.value);
+  players[player.id].motorSound.playbackRate.value += ((0.5 + players[player.id].velocity.length() / 10) - players[player.id].motorSound.playbackRate.value) * 0.2;
+  players[player.id].motorSound.playbackRate.value = Math.min(2.5, players[player.id].motorSound.playbackRate.value);
   
-  players[player.id].sound.panner.setPosition(players[player.id].obj.position.x, players[player.id].obj.position.y, players[player.id].obj.position.z);
+  players[player.id].trackSound.gain.value += ((Math.min(players[player.id].velocity.length(), 10) / 20) - players[player.id].trackSound.gain.value) * 0.2;
+
+  players[player.id].motorSound.panner.setPosition(players[player.id].obj.position.x, players[player.id].obj.position.y, players[player.id].obj.position.z);
+  players[player.id].trackSound.panner.setPosition(players[player.id].obj.position.x, players[player.id].obj.position.y, players[player.id].obj.position.z);
 
   players[player.id].isDriving = player.driving;
   players[player.id].dust.position.copy(players[player.id].obj.position);
@@ -772,6 +780,45 @@ function Explosion(position, color) {
   };
 }
 
+function Splash(params){
+  this.splashMaterial = new THREE.MeshLambertMaterial({
+    map: splashTexture,
+    transparent: true,
+    depthWrite:false
+  });
+
+  var splashMesh = new THREE.Mesh(new THREE.PlaneGeometry(5,5), this.splashMaterial);
+  
+  splashMesh.position.copy(params.position);
+  splashMesh.position.y = 41;
+  splashMesh.rotation.x = -Math.PI / 2;
+  splashMesh.rotation.z = Math.random() * Math.PI * 2;
+
+  this.spin = (Math.random() - 0.5) * 0.02;
+  this.speed = Math.random() * 5 + 10;
+
+  this.obj = splashMesh;
+  this.life = 2;
+
+  this.update = function(delta) {
+    if(this.life > 0){
+      this.life -= delta;
+      this.obj.scale.x += delta * this.speed * this.life;
+      this.obj.scale.y += delta * this.speed * this.life;
+      this.obj.rotation.z += this.spin;
+      this.splashMaterial.opacity = Math.max(0,this.life / 2) * ((Math.sin(this.life * 7) + 1) / 2 + 0.3) ;
+    }
+  }
+
+  this.remove = function() {
+    scene.remove(this.obj);
+  };
+
+  this.isDone = function() {
+    return this.life <= 0;
+  };
+}
+
 function Debris(params) {
   var debrisMaterial = new THREE.MeshLambertMaterial({
     color: new THREE.Color(0xffffff).offsetHSL(Math.random() * -0.125, (Math.random() - 0.5) * 0.125, 0),
@@ -781,7 +828,7 @@ function Debris(params) {
   
   var debrisMesh = new THREE.Mesh(debrisGeometry.children[0].geometry, debrisMaterial);
   
-  debrisMesh.position = params.position.clone();
+  debrisMesh.position.copy(params.position);
   debrisMesh.position.y -= 20;
 
   var launchNormal = terrain.getGroundNormal(debrisMesh.position.x, debrisMesh.position.z);
@@ -820,6 +867,9 @@ function Debris(params) {
 
     if(above && this.obj.position.y < 40){
       charredmesh.sound.playSound("splash", this.obj.position);
+      var sp = new Splash({"position" : this.obj.position});
+    scene.add(sp.obj);
+    effectQueue.push(sp);
     }
 
     if(this.obj.position.y < 0 || this.obj.position.y < groundHeight) {
@@ -1151,6 +1201,9 @@ function loadShaderSource(scriptId){
 
 var oceanMaterial;
 function initGeometry(){
+  
+  splashTexture = THREE.ImageUtils.loadTexture("textures/splash.png"); 
+
 
   var oceanGeom = new THREE.PlaneGeometry(16384*10, 16384*10, 28, 28);
 

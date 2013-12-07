@@ -9,11 +9,13 @@ charredmesh.sound = (function() {
 			"path" : "/audio/motor.mp3",
 			"loop" : true,
 			"loopTime" : [0.1, 1.1],
-			"rolloff" : 1.5
+			"rolloff" : 0.75
 		},
 		"tracks" : {
 			"path" : "/audio/tracks.mp3",
-			"loop" : true
+			"loop" : true,
+			//"loopTime" : [0.1, 1.1],
+			"rolloff" : 1.15
 		},
 		"fire" : {
 			"path" : "/audio/boom.mp3",
