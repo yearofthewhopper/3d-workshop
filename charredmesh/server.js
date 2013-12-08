@@ -87,7 +87,9 @@ function playerInput() {
     left: false,
     right: false,
     up: false,
-    down: false
+    down: false,
+    turretLeft:false,
+    turretRight:false
   };
 }
 
@@ -140,7 +142,7 @@ function randomName() {
 
 function makePlayer(socket) {
   var rotation = Math.random() * 2 * Math.PI;
-  var orientation = setOrientationFromRotation(new THREE.Vector3(), rotation);
+  //var orientation = setOrientationFromRotation(new THREE.Vector3(), rotation);
   var turretAngle = 0;
   var name = randomName();
   // var colorIndex = colorPoolIndex++;
@@ -156,17 +158,23 @@ function makePlayer(socket) {
     position: makePlayerPosition(),
     rotation: rotation,
     velocity: new THREE.Vector3(),
-    orientation: orientation,
+    up: new THREE.Vector3(),
+    forward: new THREE.Vector3(),
+    barrelDirection: new THREE.Vector3(),
+    orientation: new THREE.Quaternion(),
     turretAngle: turretAngle,
+    turretRotation: 0,
     input: playerInput(),
     name: name.name,
     color: name.color,
+
     // color: "#" + color.getHexString(),
     isDriving: false
   }
 }
 
 function makeProjectile(owner, position, direction, power) {
+
   return {
     id: owner,
     owner: owner,
@@ -200,7 +208,12 @@ function serializePlayer(player) {
     alive: player.alive,
     respawn: player.respawnTimer,
     score: player.score,
-    driving: player.isDriving
+    driving: player.isDriving,
+    turretRotation: player.turretRotation,
+    barrelDirection: player.barrelDirection.toArray(),
+    up : player.up.toArray(),
+    forward : player.forward.toArray(),
+    orientation: player.orientation.toArray()
   }
 }
 
@@ -248,9 +261,15 @@ socketio.sockets.on('connection', function (socket) {
 
   socket.on('playerFire', function(params) {
     if (player.alive && !gameState.projectiles[player.id]) {
+      
+      /*
       var direction = zAxis.clone();
       direction.applyAxisAngle(xAxis, -player.turretAngle);
       direction.applyAxisAngle(yAxis, player.rotation);
+      */
+
+      var direction = player.barrelDirection.clone();
+
       var position = player.position.clone();
       position.y += playerHeight;
       position.add(direction.clone().multiplyScalar(turretLength));
@@ -288,6 +307,23 @@ function updatePlayer(player, delta) {
     var maxVelocity   = 675;
 
     var impulse = new THREE.Vector3();
+
+    if (player.input.left) {
+      player.rotation += delta * rotationDelta;
+      //setOrientationFromRotation(player.orientation, player.rotation);
+    }
+
+    if (player.input.right) {
+      player.rotation -= delta * rotationDelta;
+      //setOrientationFromRotation(player.orientation, player.rotation);
+    }
+
+    if(player.input.turretLeft){
+      player.turretRotation += delta * 1;
+    }
+    if(player.input.turretRight){
+      player.turretRotation -= delta * 1;
+    }
     
     if(player.velocity.length() > maxVelocity){
       player.velocity.setLength(maxVelocity);
@@ -308,24 +344,25 @@ function updatePlayer(player, delta) {
       var norm = terrain.getGroundNormal(player.position.x, player.position.z);
       norm.normalize();
 
+      player.up.copy(norm);
+
       var angle = UP.angleTo(norm);
       var axis = UP.clone().cross(norm);
-      var forward = new THREE.Vector3(0, 0, 1);
+      player.forward.set(0, 0, 1);
 
       normQuat = new THREE.Quaternion();
       normQuat.setFromAxisAngle(axis, angle);
       normQuat.normalize();
       directionQuat.normalize();
      
-      forward.applyQuaternion( normQuat.multiply(directionQuat));
-
+      player.forward.applyQuaternion( normQuat.multiply(directionQuat) );
 
       if (player.input.forward) {
-        thrust.copy( forward.clone().multiplyScalar(forwardDelta) );
+        thrust.copy( player.forward.clone().multiplyScalar(forwardDelta) );
       }
 
       if (player.input.back) {
-        thrust.copy( forward.clone().multiplyScalar(forwardDelta * 0.5).negate() );
+        thrust.copy( player.forward.clone().multiplyScalar(forwardDelta * 0.5).negate() );
       }
 
       if(player.position.y < SEA_LEVEL){
@@ -343,25 +380,38 @@ function updatePlayer(player, delta) {
         var slide = terrain.getGroundNormal(player.position.x, player.position.z).cross(up);
         slide = slide.cross(normal);
 
-        var resistance = slide.dot(forward);
+        var resistance = slide.dot(player.forward);
         
         
-        thrust.multiplyScalar(1-resistance);
-        thrust.sub( slide.multiplyScalar( (1 - slope) * forwardDelta ));
+        thrust.multiplyScalar(1 - resistance);
+        thrust.sub( slide.multiplyScalar((1 - slope) * forwardDelta));
       }
+
+      var turretAngle = player.turretRotation;
+    
+    var targetOrientationMatrix = new THREE.Matrix4().makeRotationAxis(player.up.clone().normalize().negate(), player.rotation);
+
+    var targetOrientation = new THREE.Quaternion().setFromRotationMatrix(targetOrientationMatrix);
+    //console.log(targetOrientation.toArray());
+    //player.orientation.slerp(targetOrientation, 0.2);
+   // player.orientation.normalize();
+    player.orientation.copy(targetOrientation);
+    
+    player.barrelDirection.copy( player.forward );
+    player.barrelDirection.applyAxisAngle( player.up, turretAngle );
+    
+    var barrelAxis = player.up.clone().cross( player.barrelDirection );
+
+    player.barrelDirection.applyAxisAngle( barrelAxis, -player.turretAngle );
       
       impulse.add(thrust);
     }
 
-    if (player.input.left) {
-      player.rotation += delta * rotationDelta;
-      setOrientationFromRotation(player.orientation, player.rotation);
-    }
+ 
+    //player.barrelDirection.copy( player.forward );
+    //console.log(player.barrelDirection.toArray());
+    //player.barrelDirection.
 
-    if (player.input.right) {
-      player.rotation -= delta * rotationDelta;
-      setOrientationFromRotation(player.orientation, player.rotation);
-    }
     
     player.velocity.add(impulse);
     player.velocity.add(gravity);

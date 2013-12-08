@@ -96,13 +96,18 @@ function createPlayer(playerData) {
   var newPlayer = {
     motorSound : charredmesh.sound.getSound("motor"),
     trackSound : charredmesh.sound.getSound("tracks"),
+    rotateSound : charredmesh.sound.getSound("rotate"),
     id: playerData.id,
     health: playerData.health,
     name: playerData.name,
     color: playerData.color,
     lastPosition: new THREE.Vector3(),
-    velocity: new THREE.Vector3()
+    velocity: new THREE.Vector3(),
+    forward: new THREE.Vector3(),
+    barrelDirection: new THREE.Vector3()
   };
+
+  newPlayer.rotateSound.gain.value = 0;
 
   console.log(newPlayer.name + " has entered the game!");
 
@@ -148,25 +153,6 @@ function createPlayer(playerData) {
         break;
     }
   });
-
-  
-  /*
-  var norm = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0x00ffff);
-  var axis = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0xff0000);
-  var up = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0xffff00);
-  var forward = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 70, 0x00ff00);
-  
-  scene.add(norm);
-  scene.add(axis);
-  scene.add(up);
-  scene.add(forward);
-
-  newPlayer.arrow = norm;
-  newPlayer.axis = axis;
-  newPlayer.up = up;
-  newPlayer.forward = forward;
-  */
-
 
   newPlayer.obj = new THREE.Object3D();
  
@@ -244,6 +230,9 @@ function createProjectile(projectile) {
   projectilemesh.rotation.x = Math.PI / 2;
   projectileobj.add(projectilemesh);
   projectileobj.position.fromArray(projectile.position);
+
+  charredmesh.sound.playSound("fire", projectileobj.position);
+
   projectileobj.lookAt(
     projectileobj.position.clone().add(
       new THREE.Vector3().fromArray(projectile.velocity)));
@@ -421,7 +410,8 @@ function updateHealthBar(health) {
 }
 
 function updatePlayer(player) {
-  console.log(player);
+  //console.log(player);
+  players[player.id].barrelDirection.fromArray(player.barrelDirection);
   players[player.id].obj.position.fromArray(player.position);
   if( (players[player.id].obj.position.y < 40) &&  (players[player.id].lastPosition.y > 40)){
     charredmesh.sound.playSound("splash", players[player.id].obj.position);
@@ -446,19 +436,25 @@ function updatePlayer(player) {
     }
   }
 
-  if(players[player.id].isDriving){
-    players[player.id].motorSound.gain.value += (1 - players[player.id].motorSound.gain.value) * 0.1;
-  } else {
-    players[player.id].motorSound.gain.value += (0.4 - players[player.id].motorSound.gain.value) * 0.1;
-  }
+  players[player.id].turret.rotation.y = player.turretRotation;
+  var motorGain = players[player.id].isDriving ? 1 : 0.4;
+  var motorPitch = 0.5 + (players[player.id].velocity.length() / 10);
+  motorPitch = Math.min(2.5, motorPitch);
 
-  players[player.id].motorSound.playbackRate.value += ((0.5 + players[player.id].velocity.length() / 10) - players[player.id].motorSound.playbackRate.value) * 0.2;
-  players[player.id].motorSound.playbackRate.value = Math.min(2.5, players[player.id].motorSound.playbackRate.value);
+  players[player.id].motorSound.gain.value += (motorGain - players[player.id].motorSound.gain.value) * 0.1;
+  players[player.id].motorSound.playbackRate.value += (motorPitch - players[player.id].motorSound.playbackRate.value) * 0.2;
   
-  players[player.id].trackSound.gain.value += ((Math.min(players[player.id].velocity.length(), 10) / 20) - players[player.id].trackSound.gain.value) * 0.2;
+
+  var trackGain = (Math.min(players[player.id].velocity.length(), 10) / 20);
+  trackGain = Math.max(trackGain, input.left || input.right ? 0.25 : 0);
+
+
+  players[player.id].trackSound.gain.value += (trackGain - players[player.id].trackSound.gain.value) * 0.2;
+  players[player.id].trackSound.playbackRate.value += (motorPitch - players[player.id].trackSound.playbackRate.value) * 0.2;
 
   players[player.id].motorSound.panner.setPosition(players[player.id].obj.position.x, players[player.id].obj.position.y, players[player.id].obj.position.z);
   players[player.id].trackSound.panner.setPosition(players[player.id].obj.position.x, players[player.id].obj.position.y, players[player.id].obj.position.z);
+  players[player.id].rotateSound.panner.setPosition(players[player.id].obj.position.x, players[player.id].obj.position.y, players[player.id].obj.position.z);
 
   players[player.id].isDriving = player.driving;
   players[player.id].dust.position.copy(players[player.id].obj.position);
@@ -469,31 +465,18 @@ function updatePlayer(player) {
 
   players[player.id].dust.position.copy(players[player.id].obj.position);
 
+  var rotateGain = 0;
+  if(input.turretRight || input.turretLeft || input.up || input.down){
+    rotateGain = 0.3;
+  }
+  players[player.id].rotateSound.gain.value += (rotateGain - players[player.id].rotateSound.gain.value) * 0.3;
+  players[player.id].rotateSound.playbackRate.value += ((rotateGain*6) - players[player.id].rotateSound.playbackRate.value) * 0.3;
 
 
-  var UP = new THREE.Vector3(0, 1, 0);
+  players[player.id].obj.up.lerp(new THREE.Vector3().fromArray(player.up), 0.2);
+  players[player.id].forward.lerp(new THREE.Vector3().fromArray(player.forward), 0.2);
+  players[player.id].obj.lookAt(players[player.id].forward.clone().add(players[player.id].obj.position));
 
-  var directionQuat = new THREE.Quaternion();
-  directionQuat.setFromAxisAngle(UP, player.rotation);
-
-  var norm = terrain.getGroundNormal(players[player.id].obj.position.x, players[player.id].obj.position.z);
-  norm.normalize();
-
-  var angle = UP.angleTo(norm);
-  var axis = UP.clone().cross(norm);
-  var forward = new THREE.Vector3(0,0,1);
-
-  normQuat = new THREE.Quaternion();
-  normQuat.setFromAxisAngle(axis, angle);
-  normQuat.normalize();
-  directionQuat.normalize();
-  
-  players[player.id].obj.useQuaternion = true;
-  forward.applyQuaternion( normQuat.multiply(directionQuat));
-  
-  players[player.id].obj.up.copy(norm);
-  players[player.id].obj.lookAt(forward.add(players[player.id].obj.position));
-  
   players[player.id].health = player.health;
   if (player.id !== playerId) {
     // update UI overlay for other players.
@@ -535,7 +518,7 @@ function updateGameState(state) {
   mapObject(updateProjectile, gameState.projectiles);
   updateChaseCam();
   updateTerrainChunks();
-  controls.center.set(players[playerId].obj.position.x, players[playerId].obj.position.y, players[playerId].obj.position.z);
+  //controls.center.set(players[playerId].obj.position.x, players[playerId].obj.position.y, players[playerId].obj.position.z);
 }
 
 function updateModifiedTerrainChunks(region){
@@ -748,7 +731,7 @@ function Explosion(position, color) {
   });
 
 
-  charredmesh.sound.playSound("fire", position.clone()
+  charredmesh.sound.playSound("explosion", position.clone()
     );
 
   var explosiongeom = new THREE.SphereGeometry(1, 16, 16);
@@ -1156,8 +1139,8 @@ function initScene() {
   element = document.getElementById('viewport');
   element.appendChild(renderer.domElement);
 
-  controls = new THREE.OrbitControls(camera);
-  controls.center.set(8192, 0, 8192);
+  //controls = new THREE.OrbitControls(camera);
+  //controls.center.set(8192, 0, 8192);
   
   scene.fog = new THREE.Fog(skyColor, 4000, 9000);
 
@@ -1259,7 +1242,9 @@ function initGeometry(){
     uniforms: skyUniforms,
     vertexShader: loadShaderSource("vertex-sky"),
     fragmentShader: loadShaderSource("fragment-sky"),
-    transparent:true
+    transparent:true,
+    depthRead:true,
+    depthWrite:false
   });
 
   skyDome = new THREE.Mesh( new THREE.SphereGeometry( 1, 12, 12, 0, Math.PI*2, 0, Math.PI*2 ), skyMaterial );
@@ -1405,7 +1390,7 @@ function onKeyChange(code, state) {
     //if (state && !input.fire) {
     //  socket.emit('playerFire');
    // }
-    console.log("fire:" + state);
+    //console.log("fire:" + state);
     if(state){
       clientState.fireTimer = time;
       // start a timer
@@ -1438,7 +1423,21 @@ function onKeyChange(code, state) {
   case 40: // down arrow
     input.down = state;
     break;
+
+  case 39: // right arrow
+    input.turretRight = state;
+    break;
+  
+  case 37: // left arrow
+    input.turretLeft = state;
+    break;
+  case 69: // e
+    input.aim = state;
+    break;
+
   }
+
+  console.log(code);
   
   socket.emit('playerInput', input);
 }
@@ -1477,15 +1476,25 @@ function updateChaseCam() {
     return;
   }
 
-  var p = players[playerId].obj.position.clone();
+
+  var p;
+
+  if(input.aim){
+    p = players[playerId].barrelDirection.clone().multiplyScalar(-300);
+    p.add(players[playerId].obj.position);
+  } else {
+    p = players[playerId].obj.position.clone();
+    p.z -= Math.cos(players[playerId].rotation) * 300;
+    p.x -= Math.sin(players[playerId].rotation) * 300;
+  }
 
   // find a spot above and behind the player
-  p.z -= Math.cos(players[playerId].rotation) * 300;
-  p.x -= Math.sin(players[playerId].rotation) * 300;
+ 
+ 
 
   // Use larger of either an offset from the players Y position, or a point above the ground.  
   // This prevents the camera from clipping into mountains.
-  p.y = Math.max( terrain.getGroundHeight(p.x, p.z)+100, p.y + 100);
+  p.y = Math.max( terrain.getGroundHeight(p.x, p.z)+75, p.y + 50);
 
   // constantly lerp the camera to that position to keep the motion smooth.
   camera.position.lerp(p, 0.05);
@@ -1493,12 +1502,19 @@ function updateChaseCam() {
   charredmesh.sound.setListenerPosition(camera.position, cameraTarget.clone().sub(camera.position).normalize());
 
   // Find a spot in front of the player
-  p.copy(players[playerId].obj.position);
-  p.z += Math.cos(players[playerId].rotation) * 300;
-  p.x += Math.sin(players[playerId].rotation) * 300;
+
+  if(input.aim){
+    p.copy(players[playerId].barrelDirection);
+    p.multiplyScalar(300);
+    p.add(players[playerId].obj.position);
+  }else{
+   p.copy(players[playerId].obj.position);
+   p.z += Math.cos(players[playerId].rotation) * 300;
+   p.x += Math.sin(players[playerId].rotation) * 300;
+  }
 
   // constantly lerp the target position too, again to keep things smooth.
-  cameraTarget.lerp(p, 0.05);
+  cameraTarget.lerp(p, input.aim ? 0.5 : 0.2);
 
   // look at that spot (looking at the player makes it hard to see what's ahead)  
   camera.lookAt(cameraTarget);
