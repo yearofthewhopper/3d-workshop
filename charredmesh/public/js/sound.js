@@ -21,6 +21,18 @@ charredmesh.sound = (function() {
 			"rolloff" : 0.5,
 			"pitchSpread" : [0.90, 1.05]
 		},
+		"explosion" : {
+			"path" : "/audio/explosion.mp3",
+			"loop" : false,
+			"rolloff" : 0.5,
+			"pitchSpread" : [0.9, 1.1]
+		},
+		"deep" : {
+			"path" : "/audio/deep-explosion.wav",
+			"loop" : false,
+			"rolloff" : 0.5,
+			"pitchSpread" : [0.9, 1.1]
+		},
 		"splash" : {
 			"path" : "/audio/splash.mp3",
 			"loop" : false,
