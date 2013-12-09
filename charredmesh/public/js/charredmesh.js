@@ -39,6 +39,9 @@ var chunkUpdateCount = 0;
 
 var particleGroups = {}
 
+var gunCamera;
+var gunCameraRenderTarget;
+
 var terrain = new charredmesh.Terrain(Util, THREE);
 
 var HUD = {};
@@ -144,17 +147,11 @@ function createPlayer(playerData) {
         console.log("MOUNT:", obj);
         obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
         obj.material = turretMaterial;
-       // obj.position.y += 15;
         obj.position.y += 18;
         obj.position.z += 6;
-        
-        //obj.position.y += 15;
-        //obj.position.z += 10;
         break;
       case "turret barrel_mount barrel":
         obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
-        //obj.position.y += 15;
-        //obj.position.z -= 10;
         obj.material = tracksMaterial;
         break;
       case "tracks":
@@ -225,10 +222,14 @@ function createPlayer(playerData) {
       material : overlaymaterial,
       obj : overlay,
     };
+  } else {
+    gunCamera.rotation.y = -Math.PI;
+    gunCamera.position.x = 3;
+    gunCamera.position.z = 1.0;
+    gunCamera.position.y = 1.5;
+    newPlayer.barrel.add(gunCamera);
   }
   
-
-
   scene.add(newPlayer.obj);
   players[newPlayer.id] = newPlayer;
 }
@@ -292,13 +293,35 @@ function createHUD(){
 
   hudScene.add(radarMesh);
 
+   var camMesh = new THREE.Mesh(overlaygeom, new THREE.MeshBasicMaterial({
+    map: gunCameraRenderTarget,
+    depthTest: false,
+    color: 0x20ff20,
+    transparent:true,
+    blending:THREE.AdditiveBlending
+   }));
+  
+  camMesh.position.set( -50, -30, -150 );
+  camMesh.rotation.y = 30 * Math.PI / 180;
+
+  hudScene.add(camMesh);
+
   HUD.scene = hudScene;
   HUD.camera = hudCamera;
+  HUD.gunCam = {
+    obj: camMesh
+  }
   HUD.radar = {
-    obj:radarMesh, 
+    obj: radarMesh, 
     canvas: overlayCanvas,
     texture: overlayTexture
   };
+
+  HUD.radar.obj.position.x = 40 * aspectRatio;
+  HUD.radar.obj.position.y = -50 / aspectRatio;
+
+  HUD.gunCam.obj.position.x = -40 * aspectRatio;
+  HUD.gunCam.obj.position.y = -50 / aspectRatio;
 }
 
 function updateHUD(){
@@ -424,8 +447,10 @@ function updateHealthBar(health) {
 }
 
 function updatePlayer(player) {
+  
   players[player.id].barrelDirection.fromArray(player.barrelDirection);
   players[player.id].obj.position.fromArray(player.position);
+
   if( (players[player.id].obj.position.y < 40) &&  (players[player.id].lastPosition.y > 40)){
     charredmesh.sound.playSound("splash", players[player.id].obj.position);
     var sp = new Splash({"position" : players[player.id].obj.position});
@@ -1128,6 +1153,11 @@ function initScene() {
   camera.position.z = 8192;
   camera.position.x = 8192;
   camera.position.y = 400;
+
+
+  gunCamera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 30000);
+  gunCameraRenderTarget = new THREE.WebGLRenderTarget( 100, 100, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBFormat } );
+
   //camera.lookAt(new THREE.Vector3(2048,0,2048));
   //camera.target = new THREE.Vector3(2048,0,2048);
 
@@ -1385,6 +1415,9 @@ function onResize() {
   HUD.radar.obj.position.x = 40 * aspectRatio;
   HUD.radar.obj.position.y = -50 / aspectRatio;
 
+  HUD.gunCam.obj.position.x = -40 * aspectRatio;
+  HUD.gunCam.obj.position.y = -50 / aspectRatio;
+
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -1609,6 +1642,9 @@ function render() {
   particleGroups["trackDust"].tick(delta);
   
   renderer.clear();
+
+  renderer.render(scene, gunCamera, gunCameraRenderTarget, true);
+
   renderer.render(scene, camera);
   renderer.render(HUD.scene, HUD.camera);
 
