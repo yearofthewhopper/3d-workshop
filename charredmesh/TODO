@@ -25,33 +25,31 @@
 * random spawn locations
 * projectile force
 * set the HUD to ignore depth buffer
+* angle of tank should contribute to firing angle
+* sound!
+* Time of day effects sky color
+* Sky illuminates shadows at dusk/dawn (also, see sky shader technique - http://csc.lsu.edu/~kooima/misc/cs594/final/part2.html)
+* world boundaries (define the landscape)
 
 
 ## GAMEPLAY STUFF ##
 
-angle of tank should contribute to firing angle
 show player names
 score for accuracy
 destructible objects (trees, houses, etc)
+cool down period for firing
+obstacles (trees, rocks): eventually randomized
+shared physics engine
+time bomb (alters running time for other players)
 
 
 ## TERRAIN STUFF ##
 
 Decals on terrain (blast marks, tread track marks)
 Lighting effects on terrain (explosions)
+crater texture (charred mesh!)
 
 
 ## Time of day stuff ##
 
 Add lighting to water shader
-Time of day effects sky color
-Sky illuminates shadows at dusk/dawn (also, see sky shader technique - http://csc.lsu.edu/~kooima/misc/cs594/final/part2.html)
-
-crater texture (charred mesh!)
-world boundaries (define the landscape)
-
-sound!
-cool down period for firing
-obstacles (trees, rocks): eventually randomized
-shared physics engine
-time bomb (alters running time for other players)

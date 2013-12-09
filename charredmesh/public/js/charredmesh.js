@@ -130,12 +130,9 @@ function createPlayer(playerData) {
     color: new THREE.Color().setStyle("#505050")
   });
   
-  
   tank = tankModel.clone();
   
-  console.log(tank);
   tank.traverse(function(obj){
-    console.log(obj.name);
     switch(obj.name){
       case "chassis" :
         obj.material = material;
@@ -144,14 +141,9 @@ function createPlayer(playerData) {
         obj.material = turretMaterial;
         break;
       case "turret barrel_mount":
-        console.log("MOUNT:", obj);
-        obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
         obj.material = turretMaterial;
-        obj.position.y += 18;
-        obj.position.z += 6;
         break;
       case "turret barrel_mount barrel":
-        obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
         obj.material = tracksMaterial;
         break;
       case "tracks":
@@ -1349,6 +1341,19 @@ function initGeometry(){
     tankModel = event.content;
     tankModel.scale.set(1.1, 1.1, 1.1);
     tankModel.position.set(0, 0, 0);
+
+    tankModel.traverse(function(obj){
+      switch(obj.name){
+        case "turret barrel_mount":
+          obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
+          obj.position.y += 18;
+          obj.position.z += 6;
+          break;
+        case "turret barrel_mount barrel":
+          obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
+          break;
+      }
+    });
     
     readyFlags.geometry = true;
     checkReadyState();
