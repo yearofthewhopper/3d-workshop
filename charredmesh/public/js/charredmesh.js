@@ -1449,7 +1449,7 @@ function onKeyChange(code, state) {
 
   }
 
-  console.log(code);
+  //console.log(code);
   
   socket.emit('playerInput', input);
 }

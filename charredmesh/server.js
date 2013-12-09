@@ -113,9 +113,9 @@ var gameState = makeGameState();
 
 function makePlayerPosition() {
   return new THREE.Vector3(
-    Math.random() * gameState.worldBounds.x * 0.25 + gameState.worldBounds.x * 0.5,
+    Math.random() * (gameState.worldBounds.x * 0.6) + gameState.worldBounds.x * 0.2,
     0,
-    Math.random() * gameState.worldBounds.z * 0.25 + gameState.worldBounds.z * 0.5);
+    Math.random() * (gameState.worldBounds.z * 0.6) + gameState.worldBounds.z * 0.2);
 }
 
 function randomNormal() {
@@ -210,7 +210,7 @@ function serializePlayer(player) {
     respawn: player.respawnTimer,
     score: player.score,
     driving: player.isDriving,
-   // barrelDirection: player.barrelDirection.toArray(),
+    barrelDirection: player.barrelDirection.toArray(),
     up : player.up.toArray(),
     forward : player.forward.toArray()
   }
@@ -449,9 +449,9 @@ function respawnPlayer(player){
   player.alive = true;
   player.health = 100;
   player.position.set(
-    Math.random() * gameState.worldBounds.x * 0.25 + gameState.worldBounds.x * 0.5,
+    Math.random() * gameState.worldBounds.x * 0.6 + gameState.worldBounds.x * 0.2,
     0,
-    Math.random() * gameState.worldBounds.z * 0.25 + gameState.worldBounds.z * 0.5);
+    Math.random() * gameState.worldBounds.z * 0.6 + gameState.worldBounds.z * 0.2);
 
   socketio.sockets.emit("playerSpawned", serializePlayer(player));
 
