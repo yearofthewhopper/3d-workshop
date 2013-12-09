@@ -19,8 +19,8 @@ var turretMin       = 0;
 var basePower       = 1000;
 var gravity         = new THREE.Vector3(0, -20, 0);
 var wind            = new THREE.Vector3(0, 0, 0);
-var turretLength    = 50;
-var playerHeight    = 20;
+var barrelLength    = 60;
+var playerHeight    = 17;
 var maxHealth       = 100;
 var maxDamage       = 50;
 var minEarthLevel   = 0;
@@ -162,8 +162,8 @@ function makePlayer(socket) {
     forward: new THREE.Vector3(),
     barrelDirection: new THREE.Vector3(),
     orientation: new THREE.Quaternion(),
-    turretAngle: turretAngle,
-    turretRotation: 0,
+    barrelAngle: 0,
+    turretAngle: 0,
     input: playerInput(),
     name: name.name,
     color: name.color,
@@ -203,17 +203,16 @@ function serializePlayer(player) {
     position: player.position.toArray(),
     rotation: player.rotation,
     turretAngle: player.turretAngle,
+    barrelAngle: player.barrelAngle,
     name: player.name,
     color: player.color,
     alive: player.alive,
     respawn: player.respawnTimer,
     score: player.score,
     driving: player.isDriving,
-    turretRotation: player.turretRotation,
-    barrelDirection: player.barrelDirection.toArray(),
+   // barrelDirection: player.barrelDirection.toArray(),
     up : player.up.toArray(),
-    forward : player.forward.toArray(),
-    orientation: player.orientation.toArray()
+    forward : player.forward.toArray()
   }
 }
 
@@ -271,8 +270,9 @@ socketio.sockets.on('connection', function (socket) {
       var direction = player.barrelDirection.clone();
 
       var position = player.position.clone();
+      
       position.y += playerHeight;
-      position.add(direction.clone().multiplyScalar(turretLength));
+      position.add(direction.clone().multiplyScalar(barrelLength));
       var projectile = makeProjectile(
         player.id, 
         position,
@@ -319,10 +319,10 @@ function updatePlayer(player, delta) {
     }
 
     if(player.input.turretLeft){
-      player.turretRotation += delta * 1;
+      player.turretAngle += delta * 1;
     }
     if(player.input.turretRight){
-      player.turretRotation -= delta * 1;
+      player.turretAngle -= delta * 1;
     }
     
     if(player.velocity.length() > maxVelocity){
@@ -387,22 +387,17 @@ function updatePlayer(player, delta) {
         thrust.sub( slide.multiplyScalar((1 - slope) * forwardDelta));
       }
 
-      var turretAngle = player.turretRotation;
-    
-    var targetOrientationMatrix = new THREE.Matrix4().makeRotationAxis(player.up.clone().normalize().negate(), player.rotation);
+      var targetOrientationMatrix = new THREE.Matrix4().makeRotationAxis(player.up.clone().normalize().negate(), player.rotation);
+      var targetOrientation = new THREE.Quaternion().setFromRotationMatrix(targetOrientationMatrix);
 
-    var targetOrientation = new THREE.Quaternion().setFromRotationMatrix(targetOrientationMatrix);
-    //console.log(targetOrientation.toArray());
-    //player.orientation.slerp(targetOrientation, 0.2);
-   // player.orientation.normalize();
-    player.orientation.copy(targetOrientation);
-    
-    player.barrelDirection.copy( player.forward );
-    player.barrelDirection.applyAxisAngle( player.up, turretAngle );
-    
-    var barrelAxis = player.up.clone().cross( player.barrelDirection );
+      player.orientation.copy(targetOrientation);
+      
+      player.barrelDirection.copy( player.forward );
+      player.barrelDirection.applyAxisAngle( player.up, player.turretAngle );
+      
+      var barrelAxis = player.up.clone().cross( player.barrelDirection );
 
-    player.barrelDirection.applyAxisAngle( barrelAxis, -player.turretAngle );
+      player.barrelDirection.applyAxisAngle( barrelAxis, -player.barrelAngle );
       
       impulse.add(thrust);
     }
@@ -432,11 +427,11 @@ function updatePlayer(player, delta) {
 
 
     if (player.input.up) {
-      player.turretAngle = Math.min(turretMax, player.turretAngle + delta * turretDelta);
+      player.barrelAngle = Math.min(turretMax, player.barrelAngle + delta * turretDelta);
     }
 
     if (player.input.down) {
-      player.turretAngle = Math.max(turretMin, player.turretAngle - delta * turretDelta);
+      player.barrelAngle = Math.max(turretMin, player.barrelAngle - delta * turretDelta);
     }
 
   } else {

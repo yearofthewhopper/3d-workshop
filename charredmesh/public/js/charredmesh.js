@@ -48,7 +48,6 @@ var debrisGeometry;
 var terrainChunks = {
 };
 
-
 var splashTexture;
 
 var clientState = {
@@ -139,10 +138,25 @@ function createPlayer(playerData) {
         obj.material = material;
         break;
       case "turret" :
-      case "turret barrel_mount":
         obj.material = turretMaterial;
         break;
+      case "turret barrel_mount":
+        console.log("MOUNT:", obj);
+        obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
+        obj.material = turretMaterial;
+       // obj.position.y += 15;
+        obj.position.y += 18;
+        obj.position.z += 6;
+        
+        //obj.position.y += 15;
+        //obj.position.z += 10;
+        break;
       case "turret barrel_mount barrel":
+        obj.geometry.applyMatrix(new THREE.Matrix4().makeTranslation( 0, -18, -6 ));    
+        //obj.position.y += 15;
+        //obj.position.z -= 10;
+        obj.material = tracksMaterial;
+        break;
       case "tracks":
         obj.material = tracksMaterial;
       break;
@@ -410,7 +424,6 @@ function updateHealthBar(health) {
 }
 
 function updatePlayer(player) {
-  //console.log(player);
   players[player.id].barrelDirection.fromArray(player.barrelDirection);
   players[player.id].obj.position.fromArray(player.position);
   if( (players[player.id].obj.position.y < 40) &&  (players[player.id].lastPosition.y > 40)){
@@ -436,7 +449,7 @@ function updatePlayer(player) {
     }
   }
 
-  players[player.id].turret.rotation.y = player.turretRotation;
+  players[player.id].turret.rotation.y = player.turretAngle;
   var motorGain = players[player.id].isDriving ? 1 : 0.4;
   var motorPitch = 0.5 + (players[player.id].velocity.length() / 10);
   motorPitch = Math.min(2.5, motorPitch);
@@ -460,7 +473,7 @@ function updatePlayer(player) {
   players[player.id].dust.position.copy(players[player.id].obj.position);
 
   players[player.id].score = player.score;
-  players[player.id].barrel.rotation.x = -player.turretAngle;
+  players[player.id].barrel.rotation.x = -player.barrelAngle;
   players[player.id].driving = player.isDriving;
 
   players[player.id].dust.position.copy(players[player.id].obj.position);
@@ -518,7 +531,6 @@ function updateGameState(state) {
   mapObject(updateProjectile, gameState.projectiles);
   updateChaseCam();
   updateTerrainChunks();
-  //controls.center.set(players[playerId].obj.position.x, players[playerId].obj.position.y, players[playerId].obj.position.z);
 }
 
 function updateModifiedTerrainChunks(region){
@@ -1243,7 +1255,7 @@ function initGeometry(){
     vertexShader: loadShaderSource("vertex-sky"),
     fragmentShader: loadShaderSource("fragment-sky"),
     transparent:true,
-    depthRead:true,
+    depthRead:false,
     depthWrite:false
   });
 
@@ -1476,7 +1488,6 @@ function updateChaseCam() {
     return;
   }
 
-
   var p;
 
   if(input.aim){
@@ -1484,17 +1495,14 @@ function updateChaseCam() {
     p.add(players[playerId].obj.position);
   } else {
     p = players[playerId].obj.position.clone();
+    p.y += 100;
     p.z -= Math.cos(players[playerId].rotation) * 300;
     p.x -= Math.sin(players[playerId].rotation) * 300;
   }
 
-  // find a spot above and behind the player
- 
- 
-
   // Use larger of either an offset from the players Y position, or a point above the ground.  
   // This prevents the camera from clipping into mountains.
-  p.y = Math.max( terrain.getGroundHeight(p.x, p.z)+75, p.y + 50);
+  p.y = Math.max( terrain.getGroundHeight(p.x, p.z) + 75, p.y);
 
   // constantly lerp the camera to that position to keep the motion smooth.
   camera.position.lerp(p, 0.05);
