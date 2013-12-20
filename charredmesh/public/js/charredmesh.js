@@ -21,6 +21,7 @@ var effectQueue = [];
 
 var skyColor = 0xf3e4d3;
 var oceanUniforms;
+var sunUniforms;
 
 var terrainData;
 var chunkSize = 64;
@@ -1212,10 +1213,12 @@ function initLights(){
   scene.add( hemiLight );
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+  
   dirLight.color.setHSL( 0.1, 1, 0.95 );
   dirLight.position.set( 0.7, 0.35, 0 ).normalize();
   dirLight.position.multiplyScalar( 50 );
   dirLight.name = "sun";
+
   scene.add( dirLight );
 
   scene.add(point);
@@ -1389,6 +1392,17 @@ function initGeometry(){
     console.log("LOADED DEBRIS");
   });
   objLoader2.load("models/debris0.obj");
+
+  sunUniforms = {
+      time: { type: 'f', value: 1.0 }
+  };
+  var sunBillboard = new THREE.Mesh( new THREE.SphereGeometry(600,600, 16, 16), new THREE.ShaderMaterial( {
+    uniforms : sunUniforms,
+    vertexShader: loadShaderSource('vertex-passthrough'),
+    fragmentShader: loadShaderSource('fragment-sun')
+  } ) );
+  sunBillboard.name = "sunBillboard";
+  scene.add(sunBillboard);
 }
 
 
@@ -1674,8 +1688,14 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   
-  scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
 
+  var sunX = Math.cos(99.5 * 1.1);
+  var sunY = Math.sin(99.5 * 1.1);
+  var sunZ = 0;
+
+  scene.getObjectByName("sun").position.set(sunX, sunY, sunZ);
+  scene.getObjectByName("sunBillboard").position.set( camera.position.x + sunX * 13000, sunY * 13000, camera.position.z + sunZ * 5000 );
+  // scene.getObjectByName("sunBillboard").lookAt(camera.position);
   //controls.update();
   updateClient(delta);
   updateEffectQueue(delta);
@@ -1693,6 +1713,7 @@ function render() {
   renderer.render(HUD.scene, HUD.camera);
 
   oceanUniforms.time.value += 0.01;
+  sunUniforms.time.value += delta;//time;
 }
 
 window.onload = function() {
