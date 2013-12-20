@@ -48,14 +48,21 @@ var HUD = {};
 
 var debrisGeometry;
 
+
 var terrainChunks = {
 };
 
 var splashTexture;
 
+var FIRING_STATE_NONE = 0;
+var FIRING_STATE_CHARGING = 1;
+var FIRING_STATE_FIRING = 2;
+
 var clientState = {
+  previousFirePower : 0,
   fireTimer : 0,
-  firePower : 0
+  firePower : 0,
+  firingState : FIRING_STATE_NONE
 };
 
 var readyFlags = {
@@ -227,6 +234,11 @@ function createPlayer(playerData) {
 }
 
 function createProjectile(projectile) {
+
+  if(projectile.owner == playerId){
+    clientState.firingState = FIRING_STATE_FIRING;
+  }
+
   var projectilematerial = new THREE.MeshLambertMaterial({
     color: players[projectile.owner].color,
     emissive: 0x222222
@@ -397,7 +409,11 @@ function updateHUD(){
   ctx.fillRect(0, 0, HUD.radar.canvas.width, 20);
   ctx.fillRect(0, HUD.radar.canvas.height-20, HUD.radar.canvas.width, 20);
   
-  if(input.fire){
+
+  ctx.fillStyle = "rgba(200, 0, 0, 0.75)";
+  ctx.fillRect(HUD.radar.canvas.width * clientState.previousFirePower, 0, 4, 20);
+
+  if(clientState.firingState == FIRING_STATE_CHARGING){
     ctx.fillStyle = "rgba(255, 0, 0, 1)";
     ctx.fillRect(0, 0, HUD.radar.canvas.width * clientState.firePower, 20);
   }
@@ -1006,6 +1022,11 @@ function initParticles(){
 
 
 function projectileExplode(id) {
+
+  if(playerId == id){
+    clientState.firingState = FIRING_STATE_NONE;
+  }
+
   if(!projectiles[id]){
     return;
   }
@@ -1427,26 +1448,44 @@ function onResize() {
 }
 
 function onMouseMove(event) {
-  mouse.set( (event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2);
+  mouse.set( (event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * -2);
 }
 
 function onMouseDown(event) {
+  var projector = new THREE.Projector();
+  var m3 = new THREE.Vector3();
+  m3.set(mouse.x, -mouse.y, 1);
+
+  console.log(m3.toArray());
+  
+  var rayCaster = projector.pickingRay(m3, camera);
+  
+  var chunks = [];
+  for(var itm in terrainChunks){
+    chunks.push(terrainChunks[itm].obj);
+  }
+console.log(chunks);
+  var intersects = rayCaster.intersectObjects(chunks);
+  
+  if (intersects.length > 0) {
+    console.log(intersects.length + " intersections.");
+    //var materialIndex = intersects[0].face.materialIndex;
+    //icosahedron.material.materials[materialIndex].color = randomColor();
+  }
 }
 
 function onKeyChange(code, state) {
   switch(code)
   {
   case 32:
-    //if (state && !input.fire) {
-    //  socket.emit('playerFire');
-   // }
-    //console.log("fire:" + state);
-    if(state){
-      clientState.fireTimer = time;
-      // start a timer
-    } else {
-      
 
+    if(state && clientState.firingState == FIRING_STATE_NONE) {
+      clientState.fireTimer = time;
+      clientState.firingState = FIRING_STATE_CHARGING;
+    }
+
+    if(!state && clientState.firingState == FIRING_STATE_CHARGING) {
+      clientState.previousFirePower = clientState.firePower;
       socket.emit('playerFire', {"power" : clientState.firePower});
     }
 

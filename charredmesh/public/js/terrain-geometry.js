@@ -132,6 +132,7 @@ THREE.TerrainGeometry = function ( resolution, chunkSize, terrainScale, chunkDat
     	this.vertices[ skirtIndeces[i] ].y -= 50;
     }
 
+    this.computeBoundingBox();
 };
 
 
