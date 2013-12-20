@@ -9,29 +9,33 @@ charredmesh.sound = (function() {
 			"path" : "/audio/motor.mp3",
 			"loop" : true,
 			"loopTime" : [0.1, 1.1],
-			"rolloff" : 1.5
+			"rolloff" : 0.75
 		},
 		"tracks" : {
 			"path" : "/audio/tracks.mp3",
-			"loop" : true
+			"loop" : true,
+			//"loopTime" : [0.1, 1.1],
+			"rolloff" : 1.15
+		},
+		"rotate" : {
+			"path" : "/audio/rotate.mp3",
+			"loop" : true,
+			"loopTime" : [0.2, 1.6],
+			"rolloff" : 1
 		},
 		"fire" : {
-			"path" : "/audio/boom.mp3",
+			"path" : "/audio/fire.mp3",
 			"loop" : false,
-			"rolloff" : 0.5,
+			"rolloff" : 0.7,
+			"gain" : 0.5,
 			"pitchSpread" : [0.90, 1.05]
 		},
 		"explosion" : {
 			"path" : "/audio/explosion.mp3",
 			"loop" : false,
-			"rolloff" : 0.5,
-			"pitchSpread" : [0.9, 1.1]
-		},
-		"deep" : {
-			"path" : "/audio/deep-explosion.wav",
-			"loop" : false,
-			"rolloff" : 0.5,
-			"pitchSpread" : [0.9, 1.1]
+			"rolloff" : 0.32,
+			"gain" : 1.25,
+			"pitchSpread" : [0.90, 1.05]	
 		},
 		"splash" : {
 			"path" : "/audio/splash.mp3",
@@ -161,6 +165,10 @@ charredmesh.sound = (function() {
 
 				source.buffer = sounds[sound].buffer;
 				
+				if(sounds[sound].gain){
+					source.gain.value = sounds[sound].gain;
+				}
+
 				source.panner.refDistance = 250;
 				source.panner.connect(globalGain);
 				//var scl = 0.001;
