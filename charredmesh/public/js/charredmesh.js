@@ -776,8 +776,7 @@ function Explosion(position, color) {
   });
 
 
-  charredmesh.sound.playSound("explosion", position.clone()
-    );
+  charredmesh.sound.playSound("explosion", position.clone());
 
   var explosiongeom = new THREE.SphereGeometry(1, 16, 16);
   var explosionmesh = new THREE.Mesh(explosiongeom, explosionmaterial);
@@ -1290,6 +1289,7 @@ function initGeometry(){
   var skyUniforms = {
     skyColor: { type: "t", value: THREE.ImageUtils.loadTexture("textures/sky.png") },
     sunGlow: { type: "t", value: THREE.ImageUtils.loadTexture("textures/glow.png") },
+    // stars: { type: "t", value: THREE.ImageUtils.loadTexture("textures/stars.png") },
     lightDirection : { type: "v3", value: scene.getChildByName("sun").position }
   };
 
@@ -1303,9 +1303,9 @@ function initGeometry(){
   });
 
   skyDome = new THREE.Mesh( new THREE.SphereGeometry( 1, 12, 12, 0, Math.PI*2, 0, Math.PI*2 ), skyMaterial );
-  skyDome.scale.set(15000, 15000, 15000);
+  skyDome.scale.set(14000, 14000, 14000);
   scene.add(skyDome);
-  // Terrain stuff
+  //Terrain stuff
 
   layerTextures[0] = THREE.ImageUtils.loadTexture("textures/terrain/tile_rock.png");
   layerTextures[1] = THREE.ImageUtils.loadTexture("textures/terrain/tile_dirt.png");
@@ -1674,7 +1674,7 @@ function render() {
   var delta = clock.getDelta();
   time += delta;
   
-  //scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
+  scene.getObjectByName("sun").position.set( Math.cos(time * 0.1), Math.sin(time * 0.1), 0);
 
   //controls.update();
   updateClient(delta);
