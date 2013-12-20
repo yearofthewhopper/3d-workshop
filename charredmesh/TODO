@@ -37,8 +37,6 @@
 show player names
 score for accuracy
 destructible objects (trees, houses, etc)
-cool down period for firing
-obstacles (trees, rocks): eventually randomized
 shared physics engine
 time bomb (alters running time for other players)
 
