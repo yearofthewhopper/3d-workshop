@@ -1394,11 +1394,12 @@ function initGeometry(){
   objLoader2.load("models/debris0.obj");
 
   sunUniforms = {
+      position: { type: 'v3', value: new THREE.Vector3() },
       time: { type: 'f', value: 1.0 }
   };
-  var sunBillboard = new THREE.Mesh( new THREE.SphereGeometry(600,600, 16, 16), new THREE.ShaderMaterial( {
+  var sunBillboard = new THREE.Mesh( new THREE.SphereGeometry(6000,6000, 16, 16), new THREE.ShaderMaterial( {
     uniforms : sunUniforms,
-    vertexShader: loadShaderSource('vertex-passthrough'),
+    vertexShader: loadShaderSource('vertex-sun'),
     fragmentShader: loadShaderSource('fragment-sun')
   } ) );
   sunBillboard.name = "sunBillboard";
@@ -1689,8 +1690,8 @@ function render() {
   time += delta;
   
 
-  var sunX = Math.cos(99.5 * 1.1);
-  var sunY = Math.sin(99.5 * 1.1);
+  var sunX = Math.cos(time * 1.1);
+  var sunY = Math.sin(time * 1.1);
   var sunZ = 0;
 
   scene.getObjectByName("sun").position.set(sunX, sunY, sunZ);
@@ -1714,6 +1715,7 @@ function render() {
 
   oceanUniforms.time.value += 0.01;
   sunUniforms.time.value += delta;//time;
+  sunUniforms.position.value = scene.getObjectByName("sunBillboard").position;
 }
 
 window.onload = function() {
