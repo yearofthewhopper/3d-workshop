@@ -1,5 +1,115 @@
 var Util = {};
 
+var counter = 0;
+
+function makeComponent() {
+  var l = arguments.length;
+
+  var mixins = new Array(l + 1);
+
+  for (var i = 0; i < l; i++) {
+    mixins[i] = arguments[i];
+  }
+
+  var Component = function(params) {
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    this.params = params || {};
+    if ('undefined' === typeof this.params.id) {
+      this.params.id = counter++;
+    }
+    
+    this.klassName = this.toString().split(',')[0].toLowerCase();
+    this.klass = { type: this.klassName };
+
+    var beforeArgs = ['before:initialize'].concat(args);
+    this.trigger.apply(this, beforeArgs);
+
+    this.initialize.apply(this, args);
+    
+    var afterArgs = ['after:initialize'].concat(args);
+    this.trigger.apply(this, afterArgs);
+  };
+
+  Component.prototype.initialize = function() {
+  };
+
+  var functionNameRegEx = /function (.*?)\s?\(/;
+  Component.toString = Component.prototype.toString = function () {
+    if (this.realName) { return this.realName; }
+
+    var prettyPrintMixins = mixins.map(function (mixin) {
+      var name = mixin.realName || mixin.name;
+      if (name == null) {
+        // function name property not supported by this browser, use regex
+        var m = mixin.toString().match(functionNameRegEx);
+        return m && m[1] ? m[1] : '';
+      } else {
+        return name;
+      }
+    }).filter(Boolean).join(', ');
+
+    return prettyPrintMixins;
+  };
+
+  mixins.unshift(withPubSub);
+  flight.compose.mixin(Component.prototype, mixins);
+
+  return Component;
+}
+
+var GameObject = {};
+GameObject.define = makeGameObject = function makeGameObject() {
+  var mixins = Array.prototype.slice.call(arguments, 0);
+  mixins.unshift(withState);
+  mixins.unshift(withWorldReference);
+  return makeComponent.apply(this, mixins)
+}
+
+function makeBehavior(behavior) {
+  return function(options) {
+    options = options || {};
+    var eventMap = options.eventMap || {};
+
+    var component = makeComponent(Behavior, withComponent);
+    component.realName = component.prototype.realName = behavior.name;
+
+    return component;
+
+    function Behavior() {
+      this.options = options;
+
+      this.getOption = function(name) {
+        var ref = this.options[name];
+
+        if ('function' === typeof ref) {
+          return ref.call(this);
+        } else {
+          return ref;
+        }
+      };
+
+      behavior.apply(this, arguments);
+
+      for (var key in eventMap) {
+        if (eventMap.hasOwnProperty(key)) {
+          this[key] = this[eventMap[key]];
+        }
+      }
+    }
+  };
+}
+
+Function.prototype.inherits = function(parentConstructor) {
+  var childConstructor = this;
+  childConstructor.prototype = Object.create(parentConstructor.prototype);
+  childConstructor.parent = parentConstructor;
+  childConstructor.getters = {};
+  childConstructor.setters = {};
+  childConstructor.type = childConstructor.name.toLowerCase();
+  return childConstructor;
+}
+
 Util.arrayBufferToString = function(buf) {
   return String.fromCharCode.apply(null, new Uint16Array(buf));
 }
