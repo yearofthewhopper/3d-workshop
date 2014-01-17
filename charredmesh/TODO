@@ -32,14 +32,23 @@
 * world boundaries (define the landscape)
 
 
+## REFACTORING ##
+
+Modularize all features into reusable components
+Design a network protocol that is not just "blast state"
+
+## DESIGN ##
+
+logo
+welcome
+menu
+general UI
+
 ## GAMEPLAY STUFF ##
 
 show player names
-score for accuracy
-destructible objects (trees, houses, etc)
-shared physics engine
-time bomb (alters running time for other players)
-
+ability to create rooms for games (thomas)
+track information about games (who played, how long, how many kills etc)
 
 ## TERRAIN STUFF ##
 
@@ -47,7 +56,12 @@ Decals on terrain (blast marks, tread track marks)
 Lighting effects on terrain (explosions)
 crater texture (charred mesh!)
 
-
 ## Time of day stuff ##
 
 Add lighting to water shader
+
+## NICE TO HAVE (V2) ###
+score for accuracy
+destructible objects (trees, houses, etc)
+shared physics engine
+time bomb (alters running time for other players)

@@ -1,5 +1,63 @@
 var Util = {};
 
+function makeComponent() {
+  var l = arguments.length;
+
+  var mixins = new Array(l + 1);
+
+  for (var i = 0; i < l; i++) {
+    mixins[i] = arguments[i];
+  }
+
+  var Component = function(params) {
+    params = params || {};
+    this.klassName = this.toString().split(',')[0].toLowerCase();
+    this.klass = { type: this.klassName };
+    this.initialize(params);
+  };
+
+  Component.prototype.initialize = function(params) {
+  };
+
+  Component.prototype.tick = function(params) {
+  };
+
+  Component.toString = Component.prototype.toString = function () {
+    var prettyPrintMixins = mixins.map(function (mixin) {
+      if (mixin.name == null) {
+        // function name property not supported by this browser, use regex
+        var m = mixin.toString().match(functionNameRegEx);
+        return m && m[1] ? m[1] : '';
+      } else {
+        return mixin.name;
+      }
+    }).filter(Boolean).join(', ');
+    return prettyPrintMixins;
+  };
+
+  mixins.unshift(flight.advice.withAdvice);
+
+  flight.compose.mixin(Component.prototype, mixins);
+
+  return Component;
+}
+
+function makeStatefulComponent() {
+  var mixins = Array.prototype.slice.call(arguments, 0);
+  mixins.unshift(withState);
+  return makeComponent.apply(this, mixins)
+}
+
+Function.prototype.inherits = function(parentConstructor) {
+  var childConstructor = this;
+  childConstructor.prototype = Object.create(parentConstructor.prototype);
+  childConstructor.parent = parentConstructor;
+  childConstructor.getters = {};
+  childConstructor.setters = {};
+  childConstructor.type = childConstructor.name.toLowerCase();
+  return childConstructor;
+}
+
 Util.arrayBufferToString = function(buf) {
   return String.fromCharCode.apply(null, new Uint16Array(buf));
 }
