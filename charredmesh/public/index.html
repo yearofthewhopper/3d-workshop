@@ -636,37 +636,46 @@
     <div id="stats"></div>
     
     <script src="js/vendor/jquery.js"></script>
-    <script src="js/vendor/flight.js"></script>
     <script src="js/vendor/three.min.r58.js"></script>
     <script src="js/vendor/OrbitControls.js"></script>
     <script src="js/vendor/OBJLoader.js"></script>
     <script src="js/vendor/shaderparticles.js"></script>
-    <script src="js/vendor/mori.js"></script>
+    <script src="js/vendor/underscore.js"></script>
+    <script src="js/vendor/EventEmitter.js"></script>
 
     <script src="js/sound.js"></script>
     <script src="js/terrain.js"></script>
     <script src="js/terrain-geometry.js"></script>
     <script src="js/utils.js"></script>
 
-    <script src="js/mixins/with_state.js"></script>
-    <script src="js/mixins/with_pubsub.js"></script>
-    <script src="js/mixins/with_vector.js"></script>
-    <script src="js/mixins/with_components.js"></script>
-    <script src="js/mixins/with_world_reference.js"></script>
-    <script src="js/mixins/with_renderer.js"></script>
+    <script src="js/core/game.js"></script>
+    <script src="js/core/behavior.js"></script>
+    <script src="js/core/event_manager.js"></script>
+    <script src="js/core/state_manager.js"></script>
+    <script src="js/core/behavior_manager.js"></script>
+    <script src="js/core/game_object.js"></script>
 
-    <script src="js/components/increment_delta_behavior.js"></script>
-    <script src="js/components/debris_behavior.js"></script>
-    <script src="js/components/explosion_behavior.js"></script>
-    <script src="js/components/play_sound_behavior.js"></script>
-    <script src="js/components/physics_behavior.js"></script>
+    <script src="js/behaviors/add_delta_behavior.js"></script>
+    <script src="js/behaviors/debris_behavior.js"></script>
+    <script src="js/behaviors/explosion_behavior.js"></script>
+    <script src="js/behaviors/physics_behavior.js"></script>
+    <script src="js/behaviors/vector3_copy_behavior.js"></script>
 
     <script src="js/core/world.js"></script>
-    <script src="js/core/world_renderer.js"></script>
 
-    <script src="js/renderers/explosion_renderer.js"></script>
+    <script src="js/behaviors/renderers/play_sound_behavior.js"></script>
+    <script src="js/behaviors/renderers/explosion_renderer.js"></script>
+    <script src="js/behaviors/renderers/debris_renderer.js"></script>
+    <script src="js/behaviors/renderers/sun_renderer.js"></script>
+    <script src="js/behaviors/renderers/smoke_renderer.js"></script>
+    <script src="js/behaviors/renderers/dust_renderer.js"></script>
+    <script src="js/behaviors/renderers/projectile_renderer.js"></script>
+    <script src="js/behaviors/renderers/splash_renderer.js"></script>
+    <script src="js/behaviors/renderers/player_renderer.js"></script>
+    <script src="js/behaviors/renderers/ocean_renderer.js"></script>
     
     <script src="js/entities/terrain.js"></script>
+    <script src="js/entities/ocean.js"></script>
     <script src="js/entities/player.js"></script>
     <script src="js/entities/projectile.js"></script>
     <script src="js/entities/debris.js"></script>
@@ -674,23 +683,11 @@
     <script src="js/entities/explosion.js"></script>
     <script src="js/entities/sun.js"></script>
 
-    <script src="js/renderers/renderer.js"></script>
     <script src="js/renderers/three_js_core_renderer.js"></script>
-    <script src="js/renderers/player_renderer.js"></script>
-    <script src="js/renderers/player_sound_renderer.js"></script>
-    <script src="js/renderers/projectile_renderer.js"></script>
-    <script src="js/renderers/projectile_sound_renderer.js"></script>
-    <script src="js/renderers/splash_renderer.js"></script>
-    <script src="js/renderers/splash_sound_renderer.js"></script>
-    <script src="js/renderers/debris_renderer.js"></script>
     <script src="js/renderers/hud_renderer.js"></script>
-    <script src="js/renderers/sun_renderer.js"></script>
-    <script src="js/renderers/ocean_renderer.js"></script>
     <script src="js/renderers/sky_renderer.js"></script>
     <script src="js/renderers/terrain_renderer.js"></script>
     <script src="js/renderers/stats_renderer.js"></script>
-    <script src="js/renderers/dust_renderer.js"></script>
-    <script src="js/renderers/bullet_trail_renderer.js"></script>
     <script src="js/renderers/chase_cam_renderer.js"></script>
 
     <script src="js/keyhandler.js"></script>

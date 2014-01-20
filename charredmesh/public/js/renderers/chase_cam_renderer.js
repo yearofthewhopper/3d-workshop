@@ -1,19 +1,6 @@
 var cameraTarget = new THREE.Vector3();
 
-function ChaseCamRenderer(world) {
-  this.constructor.call(this, world);
-
-  this.prepare();
-}
-ChaseCamRenderer.inherits(Renderer);
-ChaseCamRenderer.listensTo = [];
-
-ChaseCamRenderer.prototype.prepare = function() {
-};
-
-
-function updateChaseCam() {
-
+function chaseCamRender() {
   // don't try to update the camera if the player hasn't been instantiated yet.
   if(!playerId){
     return;
@@ -25,6 +12,9 @@ function updateChaseCam() {
     p = players[playerId].barrelDirection.clone().multiplyScalar(-300);
     p.add(players[playerId].obj.position);
   } else {
+    if (!players[playerId].rotation) {
+      return
+    }
     p = players[playerId].obj.position.clone();
     p.y += 100;
     p.z -= Math.cos(players[playerId].rotation) * 300;
@@ -67,4 +57,4 @@ function updateChaseCam() {
 
   skyDome.position.copy(camera.position);
   skyDome.position.y = 0;
-}
+};

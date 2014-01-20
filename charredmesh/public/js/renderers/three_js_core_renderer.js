@@ -1,12 +1,8 @@
 var aspectRatio, windowHalf;
 
-function ThreeJSCoreRenderer(world) {
-  this.constructor.call(this, world);
-
+function ThreeJSCoreRenderer() {
   this.prepare();
 }
-ThreeJSCoreRenderer.inherits(Renderer);
-ThreeJSCoreRenderer.listensTo = ['resize'];
 
 ThreeJSCoreRenderer.prototype.prepare = function() {
   initScene();

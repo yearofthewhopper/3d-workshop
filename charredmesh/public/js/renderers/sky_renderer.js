@@ -1,15 +1,7 @@
 var skyColor = 0xf3e4d3;
 var skyDome;
 
-function SkyRenderer(world) {
-  this.constructor.call(this, world);
-
-  this.prepare();
-}
-SkyRenderer.inherits(Renderer);
-SkyRenderer.listensTo = [];
-
-SkyRenderer.prototype.prepare = function() {
+function SkyRenderer() {
   // LIGHTS
   var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.2 );
   hemiLight.color.setHSL( 0.6, 1, 0.6 );

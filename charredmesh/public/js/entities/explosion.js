@@ -1,23 +1,17 @@
-var Explosion = (function() {
-  return GameObject.define(
-    Explosion,
-    withVector('position'),
-    withComponents(
-      PlaySoundBehavior({ soundName: 'explosion', onEvent: 'initialize', position: getPosition }),
-      IncrementDeltaBehavior({ varName: 'time', max: 1, eventName: 'explosionComplete' }),
-      ExplosionRenderer({ position: getPosition })));
+var Explosion = Game.Object.define({
+  behaviors: [
+    [Vector3Copy,       { keys: ['position'] }],
+    [ExplosionRenderer, { position: entity('position'), color: entity('color') }],
+    [PlaySound,         { soundName: 'explosion', onEvent: 'didInitialize', position: entity('position') }],
+    [AddDelta,          { varName: 'time', max: 1, eventName: 'explosionComplete' }]
+  ],
 
-  function getPosition() {
-    return this.entity.getPositionVector();
-  }
+  initialize: function Explosion() {
+    this.set('time', 0);
 
-  function Explosion() {
-    this.on('before:initialize', function() {
-      this.params.time = 0;
-    });
-
+    var self = this;
     this.on('explosionComplete', function() {
-      this.world.remove(this);
+      self.getWorld().remove(self);
     });
   }
-}).call(this);
+});

@@ -1,7 +1,5 @@
-var ExplosionRenderer = (function() {
-  return makeBehavior(ExplosionRenderer, withRenderer);
-
-  function prepareRender() {
+var ExplosionRenderer = Game.Behavior.define({
+  initialize: function ExplosionRenderer() {
     var explosionmaterial = new THREE.MeshBasicMaterial({
       color: this.getOption('color'),
       transparent: true,
@@ -13,18 +11,19 @@ var ExplosionRenderer = (function() {
     var explosiongeom = new THREE.SphereGeometry(1, 16, 16);
     var explosionmesh = new THREE.Mesh(explosiongeom, explosionmaterial);
 
-    explosionmesh.position.copy(this.getOption('position'));
+    explosionmesh.position.fromArray(this.getOption('position'));
 
     scene.add(explosionmesh);
     this.mesh = explosionmesh;
-  }
+  },
 
-  function onRender(delta) {
-    if (!this.prepared) {
-      prepareRender.call(this);
-      this.prepared = true;
+  onMessage: function(eventName, data) {
+    if (eventName === 'render') {
+      this.render.apply(this, data);
     }
+  },
 
+  render: function(delta) {
     var time = this.entity.get('time');
     var radius = Math.log(time * 1000) * 40;
 
@@ -32,20 +31,10 @@ var ExplosionRenderer = (function() {
       this.mesh.material.opacity -= delta * 2;
     }
     this.mesh.scale.set(radius, radius, radius);
-  }
+  },
 
-  function tearDown() {
+  destroy: function() {
     scene.remove(this.mesh);
     this.mesh = null;
   }
-
-  function ExplosionRenderer() {
-    this.onRender = onRender;
-
-    this.on('before:initialize', function() {
-      this.prepared = false;
-    });
-
-    this.onExplosionComplete = tearDown;
-  }
-}).call(this);
+});

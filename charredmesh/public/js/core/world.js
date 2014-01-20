@@ -1,78 +1,68 @@
-var World = (function() {
-  return makeGameObject(World);
+var World = Game.defineClass({
+  initialize: function(params) {
+    this.entities = {};
 
-  function getSingleton(type) {
-    return this.getEntity(type, 'singleton');
-  }
+    this.eventManager = new Game.EventManager(this);
+    proxyMethodsTo.call(this, ['on', 'off'], this.eventManager);
 
-  function guid(entity) {
-    if (entity.guid) {
-      return entity.guid();
+    this.stateManager = new Game.StateManager(this);
+    proxyMethodsTo.call(this, ['get', 'set', 'sync'], this.stateManager);
+
+    this.sync(params);
+  },
+
+  getEntity: function(type, id) {
+    if (typeof type === 'string') {
+      return this.entities[type + '_' + id];
+    } else {
+      return this.entities['type' + type.classTypeId + '_instance' + id];
     }
+  },
 
-    return entity.klass.type + '_' + entity.get('id');
-  }
+  add: function(entity) {
+    this.entities[entity.guid()] = entity;
+    entity.trigger('didAddToWorld', [this]);
+    this.trigger('addToWorld', [entity]);
+  },
 
-  function getEntity(type, id) {
-    return this.entities[type + '_' + id];
-  }
+  remove: function(entity) {
+    delete this.entities[entity.guid()];
+    entity.trigger('didRemoveFromWorld');    
+    this.trigger('removeFromWorld', [entity]);
+  },
 
-  function add(entity) {
-    this.entities[guid(entity)] = entity;
+  syncEntity: function(type, entityData) {
+    var entity = this.getEntity(type, entityData.id);
+    entity.sync(entityData)
+  },
 
-    if (entity.didAdd) {
-      entity.didAdd(this);
-    }
+  tick: function(delta) {
+    this.trigger('tick', [delta]);
+  },
 
-    this.trigger('add', entity);
-  }
+  trigger: function(eventName, data) {
+    this.eventManager.trigger.apply(this.eventManager, arguments);
+    this.forwardTriggerToEntities.apply(this, arguments);
+  },
 
-  function remove(entity) {
-    delete this.entities[guid(entity)];
-
-    if (entity.didRemove) {
-      entity.didRemove(this);
+  forwardTriggerToEntities: function(eventName) {
+    if (['addToWorld', 'removeFromWorld'].indexOf(eventName) > -1) {
+      return;
     }
     
-    this.trigger('removeFromWorld', entity);
-  }
-
-  function removeByTypeId(type, id) {
-    this.remove(this.getEntity(type, id));
-  }
-
-  function syncEntity(type, entityData) {
-    var entity = this.getEntity(type, entityData.id || 'singleton');
-    entity.sync(entityData)
-  }
-
-  function tick(delta) {
-    this.trigger('tick', delta);
-  }
-
-  function forwardTriggerToEntities(data, eventName) {
     for (var key in this.entities) {
       if (this.entities.hasOwnProperty(key)) {
         var e = this.entities[key];
-        e.trigger(eventName, data);
+        e.trigger.apply(e, arguments);
       }
     }
+  },
+
+  pipeSocketEvent: function(socket, eventName) {
+    var self = this;
+    socket.on(eventName, function() {
+      self.trigger(eventName, arguments);
+    });
   }
 
-  function initialize() {
-    this.entities = {};
-  }
-
-  function World() {
-    this.getSingleton = getSingleton;
-    this.getEntity = getEntity;
-    this.add = add;
-    this.remove = remove;
-    this.removeByTypeId = removeByTypeId;
-    this.syncEntity = syncEntity;
-    this.tick = tick;
-    this.initialize = initialize;;
-
-    this.on('*', forwardTriggerToEntities);
-  }
-}).call(this);
+});

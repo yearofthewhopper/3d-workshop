@@ -1,10 +1,4 @@
-function StatsRenderer(world) {
-  this.constructor.call(this, world);
-}
-StatsRenderer.inherits(Renderer);
-StatsRenderer.listensTo = ['before:render'];
-
-StatsRenderer.prototype.beforeRender = function(delta, renderer) {
+function statsRender() {
   var stats = [];
   stats.push("calls: " + renderer.info.render.calls);
   stats.push("faces: " + renderer.info.render.faces);

@@ -1,19 +1,17 @@
-var Sun = (function() {
-  return GameObject.define(
-    Sun,
-    withComponents(
-      IncrementDeltaBehavior({ varName: 'time' })));
+var Sun = Game.Object.define({
+  behaviors: [
+    [SunRenderer, { positionVector: ref('positionVector') }],
+    [AddDelta,    { varName: 'time' }]
+  ],
 
-  function Sun() {
-    this.on('before:initialize', function() {
-      this.positionVector = new THREE.Vector3();
-      this.params.id = 'singleton';
-      this.params.time = 0;
-    });
+  initialize: function Sun() {
+    this.positionVector = new THREE.Vector3();
+    this.set('time', 0);
 
+    var self = this;
     this.on('stateChange', function(info) {
       if (info.key === 'time') {
-        this.positionVector.set(
+        self.positionVector.set(
           Math.cos(info.value * 0.01),
           Math.sin(info.value * 0.01),
           0
@@ -21,4 +19,4 @@ var Sun = (function() {
       }
     });
   }
-}).call(this);
+});

@@ -1,32 +1,20 @@
-var Terrain = (function() {
-  return GameObject.define(Terrain);
+var Terrain = Game.Object.define({
+  initialize: function Terrain() {
+    $.ajax("/terrain-all", {
+      success: function(data){
+        terrainData = Util.decodeBase64(data);
+        terrain.loadBase64Data(data);
+        readyFlags.terrain = true;
+        checkReadyState();
 
-  function onTerrainUpdate(region) {
-    terrain.setDataRegion(region);
-    updateModifiedTerrainChunks(region);
-    updateTerrainNormalMap();
-  }
-
-  function Terrain() {
-    this.onTerrainUpdate = onTerrainUpdate;
-
-    this.on('before:initialize', function() {
-      this.params.id = 'singleton';
+        updateTerrainNormalMap();
+      }
     });
 
-    this.on('terrainUpdate', onTerrainUpdate);
-
-    this.on('after:initialize', function() {
-      $.ajax("/terrain-all", {
-        success: function(data){
-          terrainData = Util.decodeBase64(data);
-          terrain.loadBase64Data(data);
-          readyFlags.terrain = true;
-          checkReadyState();
-
-          updateTerrainNormalMap();
-        }
-      });
-    })
+    this.on('terrainUpdate', function(region) {
+      terrain.setDataRegion(region);
+      updateModifiedTerrainChunks(region);
+      updateTerrainNormalMap();
+    });
   }
-}).call(this);
+});

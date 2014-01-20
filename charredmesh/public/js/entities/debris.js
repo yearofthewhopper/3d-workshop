@@ -1,53 +1,65 @@
-var Debris = (function() {
-  return GameObject.define(
-    Debris,
-    withVector('position', 'velocity', 'rotation', 'angularVelocity'),
-    withComponents(
-      IncrementDeltaBehavior({ varName: 'time', max: function() { return this.entity.get('lifeSpan') }, eventName: 'removeDebris' }),
-      PhysicsBehavior({ aboveWater: aboveWater })));
+var Debris = Game.Object.define({
+  behaviors: [
+    [Vector3Copy,     { keys: ['position', 'velocity', 'rotation', 'angularVelocity'] }],
+    [DebrisRenderer,  { position: entity('position'), size: ref('size'), life: ref('life') }],
+    [PhysicsBehavior, { aboveWater: ref('isAboveWater') }],
+    [AddDelta,        { varName: 'time', max: entity('lifeSpan'), eventName: 'removeDebris' }]
+  ],
 
-  function aboveWater(pos) {
-    pos = pos || this.entity.get('position');
-    return pos[1] > 40;
-  }
+  initialize: function Debris() {
+    this.set('time', 0);
+    this.set('rotation', [0, 0, 0]);
+    this.set('lifeSpan', Math.random() * 4 + 3);
 
-  function tick(delta) {
     var pos = this.get('position');
-    if (this.aboveWater && !aboveWater(pos)) {
-      this.world.add(new Splash({
-        position: pos
+    pos[1] -= 20;
+
+    this.aboveWater = true;
+
+    var launchNormal = terrain.getGroundNormal(pos[0], pos[2]);
+    launchNormal.x += Math.random() - 0.5;
+    launchNormal.y += Math.random() - 0.5;
+    launchNormal.z += Math.random() - 0.5;
+    launchNormal.normalize();
+    launchNormal.normalize().multiplyScalar((1-this.get('randomSize')) * 350 + 100);
+    this.set('velocity', launchNormal.toArray());
+
+    var angularVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+    angularVelocity.multiplyScalar((1.5-this.get('randomSize')) * 20);
+    this.set('angularVelocity', angularVelocity.toArray());
+
+    var self = this;
+    this.on('tick', function(delta) {
+      self.tick(delta);
+    });
+
+    this.on('removeDebris', function() {
+      self.getWorld().remove(self);
+    });
+  },
+
+  size: function() {
+    var size = this.get('size');
+    return this.get('randomSize') * (size[0] + size[1]);
+  },
+
+  life: function() {
+    var lifeSpan = this.get('lifeSpan');
+    var time = this.get('time');
+    return lifeSpan - time;
+  },
+
+  isAboveWater: function() {
+    return this.get('position')[1] > 40;
+  },
+
+  tick: function(delta) {
+    if (this.aboveWater && !this.isAboveWater()) {
+      this.getWorld().add(new Splash({
+        position: this.get('position')
       }));
 
       this.aboveWater = false;
     }
   }
-
-  function Debris() {
-    this.on('before:initialize', function() {
-      this.params.time = 0;
-      this.params.lifeSpan = Math.random() * 4 + 3;
-      this.params.position[1] -= 20;
-
-      this.aboveWater = true;
-
-      var launchNormal = terrain.getGroundNormal(this.params.position[0], this.params.position[2]);
-      launchNormal.x += Math.random() - 0.5;
-      launchNormal.y += Math.random() - 0.5;
-      launchNormal.z += Math.random() - 0.5;
-      launchNormal.normalize();
-      launchNormal.normalize().multiplyScalar((1-this.params.randomSize) * 350 + 100);
-      this.params.velocity = launchNormal.toArray();
-
-      var angularVelocity = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-      angularVelocity.multiplyScalar((1.5-this.params.randomSize) * 20);
-      this.params.angularVelocity = angularVelocity.toArray();
-    });
-
-    this.on('tick', tick);
-
-    this.on('removeDebris', function() {
-      this.world.remove(this);
-    });
-  }
-
-}).call(this);
+});

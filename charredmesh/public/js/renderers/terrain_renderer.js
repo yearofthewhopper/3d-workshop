@@ -12,17 +12,7 @@ var chunkUpdateCount = 0;
 var terrainChunks = {
 };
 
-function TerrainRenderer(world) {
-  this.constructor.call(this, world);
-
-  this.prepare();
-}
-TerrainRenderer.inherits(Renderer);
-TerrainRenderer.listensTo = ['event:terrainUpdate'];
-
-TerrainRenderer.prototype.prepare = function() {
-  //Terrain stuff
-
+function TerrainRenderer() {
   layerTextures[0] = THREE.ImageUtils.loadTexture("textures/terrain/tile_rock.png");
   layerTextures[1] = THREE.ImageUtils.loadTexture("textures/terrain/tile_dirt.png");
   layerTextures[2] = THREE.ImageUtils.loadTexture("textures/terrain/tile_grass.png");

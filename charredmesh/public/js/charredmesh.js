@@ -22,8 +22,6 @@ var world = new World({
   fireTimer : 0
 });
 
-var worldRenderer = new WorldRenderer(world);
-
 var playerId;
 
 var gunCamera;
@@ -189,7 +187,7 @@ function createProjectile(projectile) {
 function updatePlayer(player) {
   players[player.id].barrelDirection.fromArray(player.barrelDirection);
 
-  var playerInstance = world.getEntity('player', player.id);
+  var playerInstance = world.getEntity(Player, player.id);
 
   players[player.id].obj.position.fromArray(player.position);
 
@@ -239,19 +237,17 @@ function updateOverlay( player ){
 function updateGameState(state) {
   gameState = state;
   mapObject(updatePlayer, gameState.players);
-  mapObject(function(p) { return world.syncEntity('projectile', p); }, gameState.projectiles);
+  mapObject(function(p) { return world.syncEntity(Projectile, p); }, gameState.projectiles);
 
-  updateChaseCam();
   updateTerrainChunks();
 }
-
 
 function projectileExplode(id) {
   if (playerId == id){
     world.set('firingState', FIRING_STATE_NONE);
   }
 
-  var projectile = world.getEntity('projectile', id);
+  var projectile = world.getEntity(Projectile, id);
   projectile.trigger('explode');
   world.remove(projectile);
   delete gameState.projectiles[id];
@@ -309,11 +305,9 @@ function checkReadyState(){
 
 function init(){
   keyboard = new KeyboardHandler(onKeyChange);
-  document.addEventListener('mousedown', onMouseDown, false);
-  document.addEventListener('mousemove', onMouseMove, false);
 
   window.addEventListener('resize', function() {
-    worldRenderer.resize();
+    world.trigger('resize');
   }, false);
 
   charredmesh.sound.initialize(function(){
@@ -323,51 +317,28 @@ function init(){
 
   var sun = new Sun();
   sunPosition = sun.positionVector;
-  world.add(sun);
 
   world.add(new Terrain());
 
-  worldRenderer.registerRenderer(
-    ThreeJSCoreRenderer,
-    SkyRenderer,
-    SunRenderer,
-    TerrainRenderer,
-    OceanRenderer,
-    ChaseCamRenderer,
-    PlayerRenderer,
-    PlayerSoundRenderer,
-    ProjectileRenderer,
-    ProjectileSoundRenderer,
-    DebrisRenderer,
-    SplashRenderer,
-    SplashSoundRenderer,
-    DustRenderer,
-    BulletTrailRenderer,
-    HUDRenderer,
-    StatsRenderer
-  );
+  new ThreeJSCoreRenderer();
+  new SkyRenderer();
+  new TerrainRenderer();
+
+  world.add(sun);
+  world.add(new Ocean());
+
+  world.on('render', function(delta) {
+    renderer.clear();
+    renderer.render(scene, camera);
+
+    chaseCamRender(delta);
+    statsRender(delta);
+  });
+
+  // HUDRenderer,
 
   // Start renderframes
   onFrame();
-}
-
-function onMouseMove(event) {
-  mouse.set( (event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * -2);
-}
-
-function onMouseDown(event) {
-  var projector = new THREE.Projector();
-  var m3 = new THREE.Vector3();
-  m3.set(mouse.x, -mouse.y, 1);
-
-  console.log(m3.toArray());
-  
-  var rayCaster = projector.pickingRay(m3, camera);
-  
-  var chunks = [];
-  for(var itm in terrainChunks){
-    chunks.push(terrainChunks[itm].obj);
-  }
 }
 
 function onKeyChange(code, state) {
@@ -442,11 +413,7 @@ function onFrame() {
     world.set('firePower', (firePower + 1) / 2);
   }
 
-  renderer.clear();
-
-  worldRenderer.render(delta, renderer, function() {
-    renderer.render(scene, camera);
-  });
+  world.trigger('render', [delta]);
 }
 
 function makeCanvas(width, height){
