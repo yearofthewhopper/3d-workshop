@@ -2,12 +2,13 @@ var express = require('express');
 var http = require('http');
 var THREE = require("three");
 var PNG = require('png-js');
-var Util = require("./public/js/utils.js");
-var Terrain = require("./public/js/terrain.js", "three");
-var nameData = require("./public/js/names.js");
+var Util = require("./dist/server/utils.js").Util;
+var Terrain = require("./dist/server/terrain.js").default;
+var nameData = require("./dist/server/names.js").default;
+var Projectile = require("./dist/server/entities/projectile.js").default;
 
 var terrainData;
-var terrain = new Terrain(Util, THREE);
+var terrain = new Terrain();
 
 var SEA_LEVEL       = 40;
 
@@ -174,15 +175,18 @@ function makePlayer(socket) {
 }
 
 function makeProjectile(owner, position, direction, power) {
-
-  return {
+  var params = {
     id: owner,
     owner: owner,
     position: position,
     velocity: direction.clone().multiplyScalar(power),
     bounces : 0,
     state: "flying"
-  }
+  };
+
+  var p = addActor(Projectile, params);
+
+  return params;
 }
 
 function mapObject(f, m) {
@@ -549,6 +553,40 @@ function updateAllPlayers(delta) {
   }, gameState.players);
 }
 
+// var entities = {};
+
+// function actorUpdate(op, guid, params) {
+//   socketio.sockets.emit('actor:update', { op: op, guid: guid, params: params });
+// }
+
+// function addEntity(klass, params) {
+//   var entity = new klass(params);
+
+//   actorUpdate('create', entity.guid(), entity.getRawState());
+
+//   entities[entity.guid()] = entities;
+
+//   return entity;
+// }
+
+// function removeEntity(actor) {
+//   var guid = actor.guid();
+//   delete entities[guid];
+//   actorUpdate('remove', guid);
+// }
+
+// function tickEntities() {
+//   for (var key in entities) {
+//     if (entities.hasOwnProperty(key)) {
+//       var actor = entities[key];
+//       if (entity.actor.isDirty) {
+//         actorUpdate('update', entity.guid(), entity.getRawState());
+//         entity.actor.sentActorUpdate();
+//       }
+//     }
+//   }
+// }
+
 function startGameLoop() {
   var previousTime = new Date().getTime();
   var time = previousTime;
@@ -560,6 +598,8 @@ function startGameLoop() {
     delta = (time - previousTime) * 0.001;
     updateAllPlayers(delta);
     updateAllProjectiles(delta);
+
+    // tickEntities();
     socketio.sockets.emit('loopTick', serializeGameState(gameState));
   }, 32);
 }

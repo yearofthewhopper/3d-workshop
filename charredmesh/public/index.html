@@ -635,14 +635,18 @@
     <div id="viewport"></div>
     <div id="stats"></div>
     
-    <script src="js/vendor/jquery.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script src="js/vendor/bower_components/jquery/jquery.js"></script>
+    <script src="js/vendor/bower_components/underscore/underscore.js"></script>
+    
     <script src="js/vendor/three.min.r58.js"></script>
+    <script src="js/vendor/terrain-geometry.js"></script>
     <script src="js/vendor/OrbitControls.js"></script>
     <script src="js/vendor/OBJLoader.js"></script>
     <script src="js/vendor/shaderparticles.js"></script>
-    <script src="js/vendor/underscore.js"></script>
     <script src="js/vendor/EventEmitter.js"></script>
-
+<!--
     <script src="js/sound.js"></script>
     <script src="js/terrain.js"></script>
     <script src="js/terrain-geometry.js"></script>
@@ -691,7 +695,12 @@
     <script src="js/renderers/chase_cam_renderer.js"></script>
 
     <script src="js/keyhandler.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="js/charredmesh.js"></script>
+    -->
+    <script src="js/vendor/bower_components/requirejs/require.js"></script>
+    <script src="js/client.js"></script>
+    <script>
+      require(["client"]);
+    </script>
+
   </body>
 </html>
