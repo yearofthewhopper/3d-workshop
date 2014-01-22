@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var ExplosionRenderer = Behavior.define({
+var ExplosionRenderer = Renderer.define({
   initialize: function ExplosionRenderer() {
     var explosionmaterial = new THREE.MeshBasicMaterial({
       color: this.getOption('color'),
@@ -17,12 +17,6 @@ var ExplosionRenderer = Behavior.define({
 
     scene.add(explosionmesh);
     this.mesh = explosionmesh;
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
-    }
   },
 
   render: function(delta) {

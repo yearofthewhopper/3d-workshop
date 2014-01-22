@@ -1,20 +1,44 @@
+import { entity, ref } from 'core/game';
 import World from 'core/world';
+import WorldRenderer from 'core/world_renderer';
 import KeyboardHandler from 'keyhandler';
 import SoundEngine from 'sound';
 import Sun from 'entities/sun';
 import Terrain from 'entities/terrain';
-import ThreeJSCoreRenderer from 'renderers/three_js_core_renderer';
-import SkyRenderer from 'renderers/sky_renderer';
-import TerrainRenderer from 'renderers/terrain_renderer';
-import Ocean from 'entities/ocean';
-import { chaseCamRender } from 'renderers/chase_cam_renderer';
-import { statsRender } from 'renderers/stats_renderer';
+import ThreeJSCoreRenderer from 'renderers/world/three_js_core_renderer';
+import SkyRenderer from 'renderers/world/sky_renderer';
+import TerrainRenderer from 'renderers/world/terrain_renderer';
+import ChaseCamRender from 'renderers/world/chase_cam_renderer';
+import StatsRenderer from 'renderers/world/stats_renderer';
 import Player from 'entities/player';
+
+import PlaySound from 'renderers/entity/play_sound_behavior';
+
+import Debris from 'entities/debris';
+import DebrisRenderer from 'renderers/entity/debris_renderer';
+
+import Explosion from 'entities/explosion';
+import ExplosionRenderer from 'renderers/entity/explosion_renderer';
+
+import Player from 'entities/player';
+import PlayerRenderer from 'renderers/entity/player_renderer';
+import DustRenderer from 'renderers/entity/dust_renderer';
+
 import Projectile from 'entities/projectile';
+import ProjectileRenderer from 'renderers/entity/projectile_renderer';
+import SmokeRenderer from 'renderers/entity/smoke_renderer';
+
+import Splash from 'entities/splash';
+import SplashRenderer from 'renderers/entity/splash_renderer';
+
+import Sun from 'entities/sun';
+import SunRenderer from 'renderers/entity/sun_renderer';
+
+import Ocean from 'entities/ocean';
+import OceanRenderer from 'renderers/entity/ocean_renderer';
 
 window.renderer = null;
 window.camera = null;
-window.scene = null;
 var element;
 window.point = null;
 var time;
@@ -38,6 +62,8 @@ var world = new World({
   firingState : FIRING_STATE_NONE,
   fireTimer : 0
 });
+
+var worldRenderer = new WorldRenderer(world);
 
 window.playerId = null;
 
@@ -336,28 +362,41 @@ function init(){
     checkReadyState();
   });
 
+  worldRenderer.onEntity(Debris, DebrisRenderer, { position: entity('position'), size: ref('size'), life: ref('life') });
+
+  worldRenderer.onEntity(Explosion, PlaySound,         { soundName: 'explosion', onEvent: 'didInitialize', position: entity('position') });
+  worldRenderer.onEntity(Explosion, ExplosionRenderer, { position: entity('position'), color: entity('color') });
+  
+  worldRenderer.onEntity(Player, PlayerRenderer, {}, entity('visible'));
+  worldRenderer.onEntity(Player, DustRenderer,   { position: entity('position') }, entity('driving'));
+
+  worldRenderer.onEntity(Projectile, ProjectileRenderer, { position: entity('position'), color: ref('color') });
+  worldRenderer.onEntity(Projectile, PlaySound,          { soundName: 'fire', onEvent: 'didInitialize', position: entity('position') });
+  worldRenderer.onEntity(Projectile, SmokeRenderer,      { position: entity('position') });
+
+  worldRenderer.onEntity(Splash, PlaySound,      { soundName: 'splash', onEvent: 'didInitialize', position: entity('position') });
+  worldRenderer.onEntity(Splash, SplashRenderer, { position: entity('position') });
+  
+  worldRenderer.onEntity(Sun, SunRenderer, { positionVector: ref('positionVector') });
+
+  worldRenderer.onEntity(Ocean, OceanRenderer, {});
+
   var sun = new Sun();
   window.sunPosition = sun.positionVector;
 
+  worldRenderer.onWorld(ThreeJSCoreRenderer);
+  worldRenderer.onWorld(SkyRenderer);
+  worldRenderer.onWorld(TerrainRenderer);
+  
   world.add(new Terrain());
-
-  new ThreeJSCoreRenderer();
-  new SkyRenderer();
-  new TerrainRenderer();
-
-  world.add(sun);
   world.add(new Ocean());
 
-  world.on('render', function(delta) {
-    renderer.clear();
-    renderer.render(scene, camera);
+  worldRenderer.onWorld(ChaseCamRender);
+  worldRenderer.onWorld(StatsRenderer);
+  // worldRenderer.onWorld(HUDRenderer)
 
-    chaseCamRender(delta);
-    statsRender(delta);
-  });
-
-  // HUDRenderer,
-
+  world.add(sun);
+  
   // Start renderframes
   onFrame();
 }
@@ -434,7 +473,7 @@ function onFrame() {
     world.set('firePower', (firePower + 1) / 2);
   }
 
-  world.trigger('render', [delta]);
+  worldRenderer.render(delta);
 }
 
 function makeCanvas(width, height){

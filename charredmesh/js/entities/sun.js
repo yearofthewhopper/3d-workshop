@@ -1,10 +1,9 @@
-import Entity from 'core/entity';
-import SunRenderer from 'behaviors/renderers/sun_renderer';
-import AddDelta from 'behaviors/add_delta_behavior';
+import Entity from '../core/entity';
+import AddDelta from '../behaviors/add_delta_behavior';
+import { ref } from '../core/game';
 
 var Sun = Entity.define({
   behaviors: [
-    [SunRenderer, { positionVector: ref('positionVector') }],
     [AddDelta,    { varName: 'time' }]
   ],
 

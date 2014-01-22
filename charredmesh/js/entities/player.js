@@ -1,14 +1,11 @@
-import Entity from 'core/entity';
-import Vector3Copy from 'behaviors/vector3_copy_behavior';
-import PlayerRenderer from 'behaviors/renderers/player_renderer';
-import DustRenderer from 'behaviors/renderers/dust_renderer';
-import Splash from 'entities/splash';
+import Entity from '../core/entity';
+import Vector3Copy from '../behaviors/vector3_copy_behavior';
+import Splash from '../entities/splash';
+import { entity } from '../core/game';
 
 var Player = Entity.define({
   behaviors: [
-    [Vector3Copy,    { keys: ['position', 'rotation', 'velocity'] }],
-    [PlayerRenderer, {}, entity('visible')],
-    [DustRenderer,   { position: entity('position') }, entity('driving')]
+    [Vector3Copy,    { keys: ['position', 'rotation', 'velocity'] }]
   ],
 
   initialize: function Player() {

@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var OceanRenderer = Behavior.define({
+var OceanRenderer = Renderer.define({
   initialize: function OceanRenderer() {
     var oceanGeom = new THREE.PlaneGeometry(16384*10, 16384*10, 28, 28);
 
@@ -41,12 +41,6 @@ var OceanRenderer = Behavior.define({
     ocean.name = "ocean";
     
     scene.add(ocean);
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
-    }
   },
 
   render: function(delta) {

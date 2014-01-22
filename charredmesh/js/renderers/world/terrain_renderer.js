@@ -59,6 +59,7 @@ function TerrainRenderer() {
     fog:true
   });  
 };
+TerrainRenderer.prototype.render = function() {};
 
 var updateModifiedTerrainChunks = window.updateModifiedTerrainChunks = function updateModifiedTerrainChunks(region){
   var id = Math.floor(region.x / chunkSize) + "_" + Math.floor(region.y / chunkSize);

@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var ProjectileRenderer = Behavior.define({
+var ProjectileRenderer = Renderer.define({
   initialize: function ProjectileRenderer() {
     var projectilematerial = new THREE.MeshLambertMaterial({
       color: this.getOption('color'),
@@ -20,12 +20,6 @@ var ProjectileRenderer = Behavior.define({
 
     scene.add(projectileobj);
     this.mesh = projectileobj;
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
-    }
   },
 
   render: function(delta) {

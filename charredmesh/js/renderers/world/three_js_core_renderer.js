@@ -2,6 +2,10 @@ var aspectRatio, windowHalf;
 
 function ThreeJSCoreRenderer() {
   this.prepare();
+  this.render = function() {
+    renderer.clear();
+    renderer.render(scene, camera);
+  }
 }
 
 ThreeJSCoreRenderer.prototype.prepare = function() {
@@ -26,7 +30,7 @@ function initScene() {
   windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
   aspectRatio = window.innerWidth / window.innerHeight;
   
-  scene = new THREE.Scene();  
+  window.scene = new THREE.Scene();  
 
   camera = new THREE.PerspectiveCamera(45, aspectRatio, 1, 30000);
   camera.position.z = 8192;

@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var DustRenderer = Behavior.define({
+var DustRenderer = Renderer.define({
   initialize: function DustRenderer() {
     if (!DustRendererGlobal.particleGroup) {
       DustRendererGlobal.prepareGlobalParticleGroup();
@@ -13,12 +13,6 @@ var DustRenderer = Behavior.define({
       emitter.position.copy(this.getOption('position'));
 
       this.emitter = emitter;
-    }
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
     }
   },
 

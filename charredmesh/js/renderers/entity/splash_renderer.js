@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var SplashRenderer = Behavior.define({
+var SplashRenderer = Renderer.define({
   initialize: function SplashRenderer() {
     var splashMaterial = new THREE.MeshLambertMaterial({
       map: THREE.ImageUtils.loadTexture("textures/splash.png"),
@@ -19,12 +19,6 @@ var SplashRenderer = Behavior.define({
 
     scene.add(splashMesh);
     this.mesh = splashMesh;
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
-    }
   },
 
   render: function(delta) {

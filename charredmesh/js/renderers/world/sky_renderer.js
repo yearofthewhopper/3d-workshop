@@ -33,4 +33,6 @@ function SkyRenderer() {
   scene.fog = new THREE.Fog(skyColor, 4000, 9000);
 };
 
+SkyRenderer.prototype.render = function() {};
+
 export default = SkyRenderer;

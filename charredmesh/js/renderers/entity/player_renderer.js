@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var PlayerRenderer = Behavior.define({
+var PlayerRenderer = Renderer.define({
   initialize: function PlayerRenderer() {
     this.changeVisibility(true);
   },

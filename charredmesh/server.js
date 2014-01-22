@@ -184,7 +184,7 @@ function makeProjectile(owner, position, direction, power) {
     state: "flying"
   };
 
-  var p = addActor(Projectile, params);
+  // var p = addActor(Projectile, params);
 
   return params;
 }

@@ -1,11 +1,6 @@
-import Entity from 'core/entity';
-import OceanRenderer from 'behaviors/renderers/ocean_renderer';
+import Entity from '../core/entity';
 
 var Ocean = Entity.define({
-  behaviors: [
-    [OceanRenderer, {}]
-  ],
-
   initialize: function Ocean() {
   }
 });

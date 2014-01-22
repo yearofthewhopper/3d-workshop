@@ -1,0 +1,18 @@
+{
+  "name": "charredmesh",
+  "version": "0.0.0",
+  "homepage": "https://github.com/Instrument/3d-workshop",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.0.3",
+    "requirejs": "~2.1.10",
+    "underscore": "~1.5.2",
+    "threejs": "*"
+  }
+}

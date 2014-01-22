@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var SunRenderer = Behavior.define({
+var SunRenderer = Renderer.define({
   initialize: function SunRenderer() {
     var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
     
@@ -24,12 +24,6 @@ var SunRenderer = Behavior.define({
     sunBillboard.name = "sunBillboard";
     scene.add(sunBillboard);
     this.mesh = sunBillboard;
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
-    }
   },
 
   render: function(delta) {

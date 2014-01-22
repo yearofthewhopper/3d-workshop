@@ -1,6 +1,5 @@
 import Entity from '../core/entity';
 import Vector3Copy from '../behaviors/vector3_copy_behavior';
-import DebrisRenderer from '../behaviors/renderers/debris_renderer';
 import PhysicsBehavior from '../behaviors/physics_behavior';
 import AddDelta from '../behaviors/add_delta_behavior';
 import Splash from '../entities/splash';
@@ -9,7 +8,6 @@ import { entity, ref } from '../core/game';
 var Debris = Entity.define({
   behaviors: [
     [Vector3Copy,     { keys: ['position', 'velocity', 'rotation', 'angularVelocity'] }],
-    [DebrisRenderer,  { position: entity('position'), size: ref('size'), life: ref('life') }],
     [PhysicsBehavior, { aboveWater: ref('isAboveWater') }],
     [AddDelta,        { varName: 'time', max: entity('lifeSpan'), eventName: 'removeDebris' }]
   ],

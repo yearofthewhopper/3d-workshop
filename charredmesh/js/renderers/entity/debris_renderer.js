@@ -1,15 +1,15 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-// var debrisGeometry;
-// var objLoader2 = new THREE.OBJLoader();
+var debrisGeometry;
+var objLoader2 = new THREE.OBJLoader();
 
-// objLoader2.addEventListener( 'load', function ( event ) {
-//   debrisGeometry = event.content;
-//   console.log("LOADED DEBRIS");
-// });
-// objLoader2.load("models/debris0.obj");
+objLoader2.addEventListener( 'load', function ( event ) {
+  debrisGeometry = event.content;
+  console.log("LOADED DEBRIS");
+});
+objLoader2.load("models/debris0.obj");
 
-var DebrisRenderer = Behavior.define({
+var DebrisRenderer = Renderer.define({
   initialize: function DebrisRenderer() {
     var debrisMaterial = new THREE.MeshLambertMaterial({
       color: new THREE.Color(0xffffff).offsetHSL(Math.random() * -0.125, (Math.random() - 0.5) * 0.125, 0),
@@ -24,12 +24,6 @@ var DebrisRenderer = Behavior.define({
   
     scene.add(debrisMesh);
     this.mesh = debrisMesh;
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
-    }
   },
 
   render: function(delta) {

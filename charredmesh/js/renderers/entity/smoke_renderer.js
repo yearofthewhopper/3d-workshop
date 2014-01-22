@@ -1,6 +1,6 @@
-import Behavior from '../../core/behavior';
+import Renderer from '../../core/renderer';
 
-var SmokeRenderer = Behavior.define({
+var SmokeRenderer = Renderer.define({
   initialize: function SmokeRenderer() {
     if (!SmokeRendererGlobal.particleGroup) {
       SmokeRendererGlobal.prepareGlobalParticleGroup();
@@ -11,12 +11,6 @@ var SmokeRenderer = Behavior.define({
     emitter.enable();
 
     this.emitter = emitter;
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'render') {
-      this.render.apply(this, data);
-    }
   },
 
   render: function(delta) {
