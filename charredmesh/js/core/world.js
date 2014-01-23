@@ -66,7 +66,7 @@ var World = defineClass(Entity, {
       return;
     }
 
-    this.eventManager.trigger('worldEvent', [{ eventName: eventName, data: data[0] }]);
+    this.eventManager.trigger('worldEvent', [{ eventName: eventName, data: data ? data[0] : null }]);
 
     for (var key in this.entities) {
       if (this.entities.hasOwnProperty(key)) {
@@ -82,7 +82,6 @@ var World = defineClass(Entity, {
       self.trigger(eventName, arguments);
     });
   }
-
 });
 
 export default = World;

@@ -45,7 +45,7 @@ var WorldRenderer = defineClass(function(){}, {
   },
 
   onWorld: function(renderer) {
-    this.renderOnWorld.push(new renderer());
+    this.renderOnWorld.push(new renderer(this.world));
   },
 
   onEntity: function(entity, renderer, params) {

@@ -5,7 +5,7 @@ var Renderer = function(entity, options) {
   this.entity = entity;
   this.options_ = options;
 
-  proxyMethodsTo.call(this, ['get'], this.entity);
+  proxyMethodsTo.call(this, ['get', 'getWorld'], this.entity);
 };
 
 Renderer.prototype.render = function(delta) {

@@ -13,7 +13,7 @@ var PlayerRenderer = Renderer.define({
         child.visible = nowVisible;
       });
 
-      if (playerId != id) {
+      if (this.getWorld().get('currentPlayerId') != id) {
         players[id].overlay.obj.visible = nowVisible;
       }
     }

@@ -1,12 +1,19 @@
 import Entity from '../core/entity';
 import Vector3Copy from '../behaviors/vector3_copy_behavior';
 import Splash from '../entities/splash';
+import Actor from '../core/actor';
 import { entity } from '../core/game';
 
 var Player = Entity.define({
   behaviors: [
-    [Vector3Copy,    { keys: ['position', 'rotation', 'velocity'] }]
+    [Vector3Copy, { keys: ['position', 'rotation', 'velocity'] }]
   ],
+
+  // actor: {
+  //   typeName:   'player',
+  //   role:       global.isNode ? Actor.Role.AUTHORITY : Actor.Role.SIMULATED,
+  //   remoteRole: global.isNode ? Actor.Role.SIMULATED : Actor.Role.AUTHORITY
+  // },
 
   initialize: function Player() {
     this.lastPositionVector = new THREE.Vector3();

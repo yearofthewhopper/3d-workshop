@@ -25,6 +25,7 @@ import ExplosionRenderer from 'renderers/entity/explosion_renderer';
 import Player from 'entities/player';
 import PlayerRenderer from 'renderers/entity/player_renderer';
 import DustRenderer from 'renderers/entity/dust_renderer';
+import OverlayRenderer from 'renderers/entity/overlay_renderer';
 
 import Projectile from 'entities/projectile';
 import ProjectileRenderer from 'renderers/entity/projectile_renderer';
@@ -59,10 +60,10 @@ var FIRING_STATE_CHARGING = 1;
 var FIRING_STATE_FIRING = 2;
 
 var world = new World({
-  previousFirePower : 0,
-  firePower : 0,
-  firingState : FIRING_STATE_NONE,
-  fireTimer : 0
+  previousFirePower: 0,
+  firePower: 0,
+  firingState: FIRING_STATE_NONE,
+  fireTimer: 0
 });
 
 var worldRenderer = new WorldRenderer(world);
@@ -70,8 +71,6 @@ var worldRenderer = new WorldRenderer(world);
 world.on('explosion', function(data) {
   world.add(new Explosion(data));
 });
-
-window.playerId = null;
 
 window.gunCamera = null;
 window.gunCameraRenderTarget = null;
@@ -189,31 +188,7 @@ function createPlayer(playerData) {
   world.add(p);
   
   // add the health bar to all other players
-  if(newPlayer.id != playerId){
-    var overlayCanvas = makeCanvas(100, 20);
-    var ctx = overlayCanvas.getContext("2d");
-
-    var overlayTexture = new THREE.Texture(overlayCanvas);
-    overlayTexture.needsUpdate = true;
-
-    var overlaygeom = new THREE.PlaneGeometry(50, 10);
-    var overlaymaterial = new THREE.MeshBasicMaterial({
-      map : overlayTexture,
-      transparent:true
-    });
-    
-    var overlay = new THREE.Mesh(overlaygeom, overlaymaterial);
-    overlay.rotation.y = -Math.PI;
-    overlay.position.y = 50;
-    scene.add(overlay);
-
-    newPlayer.overlay = {
-      texture : overlayTexture,
-      canvas : overlayCanvas,
-      material : overlaymaterial,
-      obj : overlay,
-    };
-  } else {
+  if (newPlayer.id == world.get('currentPlayerId')) {
     gunCamera.rotation.y = -Math.PI;
     gunCamera.position.x = 3;
     gunCamera.position.z = 1.0;
@@ -226,7 +201,7 @@ function createPlayer(playerData) {
 }
 
 // function createProjectile(projectile) {
-//   if (projectile.owner == playerId){
+//   if (projectile.owner == world.get('currentPlayerId')){
 //     world.set('firingState', FIRING_STATE_FIRING);
 //   }
 
@@ -247,11 +222,6 @@ function updatePlayer(player) {
 
   var velocity = playerInstance.getVelocityVector();
 
-  if (players[player.id].overlay){
-    players[player.id].overlay.obj.position.fromArray(player.position);
-    players[player.id].overlay.obj.position.y += 50;
-  }
-
   players[player.id].turret.rotation.y = player.turretAngle;
 
   players[player.id].driving = player.driving;
@@ -264,43 +234,20 @@ function updatePlayer(player) {
   players[player.id].obj.lookAt(players[player.id].forward.clone().add(players[player.id].obj.position));
 
   players[player.id].health = player.health;
-  if (player.id !== playerId) {
-    updateOverlay(players[player.id]);
-  }
-}
-
-function updateOverlay( player ){
-  var canvas = player.overlay.canvas;
-
-  var ctx = player.overlay.canvas.getContext("2d");
-
-  //ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "red";
-  ctx.fillRect(0, 0, Math.max(0, player.health/100 * canvas.width), canvas.height);
-  
-  player.overlay.texture.needsUpdate = true;
 }
 
 function updateGameState(state) {
   gameState = state;
   mapObject(updatePlayer, gameState.players);
-  mapObject(function(p) { return world.syncEntity(Projectile, p); }, gameState.projectiles);
 
-  updateTerrainChunks();
+  updateTerrainChunks(world);
 }
 
-function projectileExplode(id) {
-  if (playerId == id){
-    world.set('firingState', FIRING_STATE_NONE);
-  }
-
-  var projectile = world.getEntity(Projectile, id);
-  projectile.trigger('explode');
-  world.remove(projectile);
-  delete gameState.projectiles[id];
-}
+// function projectileExplode(id) {
+//   if (world.get('currentPlayerId') == id){
+//     world.set('firingState', FIRING_STATE_NONE);
+//   }
+// }
 
 function initSocket() {
   socket = io.connect();
@@ -310,9 +257,9 @@ function initSocket() {
   socket.on('welcome', function(data) {
     //console.log('game state ', data);
     playerId = data.id;
+    world.set('currentPlayerId', data.id);
     gameState = data.state;
     mapObject(createPlayer, gameState.players);
-    // mapObject(createProjectile, gameState.projectiles);
   });
 
   socket.on('playerJoin', function(data) {
@@ -323,15 +270,10 @@ function initSocket() {
   socket.on('playerUpdate', updatePlayer);
   socket.on('loopTick', updateGameState);
 
-  // socket.on('projectileAppear', createProjectile);
-  socket.on('projectileExplode', projectileExplode);
-
   socket.on('playerDisconnect', function(id) {
     console.log("Player removed.");
-    projectileExplode(id);
     var oldPlayer = players[id];
     scene.remove(oldPlayer.obj);
-    scene.remove(oldPlayer.overlay.obj);
     delete gameState.players[id];
     delete players[id];
   });
@@ -371,8 +313,9 @@ function init(){
   worldRenderer.onEntity(Explosion, PlaySound,         { soundName: 'explosion', onEvent: 'didInitialize', position: entity('position') });
   worldRenderer.onEntity(Explosion, ExplosionRenderer, { position: entity('position'), color: entity('color') });
   
-  worldRenderer.onEntity(Player, PlayerRenderer, {}, entity('visible'));
-  worldRenderer.onEntity(Player, DustRenderer,   { position: entity('position') }, entity('driving'));
+  worldRenderer.onEntity(Player, PlayerRenderer,  {}, entity('visible'));
+  worldRenderer.onEntity(Player, DustRenderer,    { position: entity('position') }, entity('driving'));
+  worldRenderer.onEntity(Player, OverlayRenderer, {});
 
   worldRenderer.onEntity(Projectile, ProjectileRenderer, { position: entity('position'), color: ref('color') });
   worldRenderer.onEntity(Projectile, PlaySound,          { soundName: 'fire', onEvent: 'didInitialize', position: entity('position') });

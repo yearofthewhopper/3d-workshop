@@ -14,7 +14,9 @@ window.chunkUpdateCount = 0;
 window.terrainChunks = {
 };
 
-function TerrainRenderer() {
+function TerrainRenderer(world) {
+  this.world = world;
+
   layerTextures[0] = THREE.ImageUtils.loadTexture("textures/terrain/tile_rock.png");
   layerTextures[1] = THREE.ImageUtils.loadTexture("textures/terrain/tile_dirt.png");
   layerTextures[2] = THREE.ImageUtils.loadTexture("textures/terrain/tile_grass.png");
@@ -80,7 +82,8 @@ var updateModifiedTerrainChunks = window.updateModifiedTerrainChunks = function 
   }
 }
 
-var updateTerrainChunks = window.updateTerrainChunks = function updateTerrainChunks(){
+var updateTerrainChunks = window.updateTerrainChunks = function updateTerrainChunks(world){
+  var currentPlayerId = world.get('currentPlayerId');
 
   var terrainResolution = terrain.worldUnitsPerDataPoint;
 
@@ -88,8 +91,8 @@ var updateTerrainChunks = window.updateTerrainChunks = function updateTerrainChu
   var viewDistanceMQ = 6000;
   var viewDistance = 24000;
 
-  var playerX = players[playerId].obj.position.x;
-  var playerZ = players[playerId].obj.position.z;
+  var playerX = players[currentPlayerId].obj.position.x;
+  var playerZ = players[currentPlayerId].obj.position.z;
 
   var startX = Math.floor(((playerX - viewDistance) / terrainResolution) / chunkSize);
   var startZ = Math.floor(((playerZ - viewDistance) / terrainResolution) / chunkSize);

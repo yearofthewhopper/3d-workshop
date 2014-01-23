@@ -8,7 +8,7 @@
 // PlayerSoundRenderer.prototype.createEntity = function(player) {
 //   var id = player.get('id');
 
-//   if (playerId !== id) {
+//   if (this.getWorld().get('currentPlayerId') !== id) {
 //     return;
 //   }
 
@@ -24,7 +24,7 @@
 // PlayerSoundRenderer.prototype.renderEntity = function(player) {
 //   var id = player.get('id');
 
-//   if (playerId !== id) {
+//   if (this.getWorld().get('currentPlayerId') !== id) {
 //     return;
 //   }
 

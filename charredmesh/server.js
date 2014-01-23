@@ -8,7 +8,7 @@ var Util = require("./dist/server/utils.js").Util;
 var Terrain = require("./dist/server/terrain.js").default;
 var nameData = require("./dist/server/names.js").default;
 var World = require("./dist/server/core/world.js").default;
-// var Player = require("./dist/server/entities/player.js").default;
+var Player = require("./dist/server/entities/player.js").default;
 var Projectile = require("./dist/server/entities/projectile.js").default;
 var NetworkServer = require("./dist/server/core/network/network_server.js").default;
 
@@ -428,9 +428,7 @@ function updatePlayer(player, delta) {
     if(player.respawnTimer <= 0){
       respawnPlayer(player);
     }
-  }
-
-  
+  }  
 }
 
 function respawnPlayer(player){
