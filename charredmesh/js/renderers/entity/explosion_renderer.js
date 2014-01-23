@@ -21,6 +21,9 @@ var ExplosionRenderer = Renderer.define({
 
   render: function(delta) {
     var time = this.entity.get('time');
+
+    if (time <= 0) { return; }
+
     var radius = Math.log(time * 1000) * 40;
 
     if (time > 0.5) {

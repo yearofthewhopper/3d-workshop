@@ -24,7 +24,34 @@ var Player = Entity.define({
     this.on('playerSpawned', function(data) {
       self.onPlayerSpawned(data.id)
     });
+
+    // this.on('playerFire', function(params) {
+    //   self.onPlayerFire(params);
+    // });
   },
+
+  // onPlayerFire: function(params) {
+  //   if (this.get('alive') && !gameState.projectiles[player.id]) {
+
+  //     var direction = player.barrelDirection.clone();
+
+  //     var position = player.position.clone();
+      
+  //     position.y += playerHeight;
+  //     position.add(direction.clone().multiplyScalar(barrelLength));
+      
+  //     var power = basePower + (params.power * basePower);
+
+  //     world.add(new Projectile({
+  //       owner: player.id,
+  //       position: position.toArray(),
+  //       velocity: direction.clone().multiplyScalar(power).toArray(),
+  //       bounces : 0,
+  //       state: "flying",
+  //       color: owner.color
+  //     }));
+  //   }
+  // },
 
   onPlayerDied: function(id) {
     if (id === this.get('id')) {

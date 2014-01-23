@@ -1,3 +1,5 @@
+import { EventEmitter } from '../vendor/EventEmitter';
+
 var EventManager = function() {
   this.emitter = new EventEmitter();
 };

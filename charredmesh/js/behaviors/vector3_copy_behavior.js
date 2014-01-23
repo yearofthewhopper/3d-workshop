@@ -1,5 +1,7 @@
 import Behavior from '../core/behavior';
 import { proxyMethodsTo, capitalize } from '../utils';
+import { _ } from 'underscore';
+import { THREE } from 'three';
 
 var Vector3Copy = Behavior.define({
   initialize: function Vector3Copy() {

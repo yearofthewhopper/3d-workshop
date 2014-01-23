@@ -39,11 +39,15 @@ module.exports = function(grunt) {
           shim: {
             'three': {
               exports: 'window'
+            },
+            'underscore': {
+              exports: 'window'
             }
           },
 
           paths: {
-            three: '../../node_modules/three/three'
+            three: '../../node_modules/three/three',
+            underscore: '../../node_modules/underscore/underscore'
           }
         }
       }
@@ -54,5 +58,5 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-es6-module-transpiler');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
-  grunt.registerTask('default', ['transpile:client', 'requirejs:dev', 'transpile:server']);
+  grunt.registerTask('default', ['transpile:client', 'transpile:server', 'requirejs:dev']);
 };

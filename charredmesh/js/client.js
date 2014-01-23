@@ -1,6 +1,7 @@
 import { entity, ref } from 'core/game';
 import World from 'core/world';
 import WorldRenderer from 'core/world_renderer';
+import NetworkClient from 'core/network/network_client';
 import KeyboardHandler from 'keyhandler';
 import SoundEngine from 'sound';
 import Sun from 'entities/sun';
@@ -11,6 +12,7 @@ import TerrainRenderer from 'renderers/world/terrain_renderer';
 import ChaseCamRender from 'renderers/world/chase_cam_renderer';
 import StatsRenderer from 'renderers/world/stats_renderer';
 import Player from 'entities/player';
+import Actor from './core/actor';
 
 import PlaySound from 'renderers/entity/play_sound_behavior';
 
@@ -64,6 +66,10 @@ var world = new World({
 });
 
 var worldRenderer = new WorldRenderer(world);
+
+world.on('explosion', function(data) {
+  world.add(new Explosion(data));
+});
 
 window.playerId = null;
 
@@ -219,13 +225,13 @@ function createPlayer(playerData) {
   players[newPlayer.id] = newPlayer;
 }
 
-function createProjectile(projectile) {
-  if (projectile.owner == playerId){
-    world.set('firingState', FIRING_STATE_FIRING);
-  }
+// function createProjectile(projectile) {
+//   if (projectile.owner == playerId){
+//     world.set('firingState', FIRING_STATE_FIRING);
+//   }
 
-  world.add(new Projectile(projectile));
-}
+//   world.add(new Projectile(projectile));
+// }
 
 function updatePlayer(player) {
   players[player.id].barrelDirection.fromArray(player.barrelDirection);
@@ -299,16 +305,14 @@ function projectileExplode(id) {
 function initSocket() {
   socket = io.connect();
 
-  socket.on('actor:update', function(data) {
-    debugger;
-  });
+  new NetworkClient(world, socket, Actor.byName);
 
   socket.on('welcome', function(data) {
     //console.log('game state ', data);
     playerId = data.id;
     gameState = data.state;
     mapObject(createPlayer, gameState.players);
-    mapObject(createProjectile, gameState.projectiles);
+    // mapObject(createProjectile, gameState.projectiles);
   });
 
   socket.on('playerJoin', function(data) {
@@ -319,7 +323,7 @@ function initSocket() {
   socket.on('playerUpdate', updatePlayer);
   socket.on('loopTick', updateGameState);
 
-  socket.on('projectileAppear', createProjectile);
+  // socket.on('projectileAppear', createProjectile);
   socket.on('projectileExplode', projectileExplode);
 
   socket.on('playerDisconnect', function(id) {

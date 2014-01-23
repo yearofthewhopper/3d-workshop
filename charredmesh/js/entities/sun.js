@@ -4,7 +4,7 @@ import { ref } from '../core/game';
 
 var Sun = Entity.define({
   behaviors: [
-    [AddDelta,    { varName: 'time' }]
+    // [AddDelta,    { varName: 'time' }]
   ],
 
   initialize: function Sun() {

@@ -1,0 +1,16 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+            "folder_exclude_patterns": ["dist", ".sass-cache", "tmp", "node_modules", "bower_components"],
+            "file_exclude_patterns": [".gitignore", "*.sublime-workspace", ".bowerrc"]
+		}
+	],
+
+    "settings":
+    {
+        "tab_size": 2,
+        "translate_tabs_to_spaces": true
+    }
+}

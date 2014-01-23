@@ -1,9 +1,16 @@
+import { _ } from 'underscore';
+
 var Util = {};
 
 function proxyMethodsTo(methods, target) {
   for (var i = 0; i < methods.length; i++) {
     var method = methods[i];
-    this[method] = _.bind(target[method], target);
+
+    if (target[method]) {
+      this[method] = _.bind(target[method], target);
+    } else {
+      console.log('missing bind', target, method);
+    }
   }
 }
 

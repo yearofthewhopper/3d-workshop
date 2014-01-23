@@ -1,3 +1,5 @@
+global.isNode = true;
+
 var express = require('express');
 var http = require('http');
 var THREE = require("three");
@@ -5,10 +7,16 @@ var PNG = require('png-js');
 var Util = require("./dist/server/utils.js").Util;
 var Terrain = require("./dist/server/terrain.js").default;
 var nameData = require("./dist/server/names.js").default;
+var World = require("./dist/server/core/world.js").default;
+// var Player = require("./dist/server/entities/player.js").default;
 var Projectile = require("./dist/server/entities/projectile.js").default;
+var NetworkServer = require("./dist/server/core/network/network_server.js").default;
 
 var terrainData;
-var terrain = new Terrain();
+var terrain = global.terrain = new Terrain();
+
+var world = new World();
+var network = new NetworkServer(world);
 
 var SEA_LEVEL       = 40;
 
@@ -25,7 +33,6 @@ var playerHeight    = 17;
 var maxHealth       = 100;
 var maxDamage       = 50;
 var minEarthLevel   = 0;
-var explosionRadius = 450;
 
 var animalNames = nameData.animals;
 var colorNames = nameData.colors;
@@ -105,7 +112,6 @@ function makeGameState() {
   return {
     worldBounds: new THREE.Vector3(terrain.worldUnitsPerDataPoint * 1024, 1028, terrain.worldUnitsPerDataPoint * 1024),
     players: {},
-    projectiles: {},
     colorPool: colorPool
   };
 }
@@ -174,21 +180,6 @@ function makePlayer(socket) {
   }
 }
 
-function makeProjectile(owner, position, direction, power) {
-  var params = {
-    id: owner,
-    owner: owner,
-    position: position,
-    velocity: direction.clone().multiplyScalar(power),
-    bounces : 0,
-    state: "flying"
-  };
-
-  // var p = addActor(Projectile, params);
-
-  return params;
-}
-
 function mapObject(f, m) {
   var out = {};
   for (var key in m) {
@@ -220,21 +211,10 @@ function serializePlayer(player) {
   }
 }
 
-function serializeProjectile(projectile) {
-  return {
-    id: projectile.id,
-    owner: projectile.owner,
-    position: projectile.position.toArray(),
-    velocity: projectile.velocity.toArray(),
-    state: projectile.state
-  }
-}
-
 function serializeGameState(gameState) {
   return {
     worldBounds: gameState.worldBounds.toArray(),
-    players: mapObject(serializePlayer, gameState.players),
-    projectiles: mapObject(serializeProjectile, gameState.projectiles)
+    players: mapObject(serializePlayer, gameState.players)
   }
 }
 
@@ -248,7 +228,9 @@ var xAxis = new THREE.Vector3(1, 0, 0);
 var yAxis = new THREE.Vector3(0, 1, 0);
 var zAxis = new THREE.Vector3(0, 0, 1);
 
-socketio.sockets.on('connection', function (socket) {
+socketio.sockets.on('connection', function(socket) {
+  network.addConnection(socket);
+
   var player = makePlayer(socket);
   gameState.players[player.id] = player;
   socket.emit('welcome', {
@@ -263,7 +245,7 @@ socketio.sockets.on('connection', function (socket) {
   });
 
   socket.on('playerFire', function(params) {
-    if (player.alive && !gameState.projectiles[player.id]) {
+    if (player.alive) {// && !gameState.projectiles[player.id]) {
       
       /*
       var direction = zAxis.clone();
@@ -277,22 +259,24 @@ socketio.sockets.on('connection', function (socket) {
       
       position.y += playerHeight;
       position.add(direction.clone().multiplyScalar(barrelLength));
-      var projectile = makeProjectile(
-        player.id, 
-        position,
-        direction,
-        basePower + (params.power * basePower)
-      );
+      
+      var power = basePower + (params.power * basePower);
 
-      gameState.projectiles[player.id] = projectile;
-      broadcast('projectileAppear', serializeProjectile(projectile));
+      world.add(new Projectile({
+        owner: player.id,
+        position: position.toArray(),
+        velocity: direction.clone().multiplyScalar(power).toArray(),
+        bounces : 0,
+        state: "flying",
+        color: player.color
+      }));
     }
   });
 
   socket.on('disconnect', function() {
+    network.removeConnection(socket);
     console.log("Player disconnected!");
     delete gameState.players[player.id];
-    delete gameState.projectiles[player.id];
     broadcast('playerDisconnect', player.id);
   });
 });
@@ -461,131 +445,11 @@ function respawnPlayer(player){
 
 }
 
-function collidesWithEarth(projectile) {
-  return projectile.position.y <= terrain.getGroundHeight(projectile.position.x, projectile.position.z) || projectile.position.y < minEarthLevel;
-}
-
-function removeProjectile(projectile) {
-  delete gameState.projectiles[projectile.owner];
-  broadcast("projectileExplode", projectile.owner);
-}
-
-function collidesWithPlayer(projectile) {
-  var collision = projectile.position.clone();
-  collision.y += playerHeight * 0.5;
-  for (var id in gameState.players) {
-    if (gameState.players.hasOwnProperty(id)) {
-      if(gameState.players[id].alive){
-        var distance = gameState.players[id].position.distanceTo(collision);
-        if (distance < playerHeight * 0.5) return true;
-      }
-    }
-  }
-}
-
-function projectileDamage(projectile) {
-  var collision = projectile.position.clone();
-  collision.y += playerHeight * 0.5;
-  
-  mapObject(function(player) {
-    if(player.alive){
-      var distance = player.position.distanceTo(collision);
-      
-      if (distance < explosionRadius) {
-        player.health -= maxDamage * (1 - (distance / explosionRadius));
-        player.health = Math.max(player.health, 0);
-        
-        if(player.health <= 0){
-          if(player.id == projectile.owner) {
-            gameState.players[projectile.owner].score -= 5;
-          } else {
-            gameState.players[projectile.owner].score++;
-          }
-        }
-      }
-    }
-  }, gameState.players);
-}
-
-function updateProjectile(projectile, delta) {
-
-  projectile.velocity.add(gravity.clone().add(wind));
-  projectile.position.add(projectile.velocity.clone().multiplyScalar(delta));
-
-  var groundHeight = terrain.getGroundHeight(projectile.position.x, projectile.position.z);
-  
-  if(projectile.position.y < 0 || projectile.position.y < groundHeight) {
-    var normal = terrain.getGroundNormal(projectile.position.x, projectile.position.z);
-
-    projectile.position.y = groundHeight;
-    projectile.velocity.reflect( normal );
-    projectile.velocity.negate();
-    console.log("Post-reflect:", projectile.velocity.toArray() );
-    projectile.velocity.multiplyScalar(0.6);
-    
-    projectile.bounces++;
-  }
-
-  if(projectile.bounces > 0){
-     projectile.position.y = Math.max(groundHeight + 1, projectile.position.y);
-     projectileDamage(projectile);
-     makeCrater(projectile.position, explosionRadius / 1.5);
-     removeProjectile(projectile);
-  }
-  /*
-   if (collidesWithEarth(projectile) || collidesWithPlayer(projectile)) {
-    projectileDamage(projectile);
-    makeCrater(projectile.position, explosionRadius / 1.5);
-    removeProjectile(projectile);
-  }
-  */
-}
-
-function updateAllProjectiles(delta) {
-  mapObject(function(projectile) {
-    updateProjectile(projectile, delta)
-  }, gameState.projectiles);
-}
-
 function updateAllPlayers(delta) {
   mapObject(function(player) {
     updatePlayer(player, delta)
   }, gameState.players);
 }
-
-// var entities = {};
-
-// function actorUpdate(op, guid, params) {
-//   socketio.sockets.emit('actor:update', { op: op, guid: guid, params: params });
-// }
-
-// function addEntity(klass, params) {
-//   var entity = new klass(params);
-
-//   actorUpdate('create', entity.guid(), entity.getRawState());
-
-//   entities[entity.guid()] = entities;
-
-//   return entity;
-// }
-
-// function removeEntity(actor) {
-//   var guid = actor.guid();
-//   delete entities[guid];
-//   actorUpdate('remove', guid);
-// }
-
-// function tickEntities() {
-//   for (var key in entities) {
-//     if (entities.hasOwnProperty(key)) {
-//       var actor = entities[key];
-//       if (entity.actor.isDirty) {
-//         actorUpdate('update', entity.guid(), entity.getRawState());
-//         entity.actor.sentActorUpdate();
-//       }
-//     }
-//   }
-// }
 
 function startGameLoop() {
   var previousTime = new Date().getTime();
@@ -597,56 +461,11 @@ function startGameLoop() {
     time = new Date().getTime();
     delta = (time - previousTime) * 0.001;
     updateAllPlayers(delta);
-    updateAllProjectiles(delta);
-
-    // tickEntities();
+ 
+    world.tick(delta);
+    network.sync(delta);
     socketio.sockets.emit('loopTick', serializeGameState(gameState));
   }, 32);
 }
 
 startGameLoop();
-
-function makeCrater(position, radius) {
-
-  var samplePos = new THREE.Vector3();
-  var changeCount = 0;
-  
-  var gridRadius = Math.round(terrain.worldToTerrain(radius));
-
-  var dirtyChunks = {};
-
-  var dx = Math.floor(terrain.worldToTerrain(position.x) - gridRadius);
-  var dy = Math.floor(terrain.worldToTerrain(position.z) - gridRadius);
-  var dw = Math.floor(terrain.worldToTerrain(radius*2));
-  var dh = dw;
-
-  if( (dx < 0) || ((dx+dw) >= terrain.terrainDataWidth) || (dy < 0) || ((dy+dh) >= terrain.terrainDataHeight)){
-    return;
-  }
-
-  for(var y = -gridRadius; y < gridRadius+1; y++){
-    var worldY = terrain.terrainToWorld(y);
-    for(var x = -gridRadius; x < gridRadius+1; x++){
-
-      var worldX = terrain.terrainToWorld(x);
-      samplePos.set(worldX+position.x, terrain.getGroundHeight(worldX+position.x, worldY+position.z), worldY+position.z);
-      
-      var dst = position.distanceTo(samplePos);
-
-      if(dst < radius) {
-        if(dst > 0){
-          var depth =  Math.cos( dst/radius * (Math.PI / 2));
-          terrain.setGroundHeight(samplePos.x, samplePos.z, Math.max(0, samplePos.y - (depth * 50)));
-        } 
-      }
-    }
-  }
-
-
-
-  var f = terrain.getDataRegion(dx,dy,dw,dh);
-  terrain.updateNormals(f);
-  console.log(f);
-  socketio.sockets.emit("terrainUpdate", f );
-  //console.log("Terrain change: " + (w*h));
-}

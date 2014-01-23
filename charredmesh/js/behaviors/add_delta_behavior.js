@@ -14,7 +14,7 @@ var AddDelta = Behavior.define({
       this.disable();
       return;
     }
-    
+
     this.set(varName, time + delta);
   },
 

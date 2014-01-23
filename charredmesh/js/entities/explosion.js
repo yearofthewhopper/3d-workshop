@@ -1,6 +1,7 @@
 import Entity from '../core/entity';
 import Vector3Copy from '../behaviors/vector3_copy_behavior';
 import AddDelta from '../behaviors/add_delta_behavior';
+import Actor from '../core/actor';
 import { entity } from '../core/game';
 
 var Explosion = Entity.define({

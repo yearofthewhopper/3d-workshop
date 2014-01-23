@@ -1,3 +1,5 @@
+import AddDelta from '../behaviors/add_delta_behavior';
+
 var BehaviorManager = function(entity) {
   this.entity = entity;
   this.behaviorDefinitions = [];
@@ -28,7 +30,7 @@ BehaviorManager.prototype.checkGuards = function() {
     if (this.behaviors.hasOwnProperty(key)) {
       var behavior = this.behaviors[key];
       var behaviorGuard = this.behaviorGuards[key];
-      var guardResult = behaviorGuard.call(behavior);
+      var guardResult = 'function' === typeof behaviorGuard ? behaviorGuard.call(behavior) : behaviorGuard;
 
       if (behavior.isActive() && !guardResult) {
         behavior.disable();
@@ -57,7 +59,7 @@ BehaviorManager.prototype.addBehaviors = function(behaviors) {
 
 BehaviorManager.prototype.setupBehavior = function(behavior, guard) {
   this.behaviors[behavior.uid] = behavior;
-  this.behaviorGuards[behavior.uid] = guard || function() { return true; };
+  this.behaviorGuards[behavior.uid] = 'undefined' !== typeof guard ? guard : true;
 };
 
 BehaviorManager.prototype.setup = function() {
@@ -68,6 +70,8 @@ BehaviorManager.prototype.setup = function() {
       def[2]
     );
   }
+
+  this.checkGuards();
 };
 
 BehaviorManager.prototype.destroy = function() {

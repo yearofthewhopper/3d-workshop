@@ -1,8 +1,9 @@
-import { defineClass } from 'core/game';
-import Entity from 'core/entity';
-import EventManager from 'core/event_manager';
-import StateManager from 'core/state_manager';
-import { proxyMethodsTo } from 'utils';
+import { defineClass } from './game';
+import Entity from './entity';
+import Explosion from '../entities/explosion';
+import EventManager from './event_manager';
+import StateManager from './state_manager';
+import { proxyMethodsTo } from '../utils';
 
 var World = defineClass(Entity, {
   initialize: function(params) {
@@ -15,6 +16,15 @@ var World = defineClass(Entity, {
     proxyMethodsTo.call(this, ['get', 'set', 'sync'], this.stateManager);
 
     this.sync(params);
+  },
+
+  mapEntities: function(iterator) {
+    for (var key in this.entities) {
+      if (this.entities.hasOwnProperty(key)) {
+        var e = this.entities[key];
+        return iterator(e);
+      }
+    }
   },
 
   getEntity: function(type, id) {
@@ -33,7 +43,7 @@ var World = defineClass(Entity, {
 
   remove: function(entity) {
     delete this.entities[entity.guid()];
-    entity.trigger('didRemoveFromWorld');    
+    entity.trigger('didRemoveFromWorld');
     this.trigger('removeFromWorld', [entity]);
   },
 
@@ -48,18 +58,20 @@ var World = defineClass(Entity, {
 
   trigger: function(eventName, data) {
     this.eventManager.trigger.apply(this.eventManager, arguments);
-    this.forwardTriggerToEntities.apply(this, arguments);
+    this.forwardTriggerToEntities(eventName, data);
   },
 
-  forwardTriggerToEntities: function(eventName) {
+  forwardTriggerToEntities: function(eventName, data) {
     if (['addToWorld', 'removeFromWorld'].indexOf(eventName) > -1) {
       return;
     }
-    
+
+    this.eventManager.trigger('worldEvent', [{ eventName: eventName, data: data[0] }]);
+
     for (var key in this.entities) {
       if (this.entities.hasOwnProperty(key)) {
         var e = this.entities[key];
-        e.trigger.apply(e, arguments);
+        e.trigger(eventName, data);
       }
     }
   },

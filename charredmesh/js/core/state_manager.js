@@ -1,4 +1,5 @@
 import { proxyMethodsTo } from '../utils';
+import { _ } from 'underscore';
 
 var StateManager = function(entity) {
   this.entity = entity;
