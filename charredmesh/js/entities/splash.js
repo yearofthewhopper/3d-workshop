@@ -1,12 +1,10 @@
 import Entity from '../core/entity';
-import Vector3Copy from '../behaviors/vector3_copy_behavior';
 import AddDelta from '../behaviors/add_delta_behavior';
 import { entity } from '../core/game';
 
 var Splash = Entity.define({
   behaviors: [
-    [Vector3Copy,    { keys: ['position'] }],
-    [AddDelta,       { varName: 'time', max: 2, eventName: 'splashComplete' }]
+    [AddDelta, { varName: 'time', max: 2, eventName: 'splashComplete' }]
   ],
 
   initialize: function Splash() {

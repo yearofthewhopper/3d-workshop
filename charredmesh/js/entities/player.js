@@ -32,6 +32,10 @@ var Player = Entity.define({
       self.onPlayerSpawned(data.id)
     });
 
+    // this.on('explosion', function() {
+    //   self.projectileDamage();
+    // });
+
     // this.on('playerFire', function(params) {
     //   self.onPlayerFire(params);
     // });
@@ -58,6 +62,30 @@ var Player = Entity.define({
   //       color: owner.color
   //     }));
   //   }
+  // },
+
+  // projectileDamage: function() {
+  //   var collision = new THREE.Vector3().fromArray(this.get('position'));
+  //   collision.y += playerHeight * 0.5;
+    
+  //   mapObject(function(player) {
+  //     if(player.alive){
+  //       var distance = player.position.distanceTo(collision);
+        
+  //       if (distance < explosionRadius) {
+  //         player.health -= maxDamage * (1 - (distance / explosionRadius));
+  //         player.health = Math.max(player.health, 0);
+          
+  //         if(player.health <= 0){
+  //           if(player.id == projectile.owner) {
+  //             gameState.players[projectile.owner].score -= 5;
+  //           } else {
+  //             gameState.players[projectile.owner].score++;
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }, gameState.players);
   // },
 
   onPlayerDied: function(id) {

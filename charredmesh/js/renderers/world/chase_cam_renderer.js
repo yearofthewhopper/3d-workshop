@@ -67,4 +67,7 @@ ChaseCamRender.prototype.render = function chaseCamRender() {
   skyDome.position.y = 0;
 };
 
+ChaseCamRender.prototype.resize = function chaseCamRender() {
+};
+
 export default = ChaseCamRender;

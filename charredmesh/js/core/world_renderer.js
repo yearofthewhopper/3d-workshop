@@ -54,9 +54,11 @@ var WorldRenderer = defineClass(function(){}, {
     this.renderOnEntity[id].push([renderer, params]);
   },
 
-  render: function(delta) {
+  collectRenderers: function() {
+    var renderers = [];
+
     for (var i = 0; i < this.renderOnWorld.length; i++) {
-      this.renderOnWorld[i].render(delta);
+      renderers.push(this.renderOnWorld[i]);
     }
 
     for (var classId in this.activeRenderers) {
@@ -67,16 +69,30 @@ var WorldRenderer = defineClass(function(){}, {
             var entityRenderers = classRenderers[entityId];
             for (var rendererId in entityRenderers) {
               if (entityRenderers.hasOwnProperty(rendererId)) {
-                var renderer = entityRenderers[rendererId];
-                renderer.render(delta);
+                renderers.push(entityRenderers[rendererId]);
               }
             }
           }
         }
       }
     }
-  }
 
+    return renderers;
+  },
+
+  render: function(delta) {
+    var renderers = this.collectRenderers();
+    for (var i = 0; i < renderers.length; i++) {
+      renderers[i].render(delta);
+    }
+  },
+
+  resize: function(delta) {
+    var renderers = this.collectRenderers();
+    for (var i = 0; i < renderers.length; i++) {
+      renderers[i].resize();
+    }
+  }
 });
 
 export default = WorldRenderer;

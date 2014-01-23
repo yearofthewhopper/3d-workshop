@@ -34,5 +34,6 @@ function SkyRenderer(world) {
 };
 
 SkyRenderer.prototype.render = function() {};
+SkyRenderer.prototype.resize = function() {};
 
 export default = SkyRenderer;

@@ -11,6 +11,9 @@ var Renderer = function(entity, options) {
 Renderer.prototype.render = function(delta) {
 };
 
+Renderer.prototype.resize = function() {
+};
+
 Renderer.prototype.getOption = function(name) {
   var ref = this.options_[name];
 

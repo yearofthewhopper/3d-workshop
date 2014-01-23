@@ -23,4 +23,6 @@ StatsRender.prototype.render = function() {
   $("#stats").html(stats.join("<br>"));
 };
 
+StatsRender.prototype.resize = function() {};
+
 export default = StatsRender;

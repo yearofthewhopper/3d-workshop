@@ -49,20 +49,24 @@ var World = defineClass(Entity, {
 
   trigger: function(eventName, data) {
     this.eventManager.trigger.apply(this.eventManager, arguments);
-    this.forwardTriggerToEntities(eventName, data);
+    this.forwardTriggerToEntities(eventName, data && data[0], data && data[1]);
   },
 
-  forwardTriggerToEntities: function(eventName, data) {
+  forwardTriggerToEntities: function(eventName, data, isNetworkEvent) {
     if (['addToWorld', 'removeFromWorld'].indexOf(eventName) > -1) {
       return;
     }
 
-    this.eventManager.trigger('worldEvent', [{ eventName: eventName, data: data ? data[0] : null }]);
+    this.eventManager.trigger('worldEvent', [{
+      eventName: eventName,
+      isNetworkEvent: isNetworkEvent || false,
+      data: data
+    }]);
 
     for (var key in this.entities) {
       if (this.entities.hasOwnProperty(key)) {
         var e = this.entities[key];
-        e.trigger(eventName, data);
+        e.trigger(eventName, [data]);
       }
     }
   },

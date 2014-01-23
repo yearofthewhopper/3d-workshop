@@ -4,9 +4,15 @@ var NetworkClient = function(world, socket, typeLookup) {
   this.typeLookup = typeLookup;
 
   var self = this;
-  this.socket.on('actor:operation', function(data) {
-    self.onOperation(data);
+  this.socket.on('actor:operations', function(data) {
+    self.onOperations(data);
   });
+};
+
+NetworkClient.prototype.onOperations = function(data) {
+  for (var i = 0; i < data.length; i++) {
+    this.onOperation(data[i]);
+  }
 };
 
 NetworkClient.prototype.onOperation = function(data) {

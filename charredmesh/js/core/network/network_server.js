@@ -13,8 +13,8 @@ var NetworkServer = function(world) {
   });
 
   this.world.on('worldEvent', function(e) {
-    if (e.eventName.match(/^network\./)) {
-      self.addOperation('event', e.eventName.replace(/^network\./, ''), e.data);
+    if (e.isNetworkEvent) {
+      self.addOperation('event', e.eventName, e.data);
     }
   });
 };
@@ -41,21 +41,23 @@ NetworkServer.prototype.sync = function() {
     }
   }
 
-  for (var i = 0; i < this.pendingOperations.length; i++) {
-    this.broadcast('actor:operation', this.pendingOperations[i]);
-  }
+  if (this.pendingOperations.length > 0) {
+    this.broadcast('actor:operations', this.pendingOperations);
+    this.pendingOperations.length = 0;
 
-  this.pendingOperations.length = 0;
-
-  this.world.mapEntities(function(e) {
-    if (e.actor.isDirty) {
-      e.actor.becameClean();
+    for (var key in this.world.entities) {
+      if (this.world.entities.hasOwnProperty(key)) {
+        var e = this.world.entities[key];
+        if (e.actor.isDirty) {
+          e.actor.becameClean();
+        }
+      }
     }
-  });
+  }
 };
 
 NetworkServer.prototype.broadcast = function(eventName, params) {
-  console.log('broadcast', eventName, params);
+  // console.log('broadcast', eventName, params);
   for (var id in this.connections) {
     if (this.connections.hasOwnProperty(id)) {
       this.connections[id].emit(eventName, params);

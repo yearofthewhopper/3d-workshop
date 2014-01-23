@@ -283,7 +283,7 @@ function init(){
   keyboard = new KeyboardHandler(onKeyChange);
 
   window.addEventListener('resize', function() {
-    world.trigger('resize');
+    worldRenderer.resize();
   }, false);
 
   SoundEngine.initialize(function(){
