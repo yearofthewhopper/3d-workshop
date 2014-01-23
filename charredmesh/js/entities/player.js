@@ -89,4 +89,10 @@ var Player = Entity.define({
   }
 });
 
+Player.FIRING_STATE = {
+  NONE: 1,
+  CHARGING: 2,
+  FIRING: 3
+};
+
 export default = Player;

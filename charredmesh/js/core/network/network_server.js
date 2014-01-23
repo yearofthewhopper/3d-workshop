@@ -31,11 +31,15 @@ NetworkServer.prototype.removeConnection = function(socket) {
 
 NetworkServer.prototype.sync = function() {
   var self = this;
-  this.world.mapEntities(function(e) {
-    if (e.actor.isDirty) {
-      self.addOperation('update', e.actor.typeName, e.getRawState());
+
+  for (var key in this.world.entities) {
+    if (this.world.entities.hasOwnProperty(key)) {
+      var e = this.world.entities[key];
+      if (e.actor.isDirty) {
+        self.addOperation('update', e.actor.typeName, e.getRawState());
+      }
     }
-  });
+  }
 
   for (var i = 0; i < this.pendingOperations.length; i++) {
     this.broadcast('actor:operation', this.pendingOperations[i]);

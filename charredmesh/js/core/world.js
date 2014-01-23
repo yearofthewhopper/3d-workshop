@@ -18,15 +18,6 @@ var World = defineClass(Entity, {
     this.sync(params);
   },
 
-  mapEntities: function(iterator) {
-    for (var key in this.entities) {
-      if (this.entities.hasOwnProperty(key)) {
-        var e = this.entities[key];
-        return iterator(e);
-      }
-    }
-  },
-
   getEntity: function(type, id) {
     if (typeof type === 'string') {
       return this.entities[type + '_' + id];

@@ -3,6 +3,7 @@ import Vector3Copy from '../behaviors/vector3_copy_behavior';
 import ExplosionBehavior from '../behaviors/explosion_behavior';
 import DebrisBehavior from '../behaviors/debris_behavior';
 import ProjectilePhysicsBehavior from '../behaviors/projectile_physics_behavior';
+import Player from '../entities/player';
 import Actor from '../core/actor';
 import { entity, ref } from '../core/game';
 
@@ -31,7 +32,12 @@ var Projectile = Entity.define({
   },
 
   onExplode: function() {
-    if (!global.isNode) { return; }
+    if (!global.isNode) {
+      if (this.getWorld().get('currentPlayerId') === this.get('owner')) {
+        this.getWorld().set('firingState', Player.FIRING_STATE.NONE);
+      }
+      return;
+    }
 
     // this.projectileDamage();
     // this.makeCrater(explosionRadius / 1.5);

@@ -11,6 +11,7 @@ import SkyRenderer from 'renderers/world/sky_renderer';
 import TerrainRenderer from 'renderers/world/terrain_renderer';
 import ChaseCamRender from 'renderers/world/chase_cam_renderer';
 import StatsRenderer from 'renderers/world/stats_renderer';
+import HUDRenderer from 'renderers/world/hud_renderer';
 import Player from 'entities/player';
 import Actor from './core/actor';
 
@@ -44,7 +45,7 @@ window.renderer = null;
 window.camera = null;
 var element;
 window.point = null;
-var time;
+var time = 0;
 
 window.clock = null;
 
@@ -55,14 +56,10 @@ var keyboard;
 
 window.players = {};
 
-var FIRING_STATE_NONE = 0;
-var FIRING_STATE_CHARGING = 1;
-var FIRING_STATE_FIRING = 2;
-
 var world = new World({
   previousFirePower: 0,
   firePower: 0,
-  firingState: FIRING_STATE_NONE,
+  firingState: Player.FIRING_STATE.NONE,
   fireTimer: 0
 });
 
@@ -200,14 +197,6 @@ function createPlayer(playerData) {
   players[newPlayer.id] = newPlayer;
 }
 
-// function createProjectile(projectile) {
-//   if (projectile.owner == world.get('currentPlayerId')){
-//     world.set('firingState', FIRING_STATE_FIRING);
-//   }
-
-//   world.add(new Projectile(projectile));
-// }
-
 function updatePlayer(player) {
   players[player.id].barrelDirection.fromArray(player.barrelDirection);
 
@@ -242,12 +231,6 @@ function updateGameState(state) {
 
   updateTerrainChunks(world);
 }
-
-// function projectileExplode(id) {
-//   if (world.get('currentPlayerId') == id){
-//     world.set('firingState', FIRING_STATE_NONE);
-//   }
-// }
 
 function initSocket() {
   socket = io.connect();
@@ -340,7 +323,7 @@ function init(){
 
   worldRenderer.onWorld(ChaseCamRender);
   worldRenderer.onWorld(StatsRenderer);
-  // worldRenderer.onWorld(HUDRenderer)
+  worldRenderer.onWorld(HUDRenderer)
 
   world.add(sun);
   
@@ -354,17 +337,18 @@ function onKeyChange(code, state) {
   {
   case 32:
 
-    if(state && firingState == FIRING_STATE_NONE) {
+    if(state && firingState == Player.FIRING_STATE.NONE) {
       world.sync({
         'fireTimer': time,
-        'firingState': FIRING_STATE_CHARGING
+        'firingState': Player.FIRING_STATE.CHARGING
       });
     }
 
-    if(!state && firingState == FIRING_STATE_CHARGING) {
+    if(!state && firingState == Player.FIRING_STATE.CHARGING) {
       var firePower = world.get('firePower');
       world.set('previousFirePower', firePower);
-      socket.emit('playerFire', {"power" : firePower});
+      socket.emit('playerFire', { "power" : firePower });
+      world.set('firingState', Player.FIRING_STATE.FIRING);
     }
 
     input.fire = state;
@@ -421,20 +405,6 @@ function onFrame() {
   }
 
   worldRenderer.render(delta);
-}
-
-function makeCanvas(width, height){
-  var canvas = document.createElement("canvas");
-  
-  canvas.width = width;
-  canvas.height = height;
-
-  canvas.style.position = "absolute";
-  canvas.style.zIndex = 100000;
-
-  document.body.appendChild(canvas);
-
-  return canvas;
 }
 
 init();
