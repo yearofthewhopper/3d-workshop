@@ -1,21 +1,44 @@
 import Entity from '../core/entity';
 import Vector3Copy from '../behaviors/vector3_copy_behavior';
 import PlayerInputBehavior from '../behaviors/player_input_behavior';
+import PlayerControlsBehavior from '../behaviors/player_controls_behavior';
+import PlayerBehavior from '../behaviors/player_behavior';
 import Splash from '../entities/splash';
 import Actor from '../core/actor';
-import { entity } from '../core/game';
+import { entity, ref } from '../core/game';
 import { THREE } from 'three';
+
+// Compose API
+function isClient() { return !global.isNode; };
+function isServer() { return global.isNode; };
+function and(f, g) {
+  return function() {
+    return f.apply(this.arguments) && f.apply(this, arguments);
+  }
+}
+function or(f, g) {
+  return function() {
+    return f.apply(this.arguments) || f.apply(this, arguments);
+  }
+}
 
 var Player = Entity.define({
   behaviors: [
     [Vector3Copy, { keys: ['position', 'rotation', 'velocity'] }],
-    [PlayerInputBehavior, {}]
+    [PlayerInputBehavior, {}, isServer],
+    [PlayerControlsBehavior, {}, and(isClient, ref('isCurrentPlayer'))],
+    [PlayerBehavior, {}],
   ],
 
   actor: {
     typeName:   'player',
     role:       global.isNode ? Actor.Role.AUTHORITY : Actor.Role.AUTONOMOUS,
     remoteRole: global.isNode ? Actor.Role.AUTONOMOUS : Actor.Role.AUTHORITY
+  },
+
+  isCurrentPlayer: function() {
+    debugger;
+    return this.getWorld().get('currentPlayerId') === this.get('id');
   },
 
   initialize: function Player() {
@@ -39,34 +62,6 @@ var Player = Entity.define({
     // this.on('explosion', function() {
     //   self.projectileDamage();
     // });
-
-    this.on('fire', function(power) {
-      self.onPlayerFire(power);
-    });
-  },
-
-  onPlayerFire: function(params) {
-     // && !gameState.projectiles[player.id]
-    var barrelLength    = 60;
-
-    if (!this.get('alive')) { return; }
-
-    var direction = new THREE.Vector3().fromArray(this.get('barrelDirection'));
-    var position = new THREE.Vector3().fromArray(this.get('position'));
-    
-    position.y += playerHeight;
-    position.add(direction.clone().multiplyScalar(barrelLength));
-    
-    var power = basePower + (power * basePower);
-
-    this.getWorld().add(new Projectile({
-      owner: player.id,
-      position: this.get('position'),
-      velocity: direction.clone().multiplyScalar(power).toArray(),
-      bounces : 0,
-      state: "flying",
-      color: this.get('color')
-    }));
   },
 
   // projectileDamage: function() {
@@ -124,11 +119,5 @@ var Player = Entity.define({
     this.lastPosition = pos;
   }
 });
-
-Player.FIRING_STATE = {
-  NONE: 1,
-  CHARGING: 2,
-  FIRING: 3
-};
 
 export default = Player;

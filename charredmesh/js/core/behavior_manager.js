@@ -86,7 +86,8 @@ BehaviorManager.prototype.destroy = function() {
 };
 
 BehaviorManager.prototype.trigger = function(eventName, eventData) {
-  this.onActiveBehaviors('onMessage', arguments);
+  var args = [eventName].concat(eventData || []);
+  this.onActiveBehaviors('onMessage', args);
 };
 
 export default = BehaviorManager;

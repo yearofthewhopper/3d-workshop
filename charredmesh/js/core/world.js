@@ -32,6 +32,10 @@ var World = defineClass(Entity, {
     this.trigger('addToWorld', [entity]);
   },
 
+  createEntity: function(entityType, params) {
+    this.add(new entityType(params));
+  },
+
   remove: function(entity) {
     delete this.entities[entity.guid()];
     entity.trigger('didRemoveFromWorld');

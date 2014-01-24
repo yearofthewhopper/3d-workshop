@@ -1,9 +1,23 @@
 import Behavior from '../core/behavior';
-import Player from '../entities/player';
+import Projectile from '../entities/projectile';
+import { THREE } from 'three';
+
+var playerHeight = 17;
+var basePower    = 1000;
+var FIRING_STATE = {
+  NONE: 1,
+  CHARGING: 2,
+  FIRING: 3
+};
 
 var PlayerInputBehavior = Behavior.define({
   initialize: function PlayerInputBehavior() {
-    this.time = 0;
+    this.currentTime = 0;
+
+    this.previousFirePower = 0;
+    this.firePower = 0;
+    this.firingState = FIRING_STATE.NONE;
+    this.fireTimer = 0;
 
     this.input = {
       fire: false,
@@ -18,81 +32,76 @@ var PlayerInputBehavior = Behavior.define({
 
   onMessage: function(eventName, data) {
     if (eventName === 'playerInput') {
-      this.input = data;
-    } else if ((eventName === 'inputChange') && !global.isNode) {
-      if (this.get('id') === this.getWorld().get('currentPlayerId')) {
-        this.onInputChange(data[0].code, data[0].state);
-      }
-    } else if ((eventName === 'tick') && !global.isNode) {
+      this.onInput(data.eventName, data.state);
+    } else if (eventName === 'tick') {
       this.onTick(data);
+    } else if (eventName === 'explosion') {
+      this.onExplosion(data);
+    }
+  },
+
+  onInput: function(eventName, state) {
+    this.input[eventName] = state;
+
+    if (this.get('alive')) {
+      if (state && this.firingState == FIRING_STATE.NONE) {
+        this.fireTimer = this.currentTime;
+        this.firingState = FIRING_STATE.CHARGING;
+      }
+
+      if (!state && this.firingState == FIRING_STATE.CHARGING) {
+        this.fire();
+      }
+    }
+
+    this.trigger('inputUpdated', [this.input]);
+  },
+
+  fire: function() {
+    this.previousFirePower = this.firePower;
+    this.firingState = FIRING_STATE.FIRING;
+
+    var barrelLength = 60;
+
+    var direction = new THREE.Vector3().fromArray(this.get('barrelDirection'));
+    var position = new THREE.Vector3().fromArray(this.get('position'));
+    
+    position.y += playerHeight;
+    position.add(direction.clone().multiplyScalar(barrelLength));
+    
+    var power = basePower + (this.firePower * basePower);
+
+    this.createEntity(Projectile, {
+      owner: this.get('id'),
+      position: this.get('position'),
+      velocity: direction.clone().multiplyScalar(power).toArray(),
+      bounces: 0,
+      state: "flying",
+      color: this.get('color')
+    });
+
+    // For sounds, maybe?
+    this.getWorld().trigger('playerFire', [
+      {
+        position: this.get('position')
+      },
+      true // Network Event
+    ]);
+  },
+
+  onExplosion: function(explosion) {
+    if (this.get('id') === explosion.owner) {
+      this.firingState = FIRING_STATE.NONE;
     }
   },
 
   onTick: function(delta) {
-    this.time += delta;
+    this.currentTime += delta;
 
     if (this.input.fire) {
-      var firePower = Math.sin((time - this.getWorld().get('fireTimer')) + (3 * Math.PI / 2));
-      this.getWorld().set('firePower', (firePower + 1) / 2);
+      var firePower = Math.sin((this.currentTime - this.fireTimer) + (3 * Math.PI / 2));
+      this.firePower = (firePower + 1) / 2;
     }
-  },
-
-  onInputChange: function(code, state) {
-    var firingState = this.getWorld().get('firingState');
-    
-    switch(code) {
-    case 32:
-      if (state && firingState == Player.FIRING_STATE.NONE) {
-        this.getWorld().sync({
-          'fireTimer': time,
-          'firingState': Player.FIRING_STATE.CHARGING
-        });
-      }
-
-      if (!state && firingState == Player.FIRING_STATE.CHARGING) {
-        var firePower = this.getWorld().get('firePower');
-        this.getWorld().set('previousFirePower', firePower);
-        socket.emit('playerFire', { "power" : firePower });
-        this.getWorld().set('firingState', Player.FIRING_STATE.FIRING);
-      }
-
-      this.input.fire = state;
-      return;
-      break;
-    case 87: // W
-      this.input.forward = state;
-      break;
-    case 83: // S
-      this.input.back = state;
-      break;
-    case 65: // A
-      this.input.left = state;
-      break;
-    case 68: // D
-      this.input.right = state;
-      break;
-    case 82: // R
-    case 38: // Up arrow
-      this.input.up = state;
-      break;
-    case 70: // F
-    case 40: // down arrow
-      this.input.down = state;
-      break;
-
-    case 39: // right arrow
-      this.input.turretRight = state;
-      break;
-    
-    case 37: // left arrow
-      this.input.turretLeft = state;
-      break;
-    case 69: // e
-      this.input.aim = state;
-      break;
-    }
-    
-    socket.emit('playerInput', this.input);
   }
 });
 

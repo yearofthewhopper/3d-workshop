@@ -151,13 +151,13 @@ HUDRenderer.prototype.render = function() {
   ctx.fillRect(0, this.radar.canvas.height-20, this.radar.canvas.width, 20);
   
 
-  ctx.fillStyle = "rgba(200, 0, 0, 0.75)";
-  ctx.fillRect(this.radar.canvas.width * this.world.get('previousFirePower'), 0, 4, 20);
+  // ctx.fillStyle = "rgba(200, 0, 0, 0.75)";
+  // ctx.fillRect(this.radar.canvas.width * this.world.get('previousFirePower'), 0, 4, 20);
 
-  if (this.world.get('firingState') == Player.FIRING_STATE.CHARGING) {
-    ctx.fillStyle = "rgba(255, 0, 0, 1)";
-    ctx.fillRect(0, 0, this.radar.canvas.width * this.world.get('firePower'), 20);
-  }
+  // if (this.world.get('firingState') == Player.FIRING_STATE.CHARGING) {
+  //   ctx.fillStyle = "rgba(255, 0, 0, 1)";
+  //   ctx.fillRect(0, 0, this.radar.canvas.width * this.world.get('firePower'), 20);
+  // }
 
   var health = currentPlayer.get('health');
   var healthColor = interpolateColor(maxHealthColor, minHealthColor, health * 0.01);

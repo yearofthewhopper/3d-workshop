@@ -15,7 +15,7 @@ var PhysicsBehavior = Behavior.define({
 
   onMessage: function(eventName, data) {
     if (eventName === 'tick') {
-      this.tick.apply(this, data);
+      this.tick(data);
     }
   },
 

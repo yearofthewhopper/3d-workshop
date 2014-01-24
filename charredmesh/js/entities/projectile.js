@@ -1,7 +1,6 @@
 import Entity from '../core/entity';
 import DebrisBehavior from '../behaviors/debris_behavior';
 import ProjectilePhysicsBehavior from '../behaviors/projectile_physics_behavior';
-import Player from '../entities/player';
 import Actor from '../core/actor';
 import { entity, ref } from '../core/game';
 
@@ -26,14 +25,8 @@ var Projectile = Entity.define({
   },
 
   onExplode: function() {
-    if (!global.isNode) {
-      if (this.getWorld().get('currentPlayerId') === this.get('owner')) {
-        this.getWorld().set('firingState', Player.FIRING_STATE.NONE);
-      }
-      return;
-    }
-
     this.getWorld().trigger('explosion', [{
+      owner: this.get('owner'),
       position: this.get('position'),
       color: this.get('color')
     }, true]); // true means network event

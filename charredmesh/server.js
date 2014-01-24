@@ -21,14 +21,11 @@ var network = new NetworkServer(world);
 var SEA_LEVEL       = 40;
 
 var forwardDelta    = 120;
-var rotationDelta   = 1;
 var turretDelta     = 1;
 var turretMax       = Math.PI * 0.5;
 var turretMin       = 0;
-var basePower       = 1000;
 var gravity         = new THREE.Vector3(0, -20, 0);
 var wind            = new THREE.Vector3(0, 0, 0);
-var playerHeight    = 17;
 var maxHealth       = 100;
 var maxDamage       = 50;
 var minEarthLevel   = 0;
@@ -156,10 +153,6 @@ socketio.sockets.on('connection', function(socket) {
 
   socket.on('playerInput', function(input) {
     p.trigger('playerInput', input);
-  });
-
-  socket.on('playerFire', function(params) {
-    p.trigger('fire', power);
   });
 
   socket.on('disconnect', function() {

@@ -36,6 +36,12 @@ Entity.prototype.trigger = function() {
   }
 };
 
+Entity.prototype.createEntity = function() {
+  if (this.world_) {
+    this.world_.createEntity.apply(this.world_, arguments);
+  }
+};
+
 Entity.prototype.getWorld = function() {
   return this.world_;
 };

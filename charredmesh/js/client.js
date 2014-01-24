@@ -55,12 +55,7 @@ window.tankModel = null;
 
 window.players = {};
 
-var world = new World({
-  previousFirePower: 0,
-  firePower: 0,
-  firingState: Player.FIRING_STATE.NONE,
-  fireTimer: 0
-});
+var world = new World();
 
 var worldRenderer = new WorldRenderer(world);
 
@@ -117,8 +112,8 @@ var checkReadyState = window.checkReadyState = function checkReadyState(){
 }
 
 function init(){
-  new KeyboardHandler(function(code, state) {
-    world.trigger('inputChange', [{ code: code, state: state }]);
+  new KeyboardHandler(function(keyCode, keyValue) {
+    world.trigger('inputChange', [{ code: keyCode, state: keyValue }]);
   });
 
   window.addEventListener('resize', function() {

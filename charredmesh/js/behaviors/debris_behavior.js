@@ -17,7 +17,7 @@ var DebrisBehavior = Behavior.define({
 
   onMessage: function(eventName, data) {
     if (eventName === this.getOption('executeOn')) {
-      this.execute.apply(this, data);
+      this.execute(data);
     }
   }
 });
