@@ -21,7 +21,7 @@ var Terrain = Entity.define({
     });
 
     // this.on('explosion', function() {
-    //   self.makeCrater();
+    //   self.makeCrater(300);
     // });
   },
 

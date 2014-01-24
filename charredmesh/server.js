@@ -28,7 +28,6 @@ var turretMin       = 0;
 var basePower       = 1000;
 var gravity         = new THREE.Vector3(0, -20, 0);
 var wind            = new THREE.Vector3(0, 0, 0);
-var barrelLength    = 60;
 var playerHeight    = 17;
 var maxHealth       = 100;
 var maxDamage       = 50;
@@ -83,10 +82,6 @@ socketio.enable('browser client etag');
 socketio.enable('browser client gzip');
 socketio.set('log level', 2);
 
-var colorPool = [];
-var colorPoolLength = 20;
-var colorPoolIndex = Math.floor(Math.random() * colorPoolLength);
-
 function playerInput() {
   return {
     fire: false,
@@ -101,128 +96,18 @@ function playerInput() {
   };
 }
 
-function makeGameState() {
-  for (var c = 0; c < colorPoolLength; c++) {
-    var color = new THREE.Color().setHSL(c / colorPoolLength, 0.5, 0.5);
-    colorPool.push(color);
-  }
-
-  // colorPool.sort(function(a, b) {return Math.random() < 0.5 ? -1 : 1});
-
-  return {
-    worldBounds: new THREE.Vector3(terrain.worldUnitsPerDataPoint * 1024, 1028, terrain.worldUnitsPerDataPoint * 1024),
-    players: {},
-    colorPool: colorPool
-  };
-}
-
-var gameState = makeGameState();
-
-function makePlayerPosition() {
-  return new THREE.Vector3(
-    Math.random() * (gameState.worldBounds.x * 0.6) + gameState.worldBounds.x * 0.2,
-    0,
-    Math.random() * (gameState.worldBounds.z * 0.6) + gameState.worldBounds.z * 0.2);
-}
-
-function randomNormal() {
-  return new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
-}
-
-function setOrientationFromRotation(orientation, rotation) {
-  orientation.set(Math.sin(rotation), 0, Math.cos(rotation));
-  return orientation;
-}
-
-function randomElement(a) {
-  var index = Math.floor(Math.random() * a.length);
-  return a[index];
-}
+var worldBounds = new THREE.Vector3(terrain.worldUnitsPerDataPoint * 1024, 1028, terrain.worldUnitsPerDataPoint * 1024);
 
 function randomName() {
-  var colorName = randomElement(Object.keys(colorNames));
+  var namedColors = Object.keys(colorNames);
+  var colorName = namedColors[Math.floor(Math.random() * namedColors.length)];
+  var animalName = animalNames[Math.floor(Math.random() * animalNames.length)];
   return {
-    name: colorName + " " + randomElement(animalNames),
+    name: colorName + " " + animalName,
     color: colorNames[colorName]
   };
 }
 
-function makePlayer(socket) {
-  var rotation = Math.random() * 2 * Math.PI;
-  //var orientation = setOrientationFromRotation(new THREE.Vector3(), rotation);
-  var turretAngle = 0;
-  var name = randomName();
-  // var colorIndex = colorPoolIndex++;
-  // var color = colorPool[(colorPoolIndex*11) % colorPool.length]
-
-  return {
-    id: socket.id,
-    alive:true,
-    respawnTimer:0,
-    score:0,
-    socket: socket,
-    health: maxHealth,
-    position: makePlayerPosition(),
-    rotation: rotation,
-    velocity: new THREE.Vector3(),
-    up: new THREE.Vector3(),
-    forward: new THREE.Vector3(),
-    barrelDirection: new THREE.Vector3(),
-    orientation: new THREE.Quaternion(),
-    barrelAngle: 0,
-    turretAngle: 0,
-    input: playerInput(),
-    name: name.name,
-    color: name.color,
-
-    // color: "#" + color.getHexString(),
-    isDriving: false
-  }
-}
-
-function mapObject(f, m) {
-  var out = {};
-  for (var key in m) {
-    if (m.hasOwnProperty(key)) {
-      out[key] = f(m[key]);
-    }
-  }
-
-  return out;
-}
-
-function serializePlayer(player) {
-  return {
-    id: player.id,
-    health: player.health,
-    position: player.position.toArray(),
-    rotation: player.rotation,
-    turretAngle: player.turretAngle,
-    barrelAngle: player.barrelAngle,
-    name: player.name,
-    color: player.color,
-    alive: player.alive,
-    respawn: player.respawnTimer,
-    score: player.score,
-    driving: player.isDriving,
-    barrelDirection: player.barrelDirection.toArray(),
-    up : player.up.toArray(),
-    forward : player.forward.toArray()
-  }
-}
-
-function serializeGameState(gameState) {
-  return {
-    worldBounds: gameState.worldBounds.toArray(),
-    players: mapObject(serializePlayer, gameState.players)
-  }
-}
-
-function broadcast(key, message) {
-  mapObject(function(player) {
-    player.socket.emit(key, message);
-  }, gameState.players);
-}
 
 var xAxis = new THREE.Vector3(1, 0, 0);
 var yAxis = new THREE.Vector3(0, 1, 0);
@@ -230,224 +115,63 @@ var zAxis = new THREE.Vector3(0, 0, 1);
 
 socketio.sockets.on('connection', function(socket) {
   network.addConnection(socket);
+  network.pushCurrentState(socket.id);
 
-  var player = makePlayer(socket);
-  gameState.players[player.id] = player;
-  socket.emit('welcome', {
-    state : serializeGameState(gameState),
-    id : socket.id
+  var rotation = Math.random() * 2 * Math.PI;
+  var turretAngle = 0;
+  var name = randomName();
+  var pos = new THREE.Vector3(
+    Math.random() * (worldBounds.x * 0.6) + worldBounds.x * 0.2,
+    0,
+    Math.random() * (worldBounds.z * 0.6) + worldBounds.z * 0.2);
+
+  var p = new Player({
+    id: socket.id,
+    health: maxHealth,
+    position: pos.toArray(),
+    rotation: rotation,
+    turretAngle: turretAngle,
+    barrelAngle: 0,
+    name: name.name,
+    color: name.color,
+    alive: true,
+    respawn: 0,
+    score: 0,
+    driving: false,
+    barrelDirection: [0, 0, 0],
+    up: [0, 0, 0],
+    forward: [0, 0, 0],
   });
-  socket.broadcast.emit('playerJoin', serializePlayer(player));
+
+  world.add(p);
+
+  socket.emit('welcome', {
+    worldBounds: worldBounds.toArray(),
+    id: socket.id
+  });
+
+  socket.on('ready', function() {
+    network.pushCurrentState(socket.id);
+  });
 
   socket.on('playerInput', function(input) {
-   // console.log("INPUT", input);
-    player.input = input;
+    p.trigger('playerInput', input);
   });
 
   socket.on('playerFire', function(params) {
-    if (player.alive) {// && !gameState.projectiles[player.id]) {
-      
-      /*
-      var direction = zAxis.clone();
-      direction.applyAxisAngle(xAxis, -player.turretAngle);
-      direction.applyAxisAngle(yAxis, player.rotation);
-      */
-
-      var direction = player.barrelDirection.clone();
-
-      var position = player.position.clone();
-      
-      position.y += playerHeight;
-      position.add(direction.clone().multiplyScalar(barrelLength));
-      
-      var power = basePower + (params.power * basePower);
-
-      world.add(new Projectile({
-        owner: player.id,
-        position: position.toArray(),
-        velocity: direction.clone().multiplyScalar(power).toArray(),
-        bounces : 0,
-        state: "flying",
-        color: player.color
-      }));
-    }
+    p.trigger('fire', power);
   });
 
   socket.on('disconnect', function() {
     network.removeConnection(socket);
-    console.log("Player disconnected!");
-    delete gameState.players[player.id];
-    broadcast('playerDisconnect', player.id);
+
+    var removePlayer = world.getEntity(Player, socket.id);
+
+    if (removePlayer) {
+      world.remove(removePlayer);
+    }
   });
 });
-
-function updatePlayer(player, delta) {
-
-  if(player.alive && (player.health <= 0)){
-    // dead.
-    player.alive = false;
-    player.respawnTimer = 5;
-    socketio.sockets.emit("playerDied", player.id);
-  } 
-
-  if(player.alive){
-
-    var maxVelocity   = 675;
-
-    var impulse = new THREE.Vector3();
-
-    if (player.input.left) {
-      player.rotation += delta * rotationDelta;
-      //setOrientationFromRotation(player.orientation, player.rotation);
-    }
-
-    if (player.input.right) {
-      player.rotation -= delta * rotationDelta;
-      //setOrientationFromRotation(player.orientation, player.rotation);
-    }
-
-    if(player.input.turretLeft){
-      player.turretAngle += delta * 1;
-    }
-    if(player.input.turretRight){
-      player.turretAngle -= delta * 1;
-    }
-    
-    if(player.velocity.length() > maxVelocity){
-      player.velocity.setLength(maxVelocity);
-    }    
-
-    var thrust = new THREE.Vector3();
-    
-    var ground = terrain.getGroundHeight(player.position.x, player.position.z);
-    var onGround = (player.position.y - ground) < 0.25;
-    
-    player.isDriving = (player.input.forward || player.input.back) && (onGround);
-    
-    if(onGround) {
-
-      var UP = new THREE.Vector3(0, 1, 0);
-      var directionQuat = new THREE.Quaternion();
-      directionQuat.setFromAxisAngle(UP, player.rotation);
-      var norm = terrain.getGroundNormal(player.position.x, player.position.z);
-      norm.normalize();
-
-      player.up.copy(norm);
-
-      var angle = UP.angleTo(norm);
-      var axis = UP.clone().cross(norm);
-      player.forward.set(0, 0, 1);
-
-      normQuat = new THREE.Quaternion();
-      normQuat.setFromAxisAngle(axis, angle);
-      normQuat.normalize();
-      directionQuat.normalize();
-     
-      player.forward.applyQuaternion( normQuat.multiply(directionQuat) );
-
-      if (player.input.forward) {
-        thrust.copy( player.forward.clone().multiplyScalar(forwardDelta) );
-      }
-
-      if (player.input.back) {
-        thrust.copy( player.forward.clone().multiplyScalar(forwardDelta * 0.5).negate() );
-      }
-
-      if(player.position.y < SEA_LEVEL){
-        thrust.multiplyScalar(0.75);
-      }
-
-      var up = new THREE.Vector3(0,1,0);
-      var normal = terrain.getGroundNormal(player.position.x, player.position.z);
-      var slope = normal.dot(up);
-
-      // limit movement on slopes (and slide down)
-      if(slope < 0.85 && onGround){
-
-        slope = (slope / 0.85);
-        var slide = terrain.getGroundNormal(player.position.x, player.position.z).cross(up);
-        slide = slide.cross(normal);
-
-        var resistance = slide.dot(player.forward);
-        
-        
-        thrust.multiplyScalar(1 - resistance);
-        thrust.sub( slide.multiplyScalar((1 - slope) * forwardDelta));
-      }
-
-      var targetOrientationMatrix = new THREE.Matrix4().makeRotationAxis(player.up.clone().normalize().negate(), player.rotation);
-      var targetOrientation = new THREE.Quaternion().setFromRotationMatrix(targetOrientationMatrix);
-
-      player.orientation.copy(targetOrientation);
-      
-      player.barrelDirection.copy( player.forward );
-      player.barrelDirection.applyAxisAngle( player.up, player.turretAngle );
-      
-      var barrelAxis = player.up.clone().cross( player.barrelDirection );
-
-      player.barrelDirection.applyAxisAngle( barrelAxis, -player.barrelAngle );
-      
-      impulse.add(thrust);
-    }
-
- 
-    //player.barrelDirection.copy( player.forward );
-    //console.log(player.barrelDirection.toArray());
-    //player.barrelDirection.
-
-    
-    player.velocity.add(impulse);
-    player.velocity.add(gravity);
-
-    if(onGround) {
-      player.velocity.x *= 0.65;
-      player.velocity.z *= 0.65;
-    }
-
-    player.position.add(player.velocity.clone().multiplyScalar(delta));
-
-    ground = terrain.getGroundHeight(player.position.x, player.position.z);
-    
-    if(player.position.y < ground){
-      player.position.y = ground;
-      player.velocity.y = 0;
-    }
-
-
-    if (player.input.up) {
-      player.barrelAngle = Math.min(turretMax, player.barrelAngle + delta * turretDelta);
-    }
-
-    if (player.input.down) {
-      player.barrelAngle = Math.max(turretMin, player.barrelAngle - delta * turretDelta);
-    }
-
-  } else {
-    // player is dead.. count-down to respawn.
-    player.respawnTimer -= delta;
-    if(player.respawnTimer <= 0){
-      respawnPlayer(player);
-    }
-  }  
-}
-
-function respawnPlayer(player){
-  player.alive = true;
-  player.health = 100;
-  player.position.set(
-    Math.random() * gameState.worldBounds.x * 0.6 + gameState.worldBounds.x * 0.2,
-    0,
-    Math.random() * gameState.worldBounds.z * 0.6 + gameState.worldBounds.z * 0.2);
-
-  socketio.sockets.emit("playerSpawned", serializePlayer(player));
-
-}
-
-function updateAllPlayers(delta) {
-  mapObject(function(player) {
-    updatePlayer(player, delta)
-  }, gameState.players);
-}
 
 function startGameLoop() {
   var previousTime = new Date().getTime();
@@ -458,11 +182,9 @@ function startGameLoop() {
     previousTime = time;
     time = new Date().getTime();
     delta = (time - previousTime) * 0.001;
-    updateAllPlayers(delta);
  
     world.tick(delta);
     network.sync(delta);
-    socketio.sockets.emit('loopTick', serializeGameState(gameState));
   }, 32);
 }
 

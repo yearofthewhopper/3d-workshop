@@ -70,6 +70,12 @@ HUDRenderer.prototype.render = function() {
     return;
   }
 
+  var currentPlayer = this.world.getEntity(Player, currentPlayerId);
+
+  if (!currentPlayer){
+    return;
+  }
+
   var radarRange = 6000;
   var radarCanvasScale = (radarRange * 2) / this.radar.canvas.width;
 
@@ -78,8 +84,6 @@ HUDRenderer.prototype.render = function() {
   ctx.fillStyle = "rgba(0, 160, 0, 0.35)";
 
   this.radar.texture.needsUpdate = true;
-
-  var currentPlayer = this.world.getEntity(Player, currentPlayerId);
 
   ctx.save();
   ctx.translate(this.radar.canvas.width/2, this.radar.canvas.height/2);

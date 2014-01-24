@@ -22,10 +22,14 @@ Actor.prototype.becameClean = function() {
   this.isDirty = false;
 };
 
+Actor.prototype.shouldSync = function() {
+  return ((this.role === Actor.Role.AUTHORITY) &&
+          (this.remoteRole !== Actor.Role.NONE));
+};
+
 Actor.prototype.trigger = function(eventName, data) {
   if (eventName === 'stateChange') {
-    if ((this.role === Actor.Role.AUTHORITY) &&
-        (this.remoteRole !== Actor.Role.NONE)) {
+    if (this.shouldSync()) {
       this.becameDirty();
     }
   }

@@ -5,8 +5,6 @@ import Player from '../entities/player';
 import Actor from '../core/actor';
 import { entity, ref } from '../core/game';
 
-var explosionRadius = 450;
-
 var Projectile = Entity.define({
   behaviors: [
     [ProjectilePhysicsBehavior, { collisionEvent: 'explode' }], // Should be if authority or simulated
@@ -34,9 +32,6 @@ var Projectile = Entity.define({
       }
       return;
     }
-
-    // this.projectileDamage();
-    // this.makeCrater(explosionRadius / 1.5);
 
     this.getWorld().trigger('explosion', [{
       position: this.get('position'),

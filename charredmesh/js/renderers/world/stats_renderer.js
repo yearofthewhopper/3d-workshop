@@ -1,3 +1,5 @@
+import Player from 'entities/player';
+
 function StatsRender(world) {
   this.world = world;
 };
@@ -12,13 +14,18 @@ StatsRender.prototype.render = function() {
   stats.push("chunk updates: " + chunkUpdateCount);
 
   var currentPlayerId = this.world.get('currentPlayerId');
+
   if (currentPlayerId) {
-    stats.push("Player Chunk ID: " + Math.floor((players[currentPlayerId].obj.position.x / terrain.worldUnitsPerDataPoint) / chunkSize) + "_" + + Math.floor((players[currentPlayerId].obj.position.z / terrain.worldUnitsPerDataPoint) / chunkSize));
+    var player = this.world.getEntity(Player, currentPlayerId);
+    if (player) {
+      var pos = player.get('position');
+      stats.push("Player Chunk ID: " + Math.floor((pos[0] / terrain.worldUnitsPerDataPoint) / chunkSize) + "_" + + Math.floor((pos[2] / terrain.worldUnitsPerDataPoint) / chunkSize));
+    }
   }
 
-  mapObject(function(player){
-    stats.push(player.name + ": " + player.score);
-  }, players);
+  // mapObject(function(player){
+  //   stats.push(player.name + ": " + player.score);
+  // }, players);
 
   $("#stats").html(stats.join("<br>"));
 };

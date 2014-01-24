@@ -49,10 +49,9 @@ var time = 0;
 
 window.clock = null;
 
-var socket, gameState;
+window.socket = null;
 
 window.tankModel = null;
-var keyboard;
 
 window.players = {};
 
@@ -88,177 +87,15 @@ var mapObject = window.mapObject = function mapObject(f, m) {
   return out;
 }
 
-function playerInput() {
-  return {
-    fire: false,
-    forward: false,
-    back: false,
-    left: false,
-    right: false,
-    up: false,
-    down: false
-  };
-}
-
-window.input = playerInput();
-
-function createPlayer(playerData) {
-  var position = new THREE.Vector3().fromArray(playerData.position);
-  var rotation = playerData.rotation;
-
-  var newPlayer = {
-    id: playerData.id,
-    health: playerData.health,
-    name: playerData.name,
-    color: playerData.color,
-    forward: new THREE.Vector3(),
-    barrelDirection: new THREE.Vector3()
-  };
-
-  console.log(newPlayer.name + " has entered the game!");
-
-  var material = new THREE.MeshLambertMaterial({
-    color: new THREE.Color().setStyle(newPlayer.color).offsetHSL(0,-0.2,0)
-  });
-  
-  var turretMaterial = new THREE.MeshLambertMaterial({
-    color: new THREE.Color().setStyle(newPlayer.color).offsetHSL(0,-0.2,0)
-  });
-
-  var equipmentMaterial = new THREE.MeshPhongMaterial({
-    color: new THREE.Color().setStyle(newPlayer.color).offsetHSL(0, -0.8, 0),
-    shininess:150
-  });
-
-  var tracksMaterial = new THREE.MeshLambertMaterial({
-    color: new THREE.Color().setStyle("#505050")
-  });
-  
-  tank = tankModel.clone();
-  
-  tank.traverse(function(obj){
-    switch(obj.name){
-      case "chassis" :
-        obj.material = material;
-        break;
-      case "turret" :
-        obj.material = turretMaterial;
-        break;
-      case "turret barrel_mount":
-        obj.material = turretMaterial;
-        break;
-      case "turret barrel_mount barrel":
-        obj.material = tracksMaterial;
-        break;
-      case "tracks":
-        obj.material = tracksMaterial;
-      break;
-      case "turret equipment":
-        obj.material = equipmentMaterial;
-        obj.geometry.computeFaceNormals();
-        obj.geometry.computeVertexNormals();
-        break;
-    }
-  });
-
-  newPlayer.obj = new THREE.Object3D();
- 
-  newPlayer.obj.position.copy(position);
-  
-  newPlayer.obj.add(tank);
-
-  // TODO: Figure out a way to preserve the heirarchy from C4D
-  var turret = tank.getObjectByName("turret");
-  turret.add(tank.getObjectByName("turret barrel_mount"));
-  turret.add(tank.getObjectByName("turret equipment"));
-  var barrel = turret.getObjectByName("turret barrel_mount");
-  barrel.add(tank.getObjectByName("turret barrel_mount barrel"));
-
-  newPlayer.turret = turret;
-  newPlayer.barrel = barrel;
-
-  var p = new Player(playerData);
-  p.sync({
-    visible: true,
-    position: newPlayer.obj.position.toArray()
-  });
-  world.add(p);
-  
-  // add the health bar to all other players
-  if (newPlayer.id == world.get('currentPlayerId')) {
-    gunCamera.rotation.y = -Math.PI;
-    gunCamera.position.x = 3;
-    gunCamera.position.z = 1.0;
-    gunCamera.position.y = 1.5;
-    newPlayer.barrel.add(gunCamera);
-  }
-  
-  scene.add(newPlayer.obj);
-  players[newPlayer.id] = newPlayer;
-}
-
-function updatePlayer(player) {
-  players[player.id].barrelDirection.fromArray(player.barrelDirection);
-
-  var playerInstance = world.getEntity(Player, player.id);
-
-  players[player.id].obj.position.fromArray(player.position);
-
-  var lastPositionVector = playerInstance.lastPositionVector || new THREE.Vector3();
-  players[player.id].rotation = player.rotation;
-
-  playerInstance.sync(player);
-
-  var velocity = playerInstance.getVelocityVector();
-
-  players[player.id].turret.rotation.y = player.turretAngle;
-
-  players[player.id].driving = player.driving;
-
-  players[player.id].score = player.score;
-  players[player.id].barrel.rotation.x = -player.barrelAngle;
-
-  players[player.id].obj.up.lerp(new THREE.Vector3().fromArray(player.up), 0.2);
-  players[player.id].forward.lerp(new THREE.Vector3().fromArray(player.forward), 0.2);
-  players[player.id].obj.lookAt(players[player.id].forward.clone().add(players[player.id].obj.position));
-
-  players[player.id].health = player.health;
-}
-
-function updateGameState(state) {
-  gameState = state;
-  mapObject(updatePlayer, gameState.players);
-
-  updateTerrainChunks(world);
-}
-
 function initSocket() {
   socket = io.connect();
 
-  new NetworkClient(world, socket, Actor.byName);
-
   socket.on('welcome', function(data) {
-    //console.log('game state ', data);
-    playerId = data.id;
     world.set('currentPlayerId', data.id);
-    gameState = data.state;
-    mapObject(createPlayer, gameState.players);
-  });
 
-  socket.on('playerJoin', function(data) {
-    console.log('player join ', data);
-    createPlayer(data);
-  });
-  
-  socket.on('playerUpdate', updatePlayer);
-  socket.on('loopTick', updateGameState);
+    new NetworkClient(world, socket, Actor.byName);
 
-  socket.on('playerDisconnect', function(id) {
-    console.log("Player removed.");
-    var oldPlayer = players[id];
-    scene.remove(oldPlayer.obj);
-    delete gameState.players[id];
-    delete players[id];
+    socket.emit('ready');
   });
 
   world.pipeSocketEvent(socket, 'terrainUpdate');
@@ -280,7 +117,9 @@ var checkReadyState = window.checkReadyState = function checkReadyState(){
 }
 
 function init(){
-  keyboard = new KeyboardHandler(onKeyChange);
+  new KeyboardHandler(function(code, state) {
+    world.trigger('inputChange', [{ code: code, state: state }]);
+  });
 
   window.addEventListener('resize', function() {
     worldRenderer.resize();
@@ -331,78 +170,12 @@ function init(){
   onFrame();
 }
 
-function onKeyChange(code, state) {
-  var firingState = world.get('firingState');
-  switch(code)
-  {
-  case 32:
-
-    if(state && firingState == Player.FIRING_STATE.NONE) {
-      world.sync({
-        'fireTimer': time,
-        'firingState': Player.FIRING_STATE.CHARGING
-      });
-    }
-
-    if(!state && firingState == Player.FIRING_STATE.CHARGING) {
-      var firePower = world.get('firePower');
-      world.set('previousFirePower', firePower);
-      socket.emit('playerFire', { "power" : firePower });
-      world.set('firingState', Player.FIRING_STATE.FIRING);
-    }
-
-    input.fire = state;
-    return;
-    break;
-  case 87: // W
-    input.forward = state;
-    break;
-  case 83: // S
-    input.back = state;
-    break;
-  case 65: // A
-    input.left = state;
-    break;
-  case 68: // D
-    input.right = state;
-    break;
-  case 82: // R
-  case 38: // Up arrow
-    input.up = state;
-    break;
-  case 70: // F
-  case 40: // down arrow
-    input.down = state;
-    break;
-
-  case 39: // right arrow
-    input.turretRight = state;
-    break;
-  
-  case 37: // left arrow
-    input.turretLeft = state;
-    break;
-  case 69: // e
-    input.aim = state;
-    break;
-  }
-  
-  socket.emit('playerInput', input);
-}
-
 function onFrame() {
   requestAnimationFrame(onFrame);
 
   var delta = clock.getDelta();
 
   world.tick(delta);
-
-  time += delta;
-
-  if (input.fire) {
-    var firePower = Math.sin((time - world.get('fireTimer')) + (3 * Math.PI / 2));
-    world.set('firePower', (firePower + 1) / 2);
-  }
 
   worldRenderer.render(delta);
 }

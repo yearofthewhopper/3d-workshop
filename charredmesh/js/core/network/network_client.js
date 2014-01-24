@@ -30,6 +30,7 @@ NetworkClient.prototype.onOperation = function(data) {
   }
 
   if (data.op === 'create') {
+    console.log('Creating entity', data.type, data.params);
     var e = new typeConstructor(data.params);
     this.world.add(e);
   } else if (data.op === 'update') {

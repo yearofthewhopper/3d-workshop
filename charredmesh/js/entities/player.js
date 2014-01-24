@@ -1,22 +1,26 @@
 import Entity from '../core/entity';
 import Vector3Copy from '../behaviors/vector3_copy_behavior';
+import PlayerInputBehavior from '../behaviors/player_input_behavior';
 import Splash from '../entities/splash';
 import Actor from '../core/actor';
 import { entity } from '../core/game';
+import { THREE } from 'three';
 
 var Player = Entity.define({
   behaviors: [
-    [Vector3Copy, { keys: ['position', 'rotation', 'velocity'] }]
+    [Vector3Copy, { keys: ['position', 'rotation', 'velocity'] }],
+    [PlayerInputBehavior, {}]
   ],
 
-  // actor: {
-  //   typeName:   'player',
-  //   role:       global.isNode ? Actor.Role.AUTHORITY : Actor.Role.SIMULATED,
-  //   remoteRole: global.isNode ? Actor.Role.SIMULATED : Actor.Role.AUTHORITY
-  // },
+  actor: {
+    typeName:   'player',
+    role:       global.isNode ? Actor.Role.AUTHORITY : Actor.Role.AUTONOMOUS,
+    remoteRole: global.isNode ? Actor.Role.AUTONOMOUS : Actor.Role.AUTHORITY
+  },
 
   initialize: function Player() {
-    this.lastPositionVector = new THREE.Vector3();
+    console.log(this.get('name') + " has entered the game!");
+    this.lastPosition = [0,0,0];
 
     var self = this;
 
@@ -36,38 +40,41 @@ var Player = Entity.define({
     //   self.projectileDamage();
     // });
 
-    // this.on('playerFire', function(params) {
-    //   self.onPlayerFire(params);
-    // });
+    this.on('fire', function(power) {
+      self.onPlayerFire(power);
+    });
   },
 
-  // onPlayerFire: function(params) {
-  //   if (this.get('alive') && !gameState.projectiles[player.id]) {
+  onPlayerFire: function(params) {
+     // && !gameState.projectiles[player.id]
+    var barrelLength    = 60;
 
-  //     var direction = player.barrelDirection.clone();
+    if (!this.get('alive')) { return; }
 
-  //     var position = player.position.clone();
-      
-  //     position.y += playerHeight;
-  //     position.add(direction.clone().multiplyScalar(barrelLength));
-      
-  //     var power = basePower + (params.power * basePower);
+    var direction = new THREE.Vector3().fromArray(this.get('barrelDirection'));
+    var position = new THREE.Vector3().fromArray(this.get('position'));
+    
+    position.y += playerHeight;
+    position.add(direction.clone().multiplyScalar(barrelLength));
+    
+    var power = basePower + (power * basePower);
 
-  //     world.add(new Projectile({
-  //       owner: player.id,
-  //       position: position.toArray(),
-  //       velocity: direction.clone().multiplyScalar(power).toArray(),
-  //       bounces : 0,
-  //       state: "flying",
-  //       color: owner.color
-  //     }));
-  //   }
-  // },
+    this.getWorld().add(new Projectile({
+      owner: player.id,
+      position: this.get('position'),
+      velocity: direction.clone().multiplyScalar(power).toArray(),
+      bounces : 0,
+      state: "flying",
+      color: this.get('color')
+    }));
+  },
 
   // projectileDamage: function() {
   //   var collision = new THREE.Vector3().fromArray(this.get('position'));
   //   collision.y += playerHeight * 0.5;
     
+      // var explosionRadius = 450;
+
   //   mapObject(function(player) {
   //     if(player.alive){
   //       var distance = player.position.distanceTo(collision);
@@ -103,17 +110,18 @@ var Player = Entity.define({
   tick: function(delta) {
     var pos = this.get('position');
     var posVec = new THREE.Vector3().fromArray(pos);
+    var lastPositionVector = new THREE.Vector3().fromArray(this.lastPosition);
 
-    var velocity = this.lastPositionVector.clone().sub(posVec);
+    var velocity = lastPositionVector.clone().sub(posVec);
     this.set('velocity', velocity.toArray());
 
-    if ((pos[1] < 40) && (this.lastPositionVector.y > 40)) {
+    if ((pos[1] < 40) && (lastPositionVector.y > 40)) {
       this.getWorld().add(new Splash({
         position: pos
       }));
     }
 
-    this.lastPositionVector.fromArray(pos);
+    this.lastPosition = pos;
   }
 });
 

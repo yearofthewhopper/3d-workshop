@@ -1,4 +1,5 @@
 import TerrainLib from 'terrain';
+import Player from 'entities/player';
 
 // window.terrainData = null;
 window.chunkSize = 64;
@@ -61,7 +62,9 @@ function TerrainRenderer(world) {
     fog:true
   });  
 };
-TerrainRenderer.prototype.render = function() {};
+TerrainRenderer.prototype.render = function() {
+  this.updateTerrainChunks();
+};
 TerrainRenderer.prototype.resize = function() {};
 
 var updateModifiedTerrainChunks = window.updateModifiedTerrainChunks = function updateModifiedTerrainChunks(region){
@@ -83,8 +86,20 @@ var updateModifiedTerrainChunks = window.updateModifiedTerrainChunks = function 
   }
 }
 
-var updateTerrainChunks = window.updateTerrainChunks = function updateTerrainChunks(world){
-  var currentPlayerId = world.get('currentPlayerId');
+TerrainRenderer.prototype.updateTerrainChunks = function() {
+  var currentPlayerId = this.world.get('currentPlayerId');
+
+  // don't try to update the camera if the player hasn't been instantiated yet.
+  if (!currentPlayerId){
+    return;
+  }
+
+  var player = this.world.getEntity(Player, currentPlayerId);
+  
+  // don't try to update the camera if the player hasn't been instantiated yet.
+  if (!player){
+    return;
+  }
 
   var terrainResolution = terrain.worldUnitsPerDataPoint;
 
@@ -92,8 +107,9 @@ var updateTerrainChunks = window.updateTerrainChunks = function updateTerrainChu
   var viewDistanceMQ = 6000;
   var viewDistance = 24000;
 
-  var playerX = players[currentPlayerId].obj.position.x;
-  var playerZ = players[currentPlayerId].obj.position.z;
+  var pos = new THREE.Vector3().fromArray(player.get('position'));
+  var playerX = pos.x;
+  var playerZ = pos.z;
 
   var startX = Math.floor(((playerX - viewDistance) / terrainResolution) / chunkSize);
   var startZ = Math.floor(((playerZ - viewDistance) / terrainResolution) / chunkSize);

@@ -29,14 +29,29 @@ NetworkServer.prototype.removeConnection = function(socket) {
   // Do stuff?
 };
 
-NetworkServer.prototype.sync = function() {
-  var self = this;
+NetworkServer.prototype.pushCurrentState = function(id) {
+  var creationOps = [];
 
   for (var key in this.world.entities) {
     if (this.world.entities.hasOwnProperty(key)) {
       var e = this.world.entities[key];
+      if (e.actor.shouldSync()) {
+        creationOps.push(this.makeOperation('create', e.actor.typeName, e.getRawState()));
+      }
+    }
+  }
+
+  if (creationOps.length > 0) {
+    this.connections[id].emit('actor:operations', creationOps);
+  }
+};
+
+NetworkServer.prototype.sync = function() {
+  for (var key in this.world.entities) {
+    if (this.world.entities.hasOwnProperty(key)) {
+      var e = this.world.entities[key];
       if (e.actor.isDirty) {
-        self.addOperation('update', e.actor.typeName, e.getRawState());
+        this.addOperation('update', e.actor.typeName, e.getRawState());
       }
     }
   }
