@@ -1,8 +1,14 @@
 import Behavior from '../core/behavior';
 import { THREE } from 'three';
 
-var maxVelocity = 675;
+var SEA_LEVEL       = 40;
+var maxVelocity     = 675;
+var turretDelta     = 1;
 var rotationDelta   = 1;
+var gravity         = new THREE.Vector3(0, -20, 0);
+var forwardDelta    = 120;
+var turretMax       = Math.PI * 0.5;
+var turretMin       = 0;
 
 var PlayerBehavior = Behavior.define({
   initialize: function PlayerBehavior() {
@@ -13,7 +19,7 @@ var PlayerBehavior = Behavior.define({
     if (eventName === 'tick') {
       this.tick(data);
     } else if (eventName === 'inputUpdated') {
-      updateInput(data);
+      this.updateInput(data);
     }
   },
 
@@ -99,7 +105,7 @@ var PlayerBehavior = Behavior.define({
       var axis = UP.clone().cross(norm);
       var forward = new THREE.Vector3(0, 0, 1);
 
-      normQuat = new THREE.Quaternion();
+      var normQuat = new THREE.Quaternion();
       normQuat.setFromAxisAngle(axis, angle);
       normQuat.normalize();
       directionQuat.normalize();
@@ -114,7 +120,7 @@ var PlayerBehavior = Behavior.define({
         thrust.copy(forward.clone().multiplyScalar(forwardDelta * 0.5).negate());
       }
 
-      if(position.y < SEA_LEVEL){
+      if (position.y < SEA_LEVEL){
         thrust.multiplyScalar(0.75);
       }
 
@@ -123,7 +129,7 @@ var PlayerBehavior = Behavior.define({
       var slope = normal.dot(up);
 
       // limit movement on slopes (and slide down)
-      if (slope < 0.85 && onGround) {
+      if (slope < 0.85) {
 
         slope = (slope / 0.85);
         var slide = terrain.getGroundNormal(position.x, position.z).cross(up);
@@ -137,20 +143,18 @@ var PlayerBehavior = Behavior.define({
 
       var targetOrientationMatrix = new THREE.Matrix4().makeRotationAxis(playerUp.clone().normalize().negate(), rotation);
       var targetOrientation = new THREE.Quaternion().setFromRotationMatrix(targetOrientationMatrix);
-
-      this.set('orientation', targetOrientation.toArray());
+      // this.set('orientation', targetOrientation.toArray());
       
-      var barrelDirection = new THREE.Vector3().fromArray(this.get('barrelDirection'));
-      barrelDirection.copy(forward);
+      var barrelDirection = new THREE.Vector3().copy(forward);
       barrelDirection.applyAxisAngle(playerUp, this.get('turretAngle'));
       
       var barrelAxis = playerUp.clone().cross(barrelDirection);
-
       barrelDirection.applyAxisAngle(barrelAxis, -this.get('barrelAngle'));
       
       impulse.add(thrust);
 
-      this.set('up', playerUp)
+      this.set('up', playerUp.toArray());
+      this.set('forward', forward.toArray());
     }
     
     velocity.add(impulse);
@@ -180,8 +184,7 @@ var PlayerBehavior = Behavior.define({
 
     this.set('velocity', velocity.toArray());
     this.set('position', position.toArray());
-    this.set('forward', forward.toArray());
-    this.set('barrelDirection', barrelDirection.toArray);
+    this.set('barrelDirection', barrelDirection.toArray());
   },
 
   respawn: function(player){
@@ -202,3 +205,5 @@ var PlayerBehavior = Behavior.define({
     ]);
   }
 });
+
+export default = PlayerBehavior;

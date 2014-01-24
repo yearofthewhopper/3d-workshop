@@ -27,7 +27,7 @@ var Player = Entity.define({
     [Vector3Copy, { keys: ['position', 'rotation', 'velocity'] }],
     [PlayerInputBehavior, {}, isServer],
     [PlayerControlsBehavior, {}, and(isClient, ref('isCurrentPlayer'))],
-    [PlayerBehavior, {}],
+    [PlayerBehavior, { onGround: ref('onGround') }, isServer],
   ],
 
   actor: {
@@ -37,8 +37,13 @@ var Player = Entity.define({
   },
 
   isCurrentPlayer: function() {
-    debugger;
     return this.getWorld().get('currentPlayerId') === this.get('id');
+  },
+
+  onGround: function() {
+    var pos = this.get('position');
+    var ground = terrain.getGroundHeight(pos[0], pos[2]);
+    return (pos[1] - ground) < 0.25;
   },
 
   initialize: function Player() {

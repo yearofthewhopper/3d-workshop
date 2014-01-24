@@ -18,13 +18,6 @@ var terrain = global.terrain = new Terrain();
 var world = new World();
 var network = new NetworkServer(world);
 
-var SEA_LEVEL       = 40;
-
-var forwardDelta    = 120;
-var turretDelta     = 1;
-var turretMax       = Math.PI * 0.5;
-var turretMin       = 0;
-var gravity         = new THREE.Vector3(0, -20, 0);
 var wind            = new THREE.Vector3(0, 0, 0);
 var maxHealth       = 100;
 var maxDamage       = 50;
@@ -132,12 +125,12 @@ socketio.sockets.on('connection', function(socket) {
     name: name.name,
     color: name.color,
     alive: true,
-    respawn: 0,
+    // respawn: 0,
     score: 0,
     driving: false,
     barrelDirection: [0, 0, 0],
     up: [0, 0, 0],
-    forward: [0, 0, 0],
+    forward: [0, 0, 0]
   });
 
   world.add(p);

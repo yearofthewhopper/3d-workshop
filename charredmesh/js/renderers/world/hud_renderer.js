@@ -112,7 +112,7 @@ HUDRenderer.prototype.render = function() {
           var dotY = pos.z - currentPos.z;
           dotX /= radarCanvasScale;
           dotY /= radarCanvasScale;
-          ctx.fillStyle = players[entity.get('owner')].color; // "rgba(0, 255, 0, 0.75)";
+          ctx.fillStyle = entity.get('color');
           ctx.beginPath();
           ctx.arc(dotX-5, dotY-5, 5, 0, Math.PI * 2, true);
           ctx.fill();
@@ -126,7 +126,7 @@ HUDRenderer.prototype.render = function() {
           var dotY = pos.z - currentPos.z;
           dotX /= radarCanvasScale;
           dotY /= radarCanvasScale;
-          ctx.fillStyle = entity.color; // "rgba(0, 255, 0, 0.75)";
+          ctx.fillStyle = entity.get('color');
           ctx.fillRect(dotX-5,dotY-5, 10, 10);
         }
         else {
@@ -136,7 +136,7 @@ HUDRenderer.prototype.render = function() {
           point.set(dotX, dotY);
 
           point.normalize().multiplyScalar(this.radar.canvas.width / 2);
-          ctx.fillStyle = entity.color;
+          ctx.fillStyle = entity.get('color');
           ctx.fillRect(point.x-2, point.y-2, 5, 5);
         }
       }

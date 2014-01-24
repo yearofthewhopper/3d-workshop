@@ -63,8 +63,6 @@ var PlayerRenderer = Renderer.define({
     var barrel = turret.getObjectByName("turret barrel_mount");
     barrel.add(tank.getObjectByName("turret barrel_mount barrel"));
     this.barrel = barrel;
-
-    // p.set('visible', true);
     
     // add the health bar to all other players
     if (this.get('id') === this.getWorld().get('currentPlayerId')) {
@@ -96,9 +94,11 @@ var PlayerRenderer = Renderer.define({
     this.turret.rotation.y = this.get('turretAngle');
     this.barrel.rotation.x = -this.get('barrelAngle');
 
-    // this.mesh.up.lerp(new THREE.Vector3().fromArray(this.get('up')), 0.2);
-    // player.forward.lerp(new THREE.Vector3().fromArray(this.get(forward)), 0.2);
-    // this.mesh.lookAt(player.forward.clone().add(this.mesh.position));
+    var forward = new THREE.Vector3().fromArray(this.get('forward'));
+    var up = new THREE.Vector3().fromArray(this.get('up'));
+    this.mesh.up.lerp(up, 0.2);
+    // this.mesh.forward.lerp(new THREE.Vector3().fromArray(forward), 0.2);
+    this.mesh.lookAt(forward.clone().add(this.mesh.position));
   },
 
   destroy: function() {

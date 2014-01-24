@@ -7,7 +7,7 @@ var ChaseCamRender = function(world) {
   this.world = world;
 };
 
-ChaseCamRender.prototype.render = function chaseCamRender() {
+ChaseCamRender.prototype.render = function() {
   var currentPlayerId = this.world.get('currentPlayerId');
 
   // don't try to update the camera if the player hasn't been instantiated yet.
@@ -25,44 +25,27 @@ ChaseCamRender.prototype.render = function chaseCamRender() {
   var rotation = player.get('rotation');
   var barrelDirection = new THREE.Vector3().fromArray(player.get('barrelDirection'));
   var playerPos = new THREE.Vector3().fromArray(player.get('position'));
-  var p;
-
-  // if(input.aim){
-  //   p = barrelDirection.clone().multiplyScalar(-300);
-  //   p.add(barrelDirection);
-  // } else {
-    if (!rotation) {
-      return
-    }
-    p = playerPos.clone();
-    p.y += 100;
-    p.z -= Math.cos(rotation) * 300;
-    p.x -= Math.sin(rotation) * 300;
-  // }
+  var cameraPositionVec = playerPos.clone();
+  cameraPositionVec.y += 100;
+  cameraPositionVec.z -= Math.cos(rotation) * 300;
+  cameraPositionVec.x -= Math.sin(rotation) * 300;
 
   // Use larger of either an offset from the players Y position, or a point above the ground.  
   // This prevents the camera from clipping into mountains.
-  p.y = Math.max( terrain.getGroundHeight(p.x, p.z) + 75, p.y);
+  cameraPositionVec.y = Math.max( terrain.getGroundHeight(cameraPositionVec.x, cameraPositionVec.z) + 75, cameraPositionVec.y);
 
   // constantly lerp the camera to that position to keep the motion smooth.
-  camera.position.lerp(p, 0.05);
+  camera.position.lerp(cameraPositionVec, 0.05);
 
   SoundEngine.setListenerPosition(camera.position, cameraTarget.clone().sub(camera.position).normalize());
 
   // Find a spot in front of the player
-
-  // if(input.aim){
-  //   p.copy(barrelDirection);
-  //   p.multiplyScalar(300);
-  //   p.add(barrelDirection);
-  // }else{
-   p.copy(barrelDirection);
-   p.z += Math.cos(rotation) * 300;
-   p.x += Math.sin(rotation) * 300;
-  // }
+  var cameraTargetVec = playerPos.clone();
+  cameraTargetVec.z += Math.cos(rotation) * 300;
+  cameraTargetVec.x += Math.sin(rotation) * 300;
 
   // constantly lerp the target position too, again to keep things smooth.
-  cameraTarget.lerp(p, /*input.aim ? 0.5 : */0.2);
+  cameraTarget.lerp(cameraTargetVec, 0.2);
 
   // look at that spot (looking at the player makes it hard to see what's ahead)  
   camera.lookAt(cameraTarget);

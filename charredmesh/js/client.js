@@ -130,7 +130,7 @@ function init(){
   worldRenderer.onEntity(Explosion, PlaySound,         { soundName: 'explosion', onEvent: 'didInitialize', position: entity('position') });
   worldRenderer.onEntity(Explosion, ExplosionRenderer, { position: entity('position'), color: entity('color') });
   
-  worldRenderer.onEntity(Player, PlayerRenderer,  {}, entity('visible'));
+  worldRenderer.onEntity(Player, PlayerRenderer,  {});
   worldRenderer.onEntity(Player, DustRenderer,    { position: entity('position') }, entity('driving'));
   worldRenderer.onEntity(Player, OverlayRenderer, {});
 

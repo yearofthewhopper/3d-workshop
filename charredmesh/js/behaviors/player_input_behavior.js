@@ -43,7 +43,7 @@ var PlayerInputBehavior = Behavior.define({
   onInput: function(eventName, state) {
     this.input[eventName] = state;
 
-    if (this.get('alive')) {
+    if (this.get('alive') && (eventName === 'fire')) {
       if (state && this.firingState == FIRING_STATE.NONE) {
         this.fireTimer = this.currentTime;
         this.firingState = FIRING_STATE.CHARGING;

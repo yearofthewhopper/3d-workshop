@@ -8,7 +8,6 @@ var KEYBOARD = {
   D:     68,
   R:     82,
   F:     70,
-  E:     69,
   UP:    38,
   DOWN:  40,
   RIGHT: 39,
@@ -23,7 +22,6 @@ EVENTMAP[KEYBOARD.A]     = 'left';
 EVENTMAP[KEYBOARD.D]     = 'right';
 EVENTMAP[KEYBOARD.R]     = 'up';
 EVENTMAP[KEYBOARD.F]     = 'down';
-EVENTMAP[KEYBOARD.E]     = 'aim';
 EVENTMAP[KEYBOARD.UP]    = 'up';
 EVENTMAP[KEYBOARD.DOWN]  = 'down';
 EVENTMAP[KEYBOARD.RIGHT] = 'turretRight';
