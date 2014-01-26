@@ -27,7 +27,7 @@ var SunRenderer = Renderer.define({
   },
 
   render: function(delta) {
-    var pos = this.getOption('positionVector');
+    var pos = window.sunPosition;
 
     this.mesh.position.set( camera.position.x + pos.x * 13000, pos.y * 13000, camera.position.z + pos.z * 5000 );
 

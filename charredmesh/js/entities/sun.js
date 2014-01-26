@@ -1,27 +1,29 @@
 import Entity from '../core/entity';
 import AddDelta from '../behaviors/add_delta_behavior';
-import { ref } from '../core/game';
+import { THREE } from 'three';
 
-var Sun = Entity.define({
+export default = Entity.define({
   behaviors: [
-    [AddDelta, { varName: 'time' }]
+    [AddDelta, { varName: 'time', frequency: (1 / 30) }, global.isNode]
   ],
 
-  initialize: function Sun() {
-    this.positionVector = new THREE.Vector3();
-    this.set('time', 0);
+  // Provide a shared name to allow syncing.
+  actor: {
+    typeName: 'sun'
+  },
 
-    var self = this;
-    this.on('stateChange', function(info) {
-      if (info.key === 'time') {
-        self.positionVector.set(
-          Math.cos(info.value * 0.01),
-          Math.sin(info.value * 0.01),
-          0
-        );
-      }
-    });
+  events: {
+    'stateChange': 'updateVectorCache'
+  },
+
+  updateVectorCache: function(info) {
+    if (!global.isNode && (info.key === 'time')) {
+      var t = this.get('time');
+      window.sunPosition.set(
+        Math.cos(t * 0.01),
+        Math.sin(t * 0.01),
+        0
+      );
+    }
   }
 });
-
-export default = Sun;

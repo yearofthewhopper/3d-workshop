@@ -1,38 +1,36 @@
 import Entity from '../core/entity';
 import DebrisBehavior from '../behaviors/debris_behavior';
 import ProjectilePhysicsBehavior from '../behaviors/projectile_physics_behavior';
-import Actor from '../core/actor';
-import { entity, ref } from '../core/game';
+import { entity } from '../core/game';
 
-var Projectile = Entity.define({
+// Define an entity.
+export default = Entity.define({
+
+  // Provide a shared name to allow syncing.
+  actor: {
+    typeName: 'projectile'
+  },
+
+  // List of per-instance behaviors to additional functionality to the entity.
   behaviors: [
-    [ProjectilePhysicsBehavior, { collisionEvent: 'explode' }], // Should be if authority or simulated
-    [DebrisBehavior,            { position: entity('position'), executeOn: 'explode' }, !global.isNode]
+    [ProjectilePhysicsBehavior, { collisionEvent: global.isNode ? 'causeExplosion' : 'makeDebris' }],
+    [DebrisBehavior,            { position: entity('position'), executeOn: 'makeDebris' }]
   ],
 
-  actor: {
-    typeName:   'projectile',
-    role:       global.isNode ? Actor.Role.AUTHORITY : Actor.Role.SIMULATED,
-    remoteRole: global.isNode ? Actor.Role.SIMULATED : Actor.Role.AUTHORITY
+  // Map eventNames to local functions.
+  events: {
+    'causeExplosion': 'onExplode'
   },
 
-  initialize: function Projectile() {
-    var self = this;
-
-    this.on('explode', function() {
-      self.onExplode();
-    });
-  },
-
+  // On the `causeExplosion` event, from the physics behavior, notify the clients of an explosion.
   onExplode: function() {
-    this.getWorld().trigger('explosion', [{
+    this.triggerNetwork('explosion', {
       owner: this.get('owner'),
       position: this.get('position'),
       color: this.get('color')
-    }, true]); // true means network event
+    });
 
-    this.getWorld().remove(this);
+    this.remove();
   }
-});
 
-export default = Projectile;
+});

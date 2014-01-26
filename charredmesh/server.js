@@ -8,6 +8,7 @@ var Util = require("./dist/server/utils.js").Util;
 var Terrain = require("./dist/server/terrain.js").default;
 var nameData = require("./dist/server/names.js").default;
 var World = require("./dist/server/core/world.js").default;
+var Sun = require("./dist/server/entities/sun.js").default;
 var Player = require("./dist/server/entities/player.js").default;
 var Projectile = require("./dist/server/entities/projectile.js").default;
 var NetworkServer = require("./dist/server/core/network/network_server.js").default;
@@ -17,6 +18,7 @@ var terrain = global.terrain = new Terrain();
 
 var world = new World();
 var network = new NetworkServer(world);
+world.add(new Sun({ time: 0 }));
 
 var wind            = new THREE.Vector3(0, 0, 0);
 var maxHealth       = 100;
@@ -133,8 +135,6 @@ socketio.sockets.on('connection', function(socket) {
     forward: [0, 0, 0]
   });
 
-  world.add(p);
-
   socket.emit('welcome', {
     worldBounds: worldBounds.toArray(),
     id: socket.id
@@ -142,6 +142,8 @@ socketio.sockets.on('connection', function(socket) {
 
   socket.on('ready', function() {
     network.pushCurrentState(socket.id);
+
+    world.add(p);
   });
 
   socket.on('playerInput', function(input) {

@@ -5,6 +5,7 @@ var ProjectilePhysicsBehavior = Behavior.define({
   initialize: function ProjectilePhysicsBehavior() {
     this.gravity = new THREE.Vector3(0, -20, 0);
     this.wind = new THREE.Vector3(0, 0, 0);
+    this.alive = true;
   },
 
   onMessage: function(eventName, data) {
@@ -14,6 +15,8 @@ var ProjectilePhysicsBehavior = Behavior.define({
   },
 
   tick: function(delta) {
+    if (!this.alive) { return; }
+
     var velocity = new THREE.Vector3().fromArray(this.get('velocity'));
     var position = new THREE.Vector3().fromArray(this.get('position'));
 
@@ -39,7 +42,13 @@ var ProjectilePhysicsBehavior = Behavior.define({
     if (this.get('bounces') > 0){
       position.y = Math.max(groundHeight + 1, position.y);
       this.set('position', position.toArray());
-      this.trigger(this.getOption('collisionEvent'));
+
+      var evt = this.getOption('collisionEvent');
+      if (evt) {
+        this.trigger(evt);
+      }
+
+      this.alive = false;
     } else {
       this.set('position', position.toArray());
     }

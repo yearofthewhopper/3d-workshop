@@ -155,6 +155,7 @@ var PlayerBehavior = Behavior.define({
 
       this.set('up', playerUp.toArray());
       this.set('forward', forward.toArray());
+      this.set('barrelDirection', barrelDirection.toArray());
     }
     
     velocity.add(impulse);
@@ -184,7 +185,6 @@ var PlayerBehavior = Behavior.define({
 
     this.set('velocity', velocity.toArray());
     this.set('position', position.toArray());
-    this.set('barrelDirection', barrelDirection.toArray());
   },
 
   respawn: function(player){

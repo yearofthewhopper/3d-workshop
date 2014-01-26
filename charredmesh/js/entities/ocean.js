@@ -1,8 +1,4 @@
 import Entity from '../core/entity';
 
-var Ocean = Entity.define({
-  initialize: function Ocean() {
-  }
+export default = Entity.define({
 });
-
-export default = Ocean;

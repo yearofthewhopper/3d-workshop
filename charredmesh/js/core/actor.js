@@ -5,8 +5,8 @@ var Actor = function(entity, params) {
 
   params = params || {}
 
-  this.role = params.role || Actor.Role.AUTHORITY;
-  this.remoteRole = params.remoteRole || Actor.Role.NONE;
+  this.role = params.role || (global.isNode ? Actor.Role.AUTHORITY : Actor.Role.SIMULATED);
+  this.remoteRole = params.remoteRole || (global.isNode ? Actor.Role.SIMULATED : Actor.Role.AUTHORITY);
   this.typeName = params.typeName || ('unknownType_' + this.constructor.classTypeId);
 
   this.isDirty = false;

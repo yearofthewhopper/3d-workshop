@@ -36,9 +36,22 @@ Entity.prototype.trigger = function() {
   }
 };
 
+Entity.prototype.remove = function() {
+  if (this.world_) {
+    this.world_.remove(this);
+  }
+};
+
 Entity.prototype.createEntity = function() {
   if (this.world_) {
     this.world_.createEntity.apply(this.world_, arguments);
+  }
+};
+
+Entity.prototype.triggerNetwork = function(eventName, obj) {
+  if (this.world_) {
+    var args = [obj, true];
+    this.getWorld().trigger(eventName, args);
   }
 };
 
@@ -61,6 +74,9 @@ Entity.define = function(details) {
   var behaviors = details.behaviors || [];
   delete details.behaviors;
 
+  var events = details.events || {};
+  delete details.events;
+
   var actorParams = details.actor || {};
   delete details.actor;
 
@@ -73,6 +89,15 @@ Entity.define = function(details) {
     this.sync(params);
 
     this.actor = new Actor(this, actorParams);
+
+    var self = this;
+    for (var key in events) {
+      if (events.hasOwnProperty(key)) {
+        this.on(key, function() {
+          self[events[key]].apply(self, arguments);
+        });
+      }
+    }
 
     this.trigger('willInitialize');
     constructor.apply(this, arguments);

@@ -53,7 +53,7 @@ window.socket = null;
 
 window.tankModel = null;
 
-window.players = {};
+window.sunPosition = new THREE.Vector3();
 
 var world = new World();
 
@@ -141,12 +141,9 @@ function init(){
   worldRenderer.onEntity(Splash, PlaySound,      { soundName: 'splash', onEvent: 'didInitialize', position: entity('position') });
   worldRenderer.onEntity(Splash, SplashRenderer, { position: entity('position') });
   
-  worldRenderer.onEntity(Sun, SunRenderer, { positionVector: ref('positionVector') });
+  worldRenderer.onEntity(Sun, SunRenderer, {});
 
   worldRenderer.onEntity(Ocean, OceanRenderer, {});
-
-  var sun = new Sun();
-  window.sunPosition = sun.positionVector;
 
   worldRenderer.onWorld(ThreeJSCoreRenderer);
   worldRenderer.onWorld(SkyRenderer);
@@ -158,8 +155,6 @@ function init(){
   worldRenderer.onWorld(ChaseCamRender);
   worldRenderer.onWorld(StatsRenderer);
   worldRenderer.onWorld(HUDRenderer)
-
-  world.add(sun);
   
   // Start renderframes
   onFrame();

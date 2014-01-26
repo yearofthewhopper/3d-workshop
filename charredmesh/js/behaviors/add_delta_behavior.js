@@ -1,11 +1,25 @@
 import Behavior from '../core/behavior';
 
-var AddDelta = Behavior.define({
+export default = Behavior.define({
   initialize: function() {
     this.max = this.getOption('max') || Infinity;
+    this.frequency = this.getOption('frequency') || (1 / 60); // 60fps-ish
+    this.deltaBuffer = 0.0;
   },
 
   tick: function(delta) {
+    this.deltaBuffer += delta;
+
+    if (this.deltaBuffer < this.frequency) {
+      return;
+    }
+
+    var builtDelta = 0;
+    while (this.deltaBuffer >= this.frequency){
+      this.deltaBuffer -= this.frequency;
+      builtDelta += this.frequency;
+    }
+
     var varName = this.getOption('varName');
     var time = this.get(varName);
 
@@ -15,7 +29,7 @@ var AddDelta = Behavior.define({
       return;
     }
 
-    this.set(varName, time + delta);
+    this.set(varName, time + builtDelta);
   },
 
   onMessage: function(eventName, data) {
@@ -24,5 +38,3 @@ var AddDelta = Behavior.define({
     }
   }
 });
-
-export default = AddDelta;
