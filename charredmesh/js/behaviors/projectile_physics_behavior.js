@@ -1,20 +1,18 @@
 import { THREE } from 'three';
 import Behavior from '../core/behavior';
 
-var ProjectilePhysicsBehavior = Behavior.define({
+export default = Behavior.define({
   initialize: function ProjectilePhysicsBehavior() {
     this.gravity = new THREE.Vector3(0, -20, 0);
     this.wind = new THREE.Vector3(0, 0, 0);
     this.alive = true;
   },
 
-  onMessage: function(eventName, data) {
-    if (eventName === 'tick') {
-      this.tick(data);
-    }
+  events: {
+    'tick': 'onTick'
   },
 
-  tick: function(delta) {
+  onTick: function(delta) {
     if (!this.alive) { return; }
 
     var velocity = new THREE.Vector3().fromArray(this.get('velocity'));
@@ -54,5 +52,3 @@ var ProjectilePhysicsBehavior = Behavior.define({
     }
   }
 });
-
-export default = ProjectilePhysicsBehavior;

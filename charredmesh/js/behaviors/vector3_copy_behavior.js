@@ -3,7 +3,7 @@ import { proxyMethodsTo, capitalize } from '../utils';
 import { _ } from 'underscore';
 import { THREE } from 'three';
 
-var Vector3Copy = Behavior.define({
+export default = Behavior.define({
   initialize: function Vector3Copy() {
     this.setupProxyMethods(this.getOption('keys'));
   },
@@ -35,5 +35,3 @@ var Vector3Copy = Behavior.define({
     }
   }
 });
-
-export default = Vector3Copy;

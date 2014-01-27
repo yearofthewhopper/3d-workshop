@@ -7,7 +7,11 @@ export default = Behavior.define({
     this.deltaBuffer = 0.0;
   },
 
-  tick: function(delta) {
+  events: {
+    'tick': 'onTick'
+  },
+
+  onTick: function(delta) {
     this.deltaBuffer += delta;
 
     if (this.deltaBuffer < this.frequency) {
@@ -30,11 +34,5 @@ export default = Behavior.define({
     }
 
     this.set(varName, time + builtDelta);
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === 'tick') {
-      this.tick(data);
-    }
   }
 });

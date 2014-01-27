@@ -10,7 +10,7 @@ var FIRING_STATE = {
   FIRING: 3
 };
 
-var PlayerInputBehavior = Behavior.define({
+export default = Behavior.define({
   initialize: function PlayerInputBehavior() {
     this.currentTime = 0;
 
@@ -30,17 +30,16 @@ var PlayerInputBehavior = Behavior.define({
     };
   },
 
-  onMessage: function(eventName, data) {
-    if (eventName === 'playerInput') {
-      this.onInput(data.eventName, data.state);
-    } else if (eventName === 'tick') {
-      this.onTick(data);
-    } else if (eventName === 'explosion') {
-      this.onExplosion(data);
-    }
+  events: {
+    'playerInput': 'onInput',
+    'tick':        'onTick',
+    'explosion':   'onExplosion'
   },
 
-  onInput: function(eventName, state) {
+  onInput: function(data) {
+    var eventName = data.eventName;
+    var state = data.state;
+
     this.input[eventName] = state;
 
     if (this.get('alive') && (eventName === 'fire')) {
@@ -104,5 +103,3 @@ var PlayerInputBehavior = Behavior.define({
     }
   }
 });
-
-export default = PlayerInputBehavior;

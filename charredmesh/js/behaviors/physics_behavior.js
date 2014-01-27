@@ -1,6 +1,6 @@
 import Behavior from '../core/behavior';
 
-var PhysicsBehavior = Behavior.define({
+export default = Behavior.define({
   initialize: function PhysicsBehavior() {
     var forces = this.get('forces');
     if (forces) {
@@ -13,13 +13,11 @@ var PhysicsBehavior = Behavior.define({
     }
   },
 
-  onMessage: function(eventName, data) {
-    if (eventName === 'tick') {
-      this.tick(data);
-    }
+  events: {
+    'tick': 'onTick'
   },
 
-  tick: function(delta) {
+  onTick: function(delta) {
     var position = new THREE.Vector3().fromArray(this.get('position'));
     
     var groundHeight = terrain.getGroundHeight(position.x, position.z);
@@ -65,5 +63,3 @@ var PhysicsBehavior = Behavior.define({
     }
   }
 });
-
-export default = PhysicsBehavior;

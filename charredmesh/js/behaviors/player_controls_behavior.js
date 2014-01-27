@@ -27,21 +27,14 @@ EVENTMAP[KEYBOARD.DOWN]  = 'down';
 EVENTMAP[KEYBOARD.RIGHT] = 'turretRight';
 EVENTMAP[KEYBOARD.LEFT]  = 'turretLeft';
 
-var PlayerControlsBehavior = Behavior.define({
-  initialize: function PlayerControlsBehavior() {
+export default = Behavior.define({
+  events: {
+    'inputChange': 'onInputChange'
   },
 
-  onMessage: function(eventName, data) {
-    if (eventName === 'inputChange') {
-      this.onInputChange(data.code, data.state);
-    }
-  },
-
-  onInputChange: function(code, state) {
-    var eventName = EVENTMAP[code];
-    socket.emit('playerInput', { eventName: eventName, state: state });
-    // this.trigger('inputChange', [{ eventName: eventName, state: state }]);
+  onInputChange: function(data) {
+    var eventName = EVENTMAP[data.code];
+    socket.emit('playerInput', { eventName: eventName, state: data.state });
+    // this.trigger('inputChange', [{ eventName: data.code, state: data.state }]);
   }
 });
-
-export default = PlayerControlsBehavior;

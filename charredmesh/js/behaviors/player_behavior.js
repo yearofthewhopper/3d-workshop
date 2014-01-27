@@ -10,24 +10,21 @@ var forwardDelta    = 120;
 var turretMax       = Math.PI * 0.5;
 var turretMin       = 0;
 
-var PlayerBehavior = Behavior.define({
+export default = Behavior.define({
   initialize: function PlayerBehavior() {
     this.input = {};
   },
 
-  onMessage: function(eventName, data) {
-    if (eventName === 'tick') {
-      this.tick(data);
-    } else if (eventName === 'inputUpdated') {
-      this.updateInput(data);
-    }
+  events: {
+    'tick': 'onTick',
+    'inputUpdated': 'updateInput'
   },
 
   updateInput: function(input) {
     this.input = input;
   },
 
-  tick: function(delta) {
+  onTick: function(delta) {
     this.checkHealth(delta);
 
     if (this.get('alive')) {
@@ -205,5 +202,3 @@ var PlayerBehavior = Behavior.define({
     ]);
   }
 });
-
-export default = PlayerBehavior;

@@ -23,6 +23,17 @@ Behavior.prototype.disable = function() {
   this.destroy();
 };
 
+Behavior.prototype.receivedMessage = function(eventName, data) {
+  this.onMessage(eventName, data);
+
+  var events = this.constructor.eventMap;
+  for (var key in events) {
+    if (events.hasOwnProperty(key) && (eventName === key)) {
+      this[events[key]](data);
+    }
+  }
+};
+
 Behavior.prototype.onMessage = function(eventName, data) {
 };
 
@@ -44,7 +55,14 @@ Behavior.define = function(details) {
   var constructor = details.initialize || function() {};
   // delete details.initialize;
 
-  return defineWrapper(Behavior, constructor, details);
+  var events = details.events || {};
+  delete details.events;
+
+  var klass = defineWrapper(Behavior, constructor, details);
+
+  klass.eventMap = events;
+
+  return klass;
 };
 
 export default = Behavior;

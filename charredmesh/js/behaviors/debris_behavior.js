@@ -1,7 +1,13 @@
 import Behavior from '../core/behavior';
 import Debris from '../entities/debris';
 
-var DebrisBehavior = Behavior.define({
+export default = Behavior.define({
+  onMessage: function(eventName, data) {
+    if (eventName === this.getOption('executeOn')) {
+      this.execute(data);
+    }
+  },
+
   execute: function() {
     var pos = this.getOption('position');
 
@@ -13,13 +19,5 @@ var DebrisBehavior = Behavior.define({
         randomSize: Math.random()
       }));
     }
-  },
-
-  onMessage: function(eventName, data) {
-    if (eventName === this.getOption('executeOn')) {
-      this.execute(data);
-    }
   }
 });
-
-export default = DebrisBehavior;
