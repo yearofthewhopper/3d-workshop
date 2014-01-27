@@ -1,4 +1,4 @@
-var KeyboardHandler = function(changeCallback) {
+export default = function(changeCallback) {
 
 	var _callback = (typeof(changeCallback) == "function") ? changeCallback : function() {};
 
@@ -32,5 +32,3 @@ var KeyboardHandler = function(changeCallback) {
 		}
 	}
 };
-
-export default = KeyboardHandler;

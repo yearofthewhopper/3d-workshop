@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var SmokeRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function SmokeRenderer() {
     if (!SmokeRendererGlobal.particleGroup) {
       SmokeRendererGlobal.prepareGlobalParticleGroup();
@@ -65,5 +65,3 @@ SmokeRendererGlobal.prepareGlobalParticleGroup = function() {
 
   onFrame();
 };
-
-export default = SmokeRenderer;

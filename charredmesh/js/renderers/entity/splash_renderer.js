@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var SplashRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function SplashRenderer() {
     var splashMaterial = new THREE.MeshLambertMaterial({
       map: THREE.ImageUtils.loadTexture("textures/splash.png"),
@@ -37,5 +37,3 @@ var SplashRenderer = Renderer.define({
     this.mesh = null;
   }
 });
-
-export default = SplashRenderer;

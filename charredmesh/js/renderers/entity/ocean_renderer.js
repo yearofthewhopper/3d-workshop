@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var OceanRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function OceanRenderer() {
     var oceanGeom = new THREE.PlaneGeometry(16384*10, 16384*10, 28, 28);
 
@@ -47,5 +47,3 @@ var OceanRenderer = Renderer.define({
     this.oceanUniforms.time.value += 0.01;
   }
 });
-
-export default = OceanRenderer;

@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var ProjectileRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function ProjectileRenderer() {
     var projectilematerial = new THREE.MeshLambertMaterial({
       color: this.getOption('color'),
@@ -34,5 +34,3 @@ var ProjectileRenderer = Renderer.define({
     this.mesh = null;
   }
 });
-
-export default = ProjectileRenderer;

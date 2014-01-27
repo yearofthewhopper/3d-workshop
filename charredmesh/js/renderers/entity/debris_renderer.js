@@ -9,7 +9,7 @@ objLoader2.addEventListener( 'load', function ( event ) {
 });
 objLoader2.load("models/debris0.obj");
 
-var DebrisRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function DebrisRenderer() {
     var debrisMaterial = new THREE.MeshLambertMaterial({
       color: new THREE.Color(0xffffff).offsetHSL(Math.random() * -0.125, (Math.random() - 0.5) * 0.125, 0),
@@ -41,5 +41,3 @@ var DebrisRenderer = Renderer.define({
     this.mesh = null;
   }
 });
-
-export default = DebrisRenderer;

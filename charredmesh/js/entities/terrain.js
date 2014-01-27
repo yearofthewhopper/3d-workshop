@@ -1,7 +1,7 @@
 import Entity from 'core/entity';
 import { Util } from 'utils';
 
-var Terrain = Entity.define({
+export default = Entity.define({
   initialize: function Terrain() {
     $.ajax("/terrain-all", {
       success: function(data){
@@ -68,5 +68,3 @@ var Terrain = Entity.define({
     //console.log("Terrain change: " + (w*h));
   }
 });
-
-export default = Terrain;

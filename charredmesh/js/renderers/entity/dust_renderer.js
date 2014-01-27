@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var DustRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function DustRenderer() {
     if (!DustRendererGlobal.particleGroup) {
       DustRendererGlobal.prepareGlobalParticleGroup();
@@ -63,5 +63,3 @@ DustRendererGlobal.prepareGlobalParticleGroup = function() {
 
   onFrame();
 };
-
-export default = DustRenderer;

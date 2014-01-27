@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var PlaySound = Renderer.define({
+export default = Renderer.define({
   execute: function() {
     var vec = new THREE.Vector3().fromArray(this.getOption('position'));
 
@@ -10,5 +10,3 @@ var PlaySound = Renderer.define({
     );
   }
 });
-
-export default = PlaySound;

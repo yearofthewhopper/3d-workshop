@@ -22,7 +22,6 @@ world.add(new Sun({ time: 0 }));
 
 var wind            = new THREE.Vector3(0, 0, 0);
 var maxHealth       = 100;
-var maxDamage       = 50;
 var minEarthLevel   = 0;
 
 var animalNames = nameData.animals;

@@ -2,12 +2,12 @@ import Entity from '../core/entity';
 import PhysicsBehavior from '../behaviors/physics_behavior';
 import AddDelta from '../behaviors/add_delta_behavior';
 import Splash from '../entities/splash';
-import { entity, ref } from '../core/game';
+import { property, ref } from '../core/game';
 
-var Debris = Entity.define({
+export default = Entity.define({
   behaviors: [
     [PhysicsBehavior, { aboveWater: ref('isAboveWater') }],
-    [AddDelta,        { varName: 'time', max: entity('lifeSpan'), eventName: 'removeDebris' }]
+    [AddDelta,        { varName: 'time', max: property('lifeSpan'), eventName: 'removeDebris' }]
   ],
 
   initialize: function Debris() {
@@ -67,5 +67,3 @@ var Debris = Entity.define({
     }
   }
 });
-
-export default = Debris;

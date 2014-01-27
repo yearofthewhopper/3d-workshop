@@ -1,4 +1,4 @@
-import { entity, ref } from 'core/game';
+import { property, ref } from 'core/game';
 import World from 'core/world';
 import WorldRenderer from 'core/world_renderer';
 import NetworkClient from 'core/network/network_client';
@@ -125,21 +125,21 @@ function init(){
     checkReadyState();
   });
 
-  worldRenderer.onEntity(Debris, DebrisRenderer, { position: entity('position'), size: ref('size'), life: ref('life') });
+  worldRenderer.onEntity(Debris, DebrisRenderer, { position: property('position'), size: ref('size'), life: ref('life') });
 
-  worldRenderer.onEntity(Explosion, PlaySound,         { soundName: 'explosion', onEvent: 'didInitialize', position: entity('position') });
-  worldRenderer.onEntity(Explosion, ExplosionRenderer, { position: entity('position'), color: entity('color') });
+  worldRenderer.onEntity(Explosion, PlaySound,         { soundName: 'explosion', onEvent: 'didInitialize', position: property('position') });
+  worldRenderer.onEntity(Explosion, ExplosionRenderer, { position: property('position'), color: property('color') });
   
   worldRenderer.onEntity(Player, PlayerRenderer,  {});
-  worldRenderer.onEntity(Player, DustRenderer,    { position: entity('position') }, entity('driving'));
+  worldRenderer.onEntity(Player, DustRenderer,    { position: property('position') }, property('driving'));
   worldRenderer.onEntity(Player, OverlayRenderer, {});
 
-  worldRenderer.onEntity(Projectile, ProjectileRenderer, { position: entity('position'), color: ref('color') });
-  worldRenderer.onEntity(Projectile, PlaySound,          { soundName: 'fire', onEvent: 'didInitialize', position: entity('position') });
-  worldRenderer.onEntity(Projectile, SmokeRenderer,      { position: entity('position') });
+  worldRenderer.onEntity(Projectile, ProjectileRenderer, { position: property('position'), color: ref('color') });
+  worldRenderer.onEntity(Projectile, PlaySound,          { soundName: 'fire', onEvent: 'didInitialize', position: property('position') });
+  worldRenderer.onEntity(Projectile, SmokeRenderer,      { position: property('position') });
 
-  worldRenderer.onEntity(Splash, PlaySound,      { soundName: 'splash', onEvent: 'didInitialize', position: entity('position') });
-  worldRenderer.onEntity(Splash, SplashRenderer, { position: entity('position') });
+  worldRenderer.onEntity(Splash, PlaySound,      { soundName: 'splash', onEvent: 'didInitialize', position: property('position') });
+  worldRenderer.onEntity(Splash, SplashRenderer, { position: property('position') });
   
   worldRenderer.onEntity(Sun, SunRenderer, {});
 

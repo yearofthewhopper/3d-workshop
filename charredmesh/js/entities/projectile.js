@@ -1,7 +1,7 @@
 import Entity from '../core/entity';
 import DebrisBehavior from '../behaviors/debris_behavior';
 import ProjectilePhysicsBehavior from '../behaviors/projectile_physics_behavior';
-import { entity } from '../core/game';
+import { property } from '../core/game';
 
 // Define an entity.
 export default = Entity.define({
@@ -14,7 +14,7 @@ export default = Entity.define({
   // List of per-instance behaviors to additional functionality to the entity.
   behaviors: [
     [ProjectilePhysicsBehavior, { collisionEvent: global.isNode ? 'causeExplosion' : 'makeDebris' }],
-    [DebrisBehavior,            { position: entity('position'), executeOn: 'makeDebris' }]
+    [DebrisBehavior,            { position: property('position'), executeOn: 'makeDebris' }]
   ],
 
   // Map eventNames to local functions.

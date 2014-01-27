@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var OverlayRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function OverlayRenderer() {
     if (this.getWorld().get('currentPlayerId') === this.get('id')) { return; }
 
@@ -54,5 +54,3 @@ var OverlayRenderer = Renderer.define({
     }
   }
 });
-
-export default = OverlayRenderer;

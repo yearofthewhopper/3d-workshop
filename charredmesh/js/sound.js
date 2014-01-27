@@ -113,7 +113,7 @@ function init(onReady) {
 	//globalGain.gain.value = 0;
 }
 
-var SoundEngine = {
+export default = {
 
 	initialize : function(onReady){
 		init(onReady);
@@ -202,5 +202,3 @@ var SoundEngine = {
 		}
 	}
 }
-
-export default = SoundEngine;

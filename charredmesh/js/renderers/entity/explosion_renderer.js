@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var ExplosionRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function ExplosionRenderer() {
     var explosionmaterial = new THREE.MeshBasicMaterial({
       color: this.getOption('color'),
@@ -37,5 +37,3 @@ var ExplosionRenderer = Renderer.define({
     this.mesh = null;
   }
 });
-
-export default = ExplosionRenderer;

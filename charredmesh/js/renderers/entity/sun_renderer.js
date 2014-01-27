@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var SunRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function SunRenderer() {
     var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
     
@@ -35,5 +35,3 @@ var SunRenderer = Renderer.define({
     this.sunUniforms.position.value = this.mesh.position;
   }
 });
-
-export default = SunRenderer;

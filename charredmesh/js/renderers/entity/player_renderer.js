@@ -1,6 +1,6 @@
 import Renderer from '../../core/renderer';
 
-var PlayerRenderer = Renderer.define({
+export default = Renderer.define({
   initialize: function PlayerRenderer() {
     var position = new THREE.Vector3().fromArray(this.get('position'));
     var rotation = this.get('rotation');
@@ -109,5 +109,3 @@ var PlayerRenderer = Renderer.define({
     this.barrel = null;
   }
 });
-
-export default = PlayerRenderer;

@@ -1,4 +1,4 @@
-var names = { colors : {
+export default = { colors : {
   "Gold": "#FFD700",
   "Turquoise": "#40E0D0",
   "Seashell": "#FFF5EE",
@@ -294,5 +294,3 @@ var names = { colors : {
   "Flamingo",
   "Mallard"]
 };
-
-export default = names;

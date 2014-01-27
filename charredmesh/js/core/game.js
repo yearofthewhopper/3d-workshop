@@ -6,7 +6,7 @@ function inherits(childCtor, parentCtor) {
   childCtor.prototype.constructor = childCtor;
 };
 
-function entity(varName) {
+function property(varName) {
   return function() {
     return this.entity.get(varName);
   }
@@ -66,4 +66,4 @@ function defineClass(base, details) {
   return wrapped;
 };
 
-export { inherits, entity, ref, defineWrapper, defineClass };
+export { inherits, property, ref, defineWrapper, defineClass };
